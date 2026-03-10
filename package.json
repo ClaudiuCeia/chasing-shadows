@@ -1,0 +1,18 @@
+{
+  "name": "chasing_shadow",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun --watch index.html"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@claudiu-ceia/tick": "^0.1.11"
+  }
+}

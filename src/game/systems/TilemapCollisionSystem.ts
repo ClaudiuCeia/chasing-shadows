@@ -1,0 +1,146 @@
+import {
+  PhysicsBodyComponent,
+  SystemPhase,
+  SystemTickMode,
+  TransformComponent,
+  Vector2D,
+  type System,
+} from "@claudiu-ceia/tick";
+import { PlayerEntity } from "../entities/PlayerEntity.ts";
+import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
+
+export type TilemapCollisionSystemOptions = {
+  playerRadius: number;
+  tileHalfExtent?: number;
+  iterations?: number;
+};
+
+const EPSILON = 1e-8;
+
+const clamp = (value: number, min: number, max: number): number =>
+  Math.max(min, Math.min(max, value));
+
+export class TilemapCollisionSystem implements System {
+  public readonly phase = SystemPhase.Collision;
+  public readonly tickMode = SystemTickMode.Fixed;
+
+  private readonly playerRadius: number;
+  private readonly tileHalfExtent: number;
+  private readonly iterations: number;
+
+  public constructor(
+    private readonly map: InfiniteTilemap,
+    private readonly player: PlayerEntity,
+    options: TilemapCollisionSystemOptions,
+  ) {
+    this.playerRadius = Math.max(0.05, options.playerRadius);
+    this.tileHalfExtent = Math.max(0.1, options.tileHalfExtent ?? 0.5);
+    this.iterations = Math.max(1, Math.floor(options.iterations ?? 4));
+  }
+
+  public update(): void {
+    const transform = this.player.getComponent(TransformComponent);
+    const body = this.player.getComponent(PhysicsBodyComponent);
+    const position = transform.transform.position.clone();
+    const totalCorrection = Vector2D.zero;
+
+    let hadCollision = false;
+
+    for (let i = 0; i < this.iterations; i++) {
+      const correction = this.resolvePass(position);
+      if (correction.magnitude <= EPSILON) {
+        break;
+      }
+
+      hadCollision = true;
+      position.x += correction.x;
+      position.y += correction.y;
+      totalCorrection.x += correction.x;
+      totalCorrection.y += correction.y;
+    }
+
+    if (!hadCollision) {
+      return;
+    }
+
+    transform.setPosition(position);
+
+    const velocity = body.getVelocity();
+    if (totalCorrection.magnitude <= EPSILON) {
+      return;
+    }
+
+    const normal = totalCorrection.normalize();
+    const velocityAlongNormal = velocity.dot(normal);
+    if (velocityAlongNormal < 0) {
+      const adjusted = velocity.subtract(normal.multiply(velocityAlongNormal));
+      body.setVelocity(adjusted.magnitude <= EPSILON ? Vector2D.zero : adjusted);
+    }
+  }
+
+  private resolvePass(position: Vector2D): Vector2D {
+    const minX = Math.floor(position.x - this.playerRadius - this.tileHalfExtent);
+    const maxX = Math.floor(position.x + this.playerRadius + this.tileHalfExtent);
+    const minY = Math.floor(position.y - this.playerRadius - this.tileHalfExtent);
+    const maxY = Math.floor(position.y + this.playerRadius + this.tileHalfExtent);
+
+    let best: Vector2D | null = null;
+
+    for (let y = minY; y <= maxY; y++) {
+      for (let x = minX; x <= maxX; x++) {
+        const tile = this.map.getTile(x, y);
+        if (!tile.blocking) {
+          continue;
+        }
+
+        const correction = this.circleVsTileCorrection(position, x, y);
+        if (!correction) {
+          continue;
+        }
+
+        if (!best || correction.magnitude > best.magnitude) {
+          best = correction;
+        }
+      }
+    }
+
+    return best ?? Vector2D.zero;
+  }
+
+  private circleVsTileCorrection(position: Vector2D, tileX: number, tileY: number): Vector2D | null {
+    const minX = tileX - this.tileHalfExtent;
+    const maxX = tileX + this.tileHalfExtent;
+    const minY = tileY - this.tileHalfExtent;
+    const maxY = tileY + this.tileHalfExtent;
+
+    const closestX = clamp(position.x, minX, maxX);
+    const closestY = clamp(position.y, minY, maxY);
+    const dx = position.x - closestX;
+    const dy = position.y - closestY;
+    const distSq = dx * dx + dy * dy;
+    const radiusSq = this.playerRadius * this.playerRadius;
+
+    if (distSq >= radiusSq) {
+      return null;
+    }
+
+    if (distSq > EPSILON) {
+      const dist = Math.sqrt(distSq);
+      const penetration = this.playerRadius - dist;
+      return new Vector2D((dx / dist) * penetration, (dy / dist) * penetration);
+    }
+
+    const tileCenterX = tileX;
+    const tileCenterY = tileY;
+    const axisX = position.x >= tileCenterX ? 1 : -1;
+    const axisY = position.y >= tileCenterY ? 1 : -1;
+    const pushX = this.playerRadius + this.tileHalfExtent - Math.abs(position.x - tileCenterX);
+    const pushY = this.playerRadius + this.tileHalfExtent - Math.abs(position.y - tileCenterY);
+
+    if (pushX < pushY) {
+      return new Vector2D(axisX * pushX, 0);
+    }
+
+    return new Vector2D(0, axisY * pushY);
+  }
+}

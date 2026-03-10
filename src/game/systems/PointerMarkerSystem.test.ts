@@ -1,0 +1,119 @@
+import { beforeEach, describe, expect, test } from "bun:test";
+import {
+  EcsRuntime,
+  Entity,
+  HudInputComponent,
+  type HudInputEvent,
+  HudInputRouter,
+  HudLayoutNodeComponent,
+  Vector2D,
+  resolveHudLayout,
+} from "@claudiu-ceia/tick";
+import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
+import { PlayerTagComponent } from "../components/PlayerTagComponent.ts";
+import { IsometricCameraEntity } from "../render/IsometricCameraEntity.ts";
+import { MarkerState } from "../state/MarkerState.ts";
+import { PointerMarkerSystem } from "./PointerMarkerSystem.ts";
+
+type HandlerMap = Record<string, Array<(event: any) => void>>;
+
+const makeTarget = (handlers: HandlerMap): EventTarget =>
+  ({
+    addEventListener(type: string, fn: EventListenerOrEventListenerObject) {
+      handlers[type] ??= [];
+      handlers[type].push(fn as (event: any) => void);
+    },
+    removeEventListener(type: string, fn: EventListenerOrEventListenerObject) {
+      const list = handlers[type];
+      if (!list) return;
+      const i = list.indexOf(fn as (event: any) => void);
+      if (i !== -1) list.splice(i, 1);
+    },
+  }) as unknown as EventTarget;
+
+const emit = (handlers: HandlerMap, type: string, event: any): void => {
+  for (const fn of handlers[type] ?? []) {
+    fn(event);
+  }
+};
+
+class Node extends Entity {
+  public override update(_dt: number): void {}
+}
+
+class PlayerNode extends Entity {
+  public readonly intent = new MovementIntentComponent();
+
+  public constructor() {
+    super();
+    this.addComponent(new PlayerTagComponent());
+    this.addComponent(this.intent);
+  }
+
+  public override update(_dt: number): void {}
+}
+
+class StopperInput extends HudInputComponent<Node> {
+  protected override onClick(event: HudInputEvent): void {
+    event.stopPropagation();
+  }
+}
+
+beforeEach(() => {
+  EcsRuntime.reset();
+});
+
+describe("PointerMarkerSystem", () => {
+  test("skips world click handling when HUD captures pointer event", () => {
+    const runtime = new EcsRuntime();
+    const handlers: HandlerMap = {};
+    runtime.input.init(makeTarget(handlers));
+
+    const canvas = {
+      width: 100,
+      height: 100,
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }),
+    } as unknown as HTMLCanvasElement;
+
+    const marker = new MarkerState();
+
+    EcsRuntime.runWith(runtime, () => {
+      const camera = new IsometricCameraEntity({ tileWidth: 64, tileHeight: 32 });
+      camera.awake();
+
+      const player = new PlayerNode();
+      player.awake();
+
+      const hudNode = new Node();
+      hudNode.addComponent(new HudLayoutNodeComponent({ width: 100, height: 100 }));
+      hudNode.addComponent(new StopperInput());
+      hudNode.awake();
+
+      resolveHudLayout(runtime, { x: 0, y: 0, width: 100, height: 100 });
+
+      const system = new PointerMarkerSystem(camera, canvas, marker, runtime);
+      system.awake?.();
+
+      emit(handlers, "mousemove", { clientX: 50, clientY: 50, buttons: 0 });
+      emit(handlers, "click", {});
+
+      HudInputRouter.routePointer(runtime, "click", new Vector2D(50, 50), new Vector2D(50, 50), {
+        pointerType: "mouse",
+      });
+
+      system.update();
+      expect(marker.point).toBeNull();
+      expect(player.intent.targetX).toBeNull();
+      expect(player.intent.targetY).toBeNull();
+
+      runtime.input.clearFrame();
+      emit(handlers, "mousemove", { clientX: 50, clientY: 50, buttons: 0 });
+      emit(handlers, "click", {});
+
+      system.update();
+      expect(marker.point).not.toBeNull();
+      expect(player.intent.targetX).not.toBeNull();
+      expect(player.intent.targetY).not.toBeNull();
+    });
+  });
+});
