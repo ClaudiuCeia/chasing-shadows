@@ -6,6 +6,8 @@ export const GAME_CONFIG = {
   hudReferenceHeight: 1080,
   tileWidth: 128,
   tileHeight: 64,
+  elevationStepPixels: 24,
+  maxTerrainElevation: 6,
   chunkSize: 16,
   chunkRadius: 2,
   playerBaseSpeed: 4.2,
@@ -14,8 +16,8 @@ export const GAME_CONFIG = {
   lootBoxInteractRange: 1.35,
   lootBoxClickRange: 0.65,
   lootBoxSpawnChance: 0.0025,
-  maxStepUpHeight: 0.75,
-  maxStepDownHeight: 1.5,
+  maxStepUpHeight: 1,
+  maxStepDownHeight: 1,
 } as const;
 
 export const STORAGE_KEYS = {

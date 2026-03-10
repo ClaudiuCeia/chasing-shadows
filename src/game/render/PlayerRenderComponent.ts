@@ -47,6 +47,7 @@ export class PlayerRenderComponent extends IsometricRenderableComponent {
 
   public constructor() {
     super();
+    this.sortOffset = 0.5;
 
     if (typeof Image === "undefined") {
       return;

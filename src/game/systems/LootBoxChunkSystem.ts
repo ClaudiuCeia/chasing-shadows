@@ -39,6 +39,7 @@ export class LootBoxChunkSystem implements System {
 
     for (const [key, entity] of this.active.entries()) {
       const tile = entity.tile;
+      entity.tile.z = this.map.getTile(tile.x, tile.y).elevation;
       const box = this.lootField.getBoxAt(tile.x, tile.y, this.map);
       if (!box) {
         entity.destroy();
@@ -80,14 +81,16 @@ export class LootBoxChunkSystem implements System {
             desired.add(key);
 
             const existing = this.active.get(key);
+            const tileElevation = this.map.getTile(worldX, worldY).elevation;
             if (existing) {
+              existing.tile.z = tileElevation;
               if (existing.sprite.spriteIndex !== box.spriteIndex) {
                 existing.sprite.setSpriteIndex(box.spriteIndex);
               }
               continue;
             }
 
-            const entity = new LootBoxEntity(worldX, worldY, box.spriteIndex);
+            const entity = new LootBoxEntity(worldX, worldY, box.spriteIndex, tileElevation);
             entity.awake();
             this.active.set(key, entity);
           }

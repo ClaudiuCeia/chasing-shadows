@@ -20,7 +20,11 @@ beforeEach(() => {
 describe("TilemapCollisionSystem", () => {
   test("prevents crossing blocking rock tiles", () => {
     const map = new InfiniteTilemap({ seed: 10, chunkSize: 16 });
-    map.setTile(1, 0, "rock");
+    map.setTileData(1, 0, {
+      ...createTileData("rock"),
+      blocking: true,
+      occluder: true,
+    });
 
     const world = new World({ fixedDeltaTime: 1 / 60 });
     world.addSystem(new TopDownControllerSystem({ isoConfig: { tileWidth: 128, tileHeight: 64 } }));
@@ -65,7 +69,11 @@ describe("TilemapCollisionSystem", () => {
 
   test("preserves tangential velocity when colliding", () => {
     const map = new InfiniteTilemap({ seed: 33, chunkSize: 16 });
-    map.setTile(1, 0, "rock");
+    map.setTileData(1, 0, {
+      ...createTileData("rock"),
+      blocking: true,
+      occluder: true,
+    });
 
     const world = new World({ fixedDeltaTime: 1 / 60 });
     world.addSystem(new PhysicsSystem({ gravity: Vector2D.zero }));
@@ -120,6 +128,11 @@ describe("TilemapCollisionSystem", () => {
       ...createTileData("regolith"),
       elevation: 3,
       occluder: true,
+    });
+    map.setTileData(1, 0, {
+      ...createTileData("regolith"),
+      elevation: 0,
+      occluder: false,
     });
 
     const world = new World({ fixedDeltaTime: 1 / 60 });

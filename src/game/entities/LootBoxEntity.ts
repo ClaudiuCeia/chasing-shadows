@@ -7,9 +7,9 @@ export class LootBoxEntity extends Entity {
   public readonly tile: TilePositionComponent;
   public readonly sprite: LootBoxSpriteComponent;
 
-  public constructor(tileX: number, tileY: number, spriteIndex: number) {
+  public constructor(tileX: number, tileY: number, spriteIndex: number, tileZ = 0) {
     super();
-    this.tile = new TilePositionComponent(tileX, tileY, 0);
+    this.tile = new TilePositionComponent(tileX, tileY, tileZ);
     this.sprite = new LootBoxSpriteComponent(spriteIndex);
 
     this.addComponent(new IsometricRenderNodeComponent());

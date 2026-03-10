@@ -112,7 +112,7 @@ export class LootBoxSpriteComponent extends IsometricRenderableComponent {
     const pointerW = Math.floor(POINTER_SRC_WIDTH * POINTER_SCALE);
     const pointerH = Math.floor(BOX_FRAME_SIZE * POINTER_SCALE);
     const pointerX = Math.floor(screen.x - pointerW / 2);
-    const pointerY = Math.floor(drawY + drawSize * 0.35);
+    const pointerY = Math.floor(drawY + drawSize * 0.16);
 
     ctx.drawImage(
       this.sprites.pointer,

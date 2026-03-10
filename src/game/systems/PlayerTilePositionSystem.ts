@@ -13,7 +13,9 @@ export class PlayerTilePositionSystem implements System {
 
   public update(): void {
     const position = this.player.transform.transform.position;
-    const elevation = this.map.getTile(position.x, position.y).elevation;
+    const tileX = Math.round(position.x);
+    const tileY = Math.round(position.y);
+    const elevation = this.map.getTile(tileX, tileY).elevation;
     this.player.tilePosition.set(position.x, position.y, elevation);
   }
 }

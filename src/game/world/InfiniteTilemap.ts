@@ -1,5 +1,5 @@
-import { hash2 } from "../../shared/math/hash.ts";
 import { createTileData, type TileData, type TileKind } from "./tile-types.ts";
+import { generateTerrainTile } from "./TerrainGenerator.ts";
 
 export type TileDelta = {
   x: number;
@@ -19,22 +19,6 @@ export type ChunkData = {
   chunkX: number;
   chunkY: number;
   tiles: TileData[];
-};
-
-const tileFromNoise = (noise: number): TileData => {
-  if (noise < 0.045) {
-    return createTileData("rock");
-  }
-
-  if (noise < 0.11) {
-    return createTileData("shelter");
-  }
-
-  if (noise < 0.25) {
-    return createTileData("scrap");
-  }
-
-  return createTileData("regolith");
 };
 
 const tileKey = (x: number, y: number): string => `${x}:${y}`;
@@ -106,8 +90,7 @@ export class InfiniteTilemap {
       for (let x = 0; x < this.chunkSize; x++) {
         const worldX = chunkX * this.chunkSize + x;
         const worldY = chunkY * this.chunkSize + y;
-        const noise = hash2(worldX, worldY, this.seed);
-        tiles.push(tileFromNoise(noise));
+        tiles.push(generateTerrainTile(worldX, worldY, this.seed));
       }
     }
 

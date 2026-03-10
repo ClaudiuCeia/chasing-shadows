@@ -1,4 +1,5 @@
 import { RenderComponent, RenderLayer, Vector2D, type ICamera } from "@claudiu-ceia/tick";
+import { IsometricCameraEntity } from "./IsometricCameraEntity.ts";
 import { MarkerState } from "../state/MarkerState.ts";
 
 export class WorldMarkerRenderComponent extends RenderComponent {
@@ -17,7 +18,10 @@ export class WorldMarkerRenderComponent extends RenderComponent {
   ): void {
     if (!this.marker.point) return;
 
-    const point = camera.toCanvas(this.marker.point, canvasSize);
+    const point =
+      camera instanceof IsometricCameraEntity
+        ? camera.toCanvasAt(this.marker.point, this.marker.elevation, canvasSize)
+        : camera.toCanvas(this.marker.point, canvasSize);
     ctx.strokeStyle = "#f7d36b";
     ctx.lineWidth = 2;
     ctx.beginPath();

@@ -24,6 +24,11 @@ const clientToCanvas = (point: Vector2D, canvas: HTMLCanvasElement): Vector2D =>
   );
 };
 
+type ResolvedPointerWorldPoint = {
+  world: Vector2D;
+  elevation: number;
+};
+
 export class PointerMarkerSystem implements System {
   public readonly phase = SystemPhase.Simulation;
   public readonly tickMode = SystemTickMode.Frame;
@@ -36,7 +41,12 @@ export class PointerMarkerSystem implements System {
     private readonly canvas: HTMLCanvasElement,
     private readonly marker: MarkerState,
     runtime: EcsRuntime = EcsRuntime.getCurrent(),
-    private readonly onWorldClick?: (worldPoint: Vector2D) => boolean,
+    private readonly onWorldClick?: (
+      worldPoint: Vector2D,
+      canvasPoint: Vector2D,
+      elevation: number,
+    ) => boolean,
+    private readonly resolveWorldPoint?: (canvasPoint: Vector2D) => ResolvedPointerWorldPoint,
   ) {
     this.runtime = runtime;
   }
@@ -63,19 +73,24 @@ export class PointerMarkerSystem implements System {
       canvasPoint,
       new Vector2D(this.canvas.width, this.canvas.height),
     );
+    const resolved = this.resolveWorldPoint?.(canvasPoint) ?? {
+      world,
+      elevation: 0,
+    };
 
-    if (this.onWorldClick?.(world)) {
+    if (this.onWorldClick?.(resolved.world, canvasPoint, resolved.elevation)) {
       return;
     }
 
-    this.marker.point = world;
+    this.marker.point = resolved.world;
+    this.marker.elevation = resolved.elevation;
 
     if (!this.query) {
       return;
     }
 
     for (const entity of this.query.run()) {
-      entity.getComponent(MovementIntentComponent).setMoveTarget(world.x, world.y);
+      entity.getComponent(MovementIntentComponent).setMoveTarget(resolved.world.x, resolved.world.y);
     }
   }
 }

@@ -241,14 +241,45 @@ export const bootstrapGame = (): void => {
     }
   };
 
-  const onWorldClick = (worldPoint: Vector2D): boolean => {
-    const hit = lootField.findNearestBox(
-      worldPoint.x,
-      worldPoint.y,
-      GAME_CONFIG.lootBoxClickRange,
-      map,
-    );
+  const resolvePointerWorldPoint = (canvasPoint: Vector2D): { world: Vector2D; elevation: number } => {
+    const canvasSize = new Vector2D(canvas.width, canvas.height);
+
+    for (let elevation = GAME_CONFIG.maxTerrainElevation; elevation >= 0; elevation--) {
+      const candidateWorld = camera.canvasToWorldAt(canvasPoint, elevation, canvasSize);
+      const tileX = Math.round(candidateWorld.x);
+      const tileY = Math.round(candidateWorld.y);
+      if (map.getTile(tileX, tileY).elevation !== elevation) {
+        continue;
+      }
+
+      return {
+        world: candidateWorld,
+        elevation,
+      };
+    }
+
+    const fallbackWorld = camera.canvasToWorld(canvasPoint, canvasSize);
+    const fallbackElevation = map.getTile(fallbackWorld.x, fallbackWorld.y).elevation;
+    return {
+      world: fallbackWorld,
+      elevation: fallbackElevation,
+    };
+  };
+
+  const onWorldClick = (worldPoint: Vector2D, _canvasPoint: Vector2D, elevation: number): boolean => {
+    const tileX = Math.round(worldPoint.x);
+    const tileY = Math.round(worldPoint.y);
+    if (map.getTile(tileX, tileY).elevation === elevation && lootField.getBoxAt(tileX, tileY, map)) {
+      lootUi.open(tileX, tileY);
+      return true;
+    }
+
+    const hit = lootField.findNearestBox(worldPoint.x, worldPoint.y, GAME_CONFIG.lootBoxClickRange, map);
     if (!hit) {
+      return false;
+    }
+
+    if (map.getTile(hit.x, hit.y).elevation !== elevation) {
       return false;
     }
 
@@ -263,7 +294,7 @@ export const bootstrapGame = (): void => {
     camera = new IsometricCameraEntity({
       tileWidth: GAME_CONFIG.tileWidth,
       tileHeight: GAME_CONFIG.tileHeight,
-    });
+    }, GAME_CONFIG.elevationStepPixels);
     camera.awake();
 
     player = new PlayerEntity(new Vector2D(0, 0), GAME_CONFIG.playerBaseSpeed);
@@ -282,7 +313,16 @@ export const bootstrapGame = (): void => {
         GAME_CONFIG.tileWidth,
         GAME_CONFIG.tileHeight,
         {
-          isSelectedAt: (x, y) => lootUi.openBox?.x === x && lootUi.openBox?.y === y,
+          isSelectedAt: (x, y, z) => {
+            const open = lootUi.openBox;
+            if (!open || open.x !== x || open.y !== y) {
+              return false;
+            }
+
+            return map.getTile(open.x, open.y).elevation === z;
+          },
+          maxTerrainElevation: GAME_CONFIG.maxTerrainElevation,
+          southCullingPadding: 6,
         },
         runtime,
       ),
@@ -339,7 +379,16 @@ export const bootstrapGame = (): void => {
       runtime,
     ),
   );
-  world.addSystem(new PointerMarkerSystem(camera, canvas, markerState, runtime, onWorldClick));
+  world.addSystem(
+    new PointerMarkerSystem(
+      camera,
+      canvas,
+      markerState,
+      runtime,
+      onWorldClick,
+      resolvePointerWorldPoint,
+    ),
+  );
   world.addSystem(
     new TopDownControllerSystem(
       {
