@@ -10,6 +10,12 @@ export const GAME_CONFIG = {
   chunkRadius: 2,
   playerBaseSpeed: 4.2,
   autosaveIntervalSeconds: 10,
+  inventorySlots: 8,
+  lootBoxInteractRange: 1.35,
+  lootBoxClickRange: 0.65,
+  lootBoxSpawnChance: 0.0025,
+  maxStepUpHeight: 0.75,
+  maxStepDownHeight: 1.5,
 } as const;
 
 export const STORAGE_KEYS = {

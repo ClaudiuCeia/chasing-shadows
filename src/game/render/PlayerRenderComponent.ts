@@ -1,11 +1,8 @@
 import {
   PhysicsBodyComponent,
-  RenderComponent,
-  RenderLayer,
-  TransformComponent,
   Vector2D,
-  type ICamera,
 } from "@claudiu-ceia/tick";
+import { IsometricRenderableComponent } from "../components/IsometricRenderableComponent.ts";
 import { GAME_CONFIG } from "../config/game-config.ts";
 import { worldToIso } from "../../shared/math/iso.ts";
 import { screenVectorToDirectionIndex } from "./player-sprite-math.ts";
@@ -38,7 +35,7 @@ const loadImage = (src: string): Promise<HTMLImageElement> =>
     image.src = src;
   });
 
-export class PlayerRenderComponent extends RenderComponent {
+export class PlayerRenderComponent extends IsometricRenderableComponent {
   private static sheetsPromise: Promise<PlayerSheets> | null = null;
 
   private sheets: PlayerSheets | null = null;
@@ -49,7 +46,11 @@ export class PlayerRenderComponent extends RenderComponent {
   private lastMode: "idle" | "walk" = "idle";
 
   public constructor() {
-    super(RenderLayer.World);
+    super();
+
+    if (typeof Image === "undefined") {
+      return;
+    }
 
     if (!PlayerRenderComponent.sheetsPromise) {
       PlayerRenderComponent.sheetsPromise = Promise.all([
@@ -67,18 +68,11 @@ export class PlayerRenderComponent extends RenderComponent {
       });
   }
 
-  public override isVisible(_camera: ICamera): boolean {
-    return true;
-  }
-
-  public override doRender(
+  public override renderIsometric(
     ctx: CanvasRenderingContext2D,
-    camera: ICamera,
-    canvasSize: Vector2D,
+    screen: Vector2D,
+    _isSelected: boolean,
   ): void {
-    const position = this.ent.getComponent(TransformComponent).transform.position;
-    const p = camera.toCanvas(position, canvasSize);
-
     if (!this.sheets) {
       return;
     }
@@ -129,8 +123,8 @@ export class PlayerRenderComponent extends RenderComponent {
 
     const drawWidth = Math.floor(FRAME_SIZE * SPRITE_SCALE);
     const drawHeight = Math.floor(FRAME_SIZE * SPRITE_SCALE);
-    const drawX = Math.floor(p.x - drawWidth / 2);
-    const drawY = Math.floor(p.y - FOOT_ANCHOR_Y * SPRITE_SCALE);
+    const drawX = Math.floor(screen.x - drawWidth / 2);
+    const drawY = Math.floor(screen.y - FOOT_ANCHOR_Y * SPRITE_SCALE);
 
     ctx.drawImage(
       sheet,

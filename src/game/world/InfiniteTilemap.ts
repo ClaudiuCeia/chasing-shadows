@@ -1,10 +1,13 @@
 import { hash2 } from "../../shared/math/hash.ts";
-import type { TileData, TileKind } from "./tile-types.ts";
+import { createTileData, type TileData, type TileKind } from "./tile-types.ts";
 
 export type TileDelta = {
   x: number;
   y: number;
   kind: TileKind;
+  elevation?: number;
+  blocking?: boolean;
+  occluder?: boolean;
 };
 
 export type InfiniteTilemapOptions = {
@@ -20,18 +23,18 @@ export type ChunkData = {
 
 const tileFromNoise = (noise: number): TileData => {
   if (noise < 0.045) {
-    return { kind: "rock", blocking: true };
+    return createTileData("rock");
   }
 
   if (noise < 0.11) {
-    return { kind: "shelter", blocking: false };
+    return createTileData("shelter");
   }
 
   if (noise < 0.25) {
-    return { kind: "scrap", blocking: false };
+    return createTileData("scrap");
   }
 
-  return { kind: "regolith", blocking: false };
+  return createTileData("regolith");
 };
 
 const tileKey = (x: number, y: number): string => `${x}:${y}`;
@@ -71,13 +74,24 @@ export class InfiniteTilemap {
     const localX = ((dx % this.chunkSize) + this.chunkSize) % this.chunkSize;
     const localY = ((dy % this.chunkSize) + this.chunkSize) % this.chunkSize;
     const index = localY * this.chunkSize + localX;
-    return chunk.tiles[index] ?? { kind: "regolith", blocking: false };
+    return chunk.tiles[index] ?? createTileData("regolith");
   }
 
   public setTile(worldX: number, worldY: number, kind: TileKind): void {
     const dx = Math.floor(worldX);
     const dy = Math.floor(worldY);
-    this.deltas.set(tileKey(dx, dy), { kind, blocking: kind === "rock" });
+    this.deltas.set(tileKey(dx, dy), createTileData(kind));
+  }
+
+  public setTileData(worldX: number, worldY: number, tile: TileData): void {
+    const dx = Math.floor(worldX);
+    const dy = Math.floor(worldY);
+    this.deltas.set(tileKey(dx, dy), {
+      kind: tile.kind,
+      blocking: tile.blocking,
+      elevation: tile.elevation,
+      occluder: tile.occluder,
+    });
   }
 
   public getChunk(chunkX: number, chunkY: number): ChunkData {
@@ -110,6 +124,9 @@ export class InfiniteTilemap {
         x: Number(xs),
         y: Number(ys),
         kind: tile.kind,
+        elevation: tile.elevation,
+        blocking: tile.blocking,
+        occluder: tile.occluder,
       });
     }
     return result;
@@ -117,7 +134,13 @@ export class InfiniteTilemap {
 
   public applyDeltas(deltas: readonly TileDelta[]): void {
     for (const delta of deltas) {
-      this.setTile(delta.x, delta.y, delta.kind);
+      const base = createTileData(delta.kind);
+      this.setTileData(delta.x, delta.y, {
+        kind: delta.kind,
+        elevation: delta.elevation ?? base.elevation,
+        blocking: delta.blocking ?? base.blocking,
+        occluder: delta.occluder ?? base.occluder,
+      });
     }
   }
 }

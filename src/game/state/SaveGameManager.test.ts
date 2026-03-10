@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { LOOT_BOX_SLOT_COUNT } from "../world/LootBoxField.ts";
 import { SaveGameManager, type StorageLike } from "./SaveGameManager.ts";
 import type { SaveGameV1 } from "./save-types.ts";
 
@@ -27,6 +28,16 @@ const snapshot: SaveGameV1 = {
   player: { x: 1, y: 2, vx: 3, vy: 4 },
   needs: { hunger: 1, thirst: 2, sickness: 3, heat: 4, cold: 5 },
   mapDeltas: [{ x: 1, y: -2, kind: "shelter" }],
+  inventory: [{ itemId: "wire", count: 3 }, null],
+  lootBoxDeltas: [
+    {
+      x: 4,
+      y: 2,
+      slots: Array.from({ length: LOOT_BOX_SLOT_COUNT }, (_unused, index) =>
+        index === 0 ? { itemId: "ore", count: 2 } : null,
+      ),
+    },
+  ],
 };
 
 describe("SaveGameManager", () => {

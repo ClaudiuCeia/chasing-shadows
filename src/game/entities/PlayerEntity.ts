@@ -8,10 +8,12 @@ import {
   Vector2D,
 } from "@claudiu-ceia/tick";
 import { HealthComponent } from "../components/HealthComponent.ts";
+import { IsometricRenderNodeComponent } from "../components/IsometricRenderNodeComponent.ts";
 import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
 import { NeedsComponent } from "../components/NeedsComponent.ts";
 import { PlayerTagComponent } from "../components/PlayerTagComponent.ts";
 import { TemperatureComponent } from "../components/TemperatureComponent.ts";
+import { TilePositionComponent } from "../components/TilePositionComponent.ts";
 import { TopDownControllerComponent } from "../components/TopDownControllerComponent.ts";
 import { COLLISION_LAYER_OBSTACLE, COLLISION_LAYER_PLAYER } from "../physics/collision-layers.ts";
 
@@ -19,6 +21,7 @@ export class PlayerEntity extends Entity {
   public readonly collisionRadius = 0.2;
 
   public readonly transform: TransformComponent;
+  public readonly tilePosition: TilePositionComponent;
   public readonly body: PhysicsBodyComponent;
   public readonly needs: NeedsComponent;
   public readonly temperature: TemperatureComponent;
@@ -28,6 +31,7 @@ export class PlayerEntity extends Entity {
     super();
 
     this.transform = new TransformComponent({ position: spawn, rotation: 0, scale: 1 });
+    this.tilePosition = new TilePositionComponent(spawn.x, spawn.y, 0);
     this.body = new PhysicsBodyComponent({
       type: PhysicsBodyType.Dynamic,
       gravityScale: 0,
@@ -42,6 +46,8 @@ export class PlayerEntity extends Entity {
     this.health = new HealthComponent();
 
     this.addComponent(this.transform);
+    this.addComponent(new IsometricRenderNodeComponent());
+    this.addComponent(this.tilePosition);
     this.addComponent(new PlayerTagComponent());
     this.addComponent(new MovementIntentComponent());
     this.addComponent(

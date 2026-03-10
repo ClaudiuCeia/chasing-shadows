@@ -1,7 +1,10 @@
 import { STORAGE_KEYS } from "../config/game-config.ts";
+import { ITEM_IDS } from "../items/item-catalog.ts";
+import { LOOT_BOX_SLOT_COUNT } from "../world/LootBoxField.ts";
 import type { SaveGameV1 } from "./save-types.ts";
 
 const VALID_TILE_KINDS = new Set(["regolith", "rock", "scrap", "shelter"]);
+const VALID_ITEM_IDS = new Set<string>(ITEM_IDS);
 
 export interface StorageLike {
   getItem(key: string): string | null;
@@ -11,6 +14,26 @@ export interface StorageLike {
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isItemStackOrNull = (value: unknown): boolean => {
+  if (value === null) {
+    return true;
+  }
+
+  if (!isObject(value)) {
+    return false;
+  }
+
+  if (typeof value.itemId !== "string" || !VALID_ITEM_IDS.has(value.itemId)) {
+    return false;
+  }
+
+  if (typeof value.count !== "number" || !Number.isFinite(value.count) || value.count <= 0) {
+    return false;
+  }
+
+  return true;
+};
 
 const isSaveGameV1 = (value: unknown): value is SaveGameV1 => {
   if (!isObject(value)) return false;
@@ -41,6 +64,58 @@ const isSaveGameV1 = (value: unknown): value is SaveGameV1 => {
     if (typeof entry.x !== "number") return false;
     if (typeof entry.y !== "number") return false;
     if (typeof entry.kind !== "string" || !VALID_TILE_KINDS.has(entry.kind)) return false;
+    if (entry.elevation !== undefined) {
+      if (typeof entry.elevation !== "number" || !Number.isFinite(entry.elevation)) {
+        return false;
+      }
+    }
+    if (entry.blocking !== undefined && typeof entry.blocking !== "boolean") {
+      return false;
+    }
+    if (entry.occluder !== undefined && typeof entry.occluder !== "boolean") {
+      return false;
+    }
+  }
+
+  if (value.inventory !== undefined) {
+    if (!Array.isArray(value.inventory)) {
+      return false;
+    }
+
+    for (const entry of value.inventory) {
+      if (!isItemStackOrNull(entry)) {
+        return false;
+      }
+    }
+  }
+
+  if (value.lootBoxDeltas !== undefined) {
+    if (!Array.isArray(value.lootBoxDeltas)) {
+      return false;
+    }
+
+    for (const entry of value.lootBoxDeltas) {
+      if (!isObject(entry)) {
+        return false;
+      }
+      if (typeof entry.x !== "number" || typeof entry.y !== "number") {
+        return false;
+      }
+
+      if (entry.removed === true) {
+        continue;
+      }
+
+      if (!Array.isArray(entry.slots) || entry.slots.length !== LOOT_BOX_SLOT_COUNT) {
+        return false;
+      }
+
+      for (const slot of entry.slots) {
+        if (!isItemStackOrNull(slot)) {
+          return false;
+        }
+      }
+    }
   }
 
   return true;

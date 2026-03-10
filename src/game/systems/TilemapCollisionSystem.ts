@@ -13,6 +13,9 @@ export type TilemapCollisionSystemOptions = {
   playerRadius: number;
   tileHalfExtent?: number;
   iterations?: number;
+  maxStepUp?: number;
+  maxStepDown?: number;
+  isBlockedAt?: (tileX: number, tileY: number) => boolean;
 };
 
 const EPSILON = 1e-8;
@@ -27,6 +30,9 @@ export class TilemapCollisionSystem implements System {
   private readonly playerRadius: number;
   private readonly tileHalfExtent: number;
   private readonly iterations: number;
+  private readonly maxStepUp: number;
+  private readonly maxStepDown: number;
+  private readonly isBlockedAt?: (tileX: number, tileY: number) => boolean;
 
   public constructor(
     private readonly map: InfiniteTilemap,
@@ -36,6 +42,9 @@ export class TilemapCollisionSystem implements System {
     this.playerRadius = Math.max(0.05, options.playerRadius);
     this.tileHalfExtent = Math.max(0.1, options.tileHalfExtent ?? 0.5);
     this.iterations = Math.max(1, Math.floor(options.iterations ?? 4));
+    this.maxStepUp = Math.max(0, options.maxStepUp ?? 0.75);
+    this.maxStepDown = Math.max(0, options.maxStepDown ?? 2);
+    this.isBlockedAt = options.isBlockedAt;
   }
 
   public update(): void {
@@ -79,6 +88,7 @@ export class TilemapCollisionSystem implements System {
   }
 
   private resolvePass(position: Vector2D): Vector2D {
+    const currentElevation = this.map.getTile(position.x, position.y).elevation;
     const minX = Math.floor(position.x - this.playerRadius - this.tileHalfExtent);
     const maxX = Math.floor(position.x + this.playerRadius + this.tileHalfExtent);
     const minY = Math.floor(position.y - this.playerRadius - this.tileHalfExtent);
@@ -89,7 +99,12 @@ export class TilemapCollisionSystem implements System {
     for (let y = minY; y <= maxY; y++) {
       for (let x = minX; x <= maxX; x++) {
         const tile = this.map.getTile(x, y);
-        if (!tile.blocking) {
+        const elevationDelta = tile.elevation - currentElevation;
+        const blockedByElevation =
+          elevationDelta > this.maxStepUp || elevationDelta < -this.maxStepDown;
+        const blockedByDynamicObstacle = this.isBlockedAt?.(x, y) ?? false;
+
+        if (!tile.blocking && !blockedByElevation && !blockedByDynamicObstacle) {
           continue;
         }
 

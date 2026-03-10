@@ -1,4 +1,6 @@
 import type { TileDelta } from "../world/InfiniteTilemap.ts";
+import type { LootBoxDelta } from "../world/LootBoxField.ts";
+import type { ItemStack } from "../items/item-catalog.ts";
 
 export type NeedsSnapshot = {
   hunger: number;
@@ -22,4 +24,6 @@ export type SaveGameV1 = {
   };
   needs: NeedsSnapshot;
   mapDeltas: TileDelta[];
+  inventory?: Array<ItemStack | null>;
+  lootBoxDeltas?: LootBoxDelta[];
 };

@@ -116,4 +116,38 @@ describe("PointerMarkerSystem", () => {
       expect(player.intent.targetY).not.toBeNull();
     });
   });
+
+  test("allows click interceptors to consume world clicks", () => {
+    const runtime = new EcsRuntime();
+    const handlers: HandlerMap = {};
+    runtime.input.init(makeTarget(handlers));
+
+    const canvas = {
+      width: 100,
+      height: 100,
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }),
+    } as unknown as HTMLCanvasElement;
+
+    const marker = new MarkerState();
+
+    EcsRuntime.runWith(runtime, () => {
+      const camera = new IsometricCameraEntity({ tileWidth: 64, tileHeight: 32 });
+      camera.awake();
+
+      const player = new PlayerNode();
+      player.awake();
+
+      const system = new PointerMarkerSystem(camera, canvas, marker, runtime, () => true);
+      system.awake?.();
+
+      emit(handlers, "mousemove", { clientX: 50, clientY: 50, buttons: 0 });
+      emit(handlers, "click", {});
+
+      system.update();
+
+      expect(marker.point).toBeNull();
+      expect(player.intent.targetX).toBeNull();
+      expect(player.intent.targetY).toBeNull();
+    });
+  });
 });

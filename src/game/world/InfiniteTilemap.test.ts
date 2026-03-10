@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { InfiniteTilemap } from "./InfiniteTilemap.ts";
+import { createTileData } from "./tile-types.ts";
 
 describe("InfiniteTilemap", () => {
   test("produces deterministic tiles for the same seed", () => {
@@ -21,7 +22,15 @@ describe("InfiniteTilemap", () => {
     map.setTile(0, 0, "shelter");
 
     const deltas = map.serializeDeltas();
-    expect(deltas).toContainEqual({ x: 0, y: 0, kind: "shelter" });
+    const shelter = createTileData("shelter");
+    expect(deltas).toContainEqual({
+      x: 0,
+      y: 0,
+      kind: "shelter",
+      elevation: shelter.elevation,
+      blocking: shelter.blocking,
+      occluder: shelter.occluder,
+    });
 
     const restored = new InfiniteTilemap({ seed: 5, chunkSize: 16 });
     restored.applyDeltas(deltas);

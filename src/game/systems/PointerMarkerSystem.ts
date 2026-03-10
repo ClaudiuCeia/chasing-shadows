@@ -36,6 +36,7 @@ export class PointerMarkerSystem implements System {
     private readonly canvas: HTMLCanvasElement,
     private readonly marker: MarkerState,
     runtime: EcsRuntime = EcsRuntime.getCurrent(),
+    private readonly onWorldClick?: (worldPoint: Vector2D) => boolean,
   ) {
     this.runtime = runtime;
   }
@@ -62,6 +63,11 @@ export class PointerMarkerSystem implements System {
       canvasPoint,
       new Vector2D(this.canvas.width, this.canvas.height),
     );
+
+    if (this.onWorldClick?.(world)) {
+      return;
+    }
+
     this.marker.point = world;
 
     if (!this.query) {

@@ -9,7 +9,10 @@ bun install
 To run:
 
 ```bash
-bun run index.ts
+bun dev
 ```
+
+Asset credits:
+- `assets/cardboard-box` by Dani Maccari (`https://dani-maccari.itch.io/`), used under the attribution terms in `assets/cardboard-box/README.txt`.
 
 This project was created using `bun init` in bun v1.3.9. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.

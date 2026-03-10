@@ -15,6 +15,8 @@ import { PlayerRenderComponent } from "../game/render/PlayerRenderComponent.ts";
 import { createTileAtlas } from "../game/render/TileAtlas.ts";
 import { TilemapRenderComponent } from "../game/render/TilemapRenderComponent.ts";
 import { WorldMarkerRenderComponent } from "../game/render/WorldMarkerRenderComponent.ts";
+import { InventoryState } from "../game/state/InventoryState.ts";
+import { LootUiState } from "../game/state/LootUiState.ts";
 import { MarkerState } from "../game/state/MarkerState.ts";
 import { SaveGameManager } from "../game/state/SaveGameManager.ts";
 import type { SaveGameV1 } from "../game/state/save-types.ts";
@@ -22,13 +24,17 @@ import { AutosaveSystem } from "../game/systems/AutosaveSystem.ts";
 import { CameraFollowSystem } from "../game/systems/CameraFollowSystem.ts";
 import { ExposureSystem } from "../game/systems/ExposureSystem.ts";
 import { InputIntentSystem } from "../game/systems/InputIntentSystem.ts";
+import { LootBoxChunkSystem } from "../game/systems/LootBoxChunkSystem.ts";
+import { LootInteractSystem } from "../game/systems/LootInteractSystem.ts";
 import { NeedsDecaySystem } from "../game/systems/NeedsDecaySystem.ts";
+import { PlayerTilePositionSystem } from "../game/systems/PlayerTilePositionSystem.ts";
 import { PointerMarkerSystem } from "../game/systems/PointerMarkerSystem.ts";
 import { TerminatorSystem } from "../game/systems/TerminatorSystem.ts";
 import { TilemapCollisionSystem } from "../game/systems/TilemapCollisionSystem.ts";
 import { TopDownControllerSystem } from "../game/systems/TopDownControllerSystem.ts";
 import { createHud } from "../game/ui/createHud.ts";
 import { InfiniteTilemap } from "../game/world/InfiniteTilemap.ts";
+import { LootBoxField } from "../game/world/LootBoxField.ts";
 import { TerminatorModel } from "../game/world/TerminatorModel.ts";
 import { randomSeed } from "../shared/math/hash.ts";
 import { isoToWorld } from "../shared/math/iso.ts";
@@ -63,6 +69,17 @@ const restorePlayerFromAutosave = (autosave: SaveGameV1 | null, player: PlayerEn
   player.health.hp = autosave.hp;
 };
 
+const restoreInventoryFromAutosave = (
+  autosave: SaveGameV1 | null,
+  inventory: InventoryState,
+): void => {
+  if (!autosave?.inventory) {
+    return;
+  }
+
+  inventory.hydrate(autosave.inventory);
+};
+
 export const bootstrapGame = (): void => {
   document.body.style.margin = "0";
   document.body.style.overflow = "hidden";
@@ -86,6 +103,18 @@ export const bootstrapGame = (): void => {
   } else {
     map.setTile(0, 0, "regolith");
   }
+
+  const lootField = new LootBoxField({
+    seed,
+    spawnChance: GAME_CONFIG.lootBoxSpawnChance,
+  });
+  if (autosave?.lootBoxDeltas) {
+    lootField.applyDeltas(autosave.lootBoxDeltas);
+  }
+
+  const inventory = new InventoryState(GAME_CONFIG.inventorySlots);
+  restoreInventoryFromAutosave(autosave, inventory);
+  const lootUi = new LootUiState();
 
   const runtime = new EcsRuntime();
   const world = new World({
@@ -140,6 +169,8 @@ export const bootstrapGame = (): void => {
       },
       hp: player.health.hp,
       mapDeltas: map.serializeDeltas(),
+      inventory: inventory.toSnapshot(),
+      lootBoxDeltas: lootField.serializeDeltas(),
     };
   };
 
@@ -152,6 +183,77 @@ export const bootstrapGame = (): void => {
 
   const onBeforeUnload = (): void => {
     saveNow();
+  };
+
+  const getLootWindow = () => {
+    const open = lootUi.openBox;
+    if (!open) {
+      return null;
+    }
+
+    const box = lootField.getBoxAt(open.x, open.y, map);
+    if (!box) {
+      lootUi.close();
+      return null;
+    }
+
+    return {
+      x: open.x,
+      y: open.y,
+      slots: box.slots,
+    };
+  };
+
+  const onLootSlotClick = (slot: number): void => {
+    const open = lootUi.openBox;
+    if (!open) {
+      return;
+    }
+
+    const box = lootField.getBoxAt(open.x, open.y, map);
+    if (!box) {
+      lootUi.close();
+      return;
+    }
+
+    const stack = box.slots[slot] ?? null;
+    if (!stack) {
+      return;
+    }
+
+    const leftover = inventory.addItem(stack.itemId, stack.count);
+    if (leftover >= stack.count) {
+      return;
+    }
+
+    const updatedSlots = [...box.slots];
+    updatedSlots[slot] =
+      leftover > 0
+        ? {
+            itemId: stack.itemId,
+            count: leftover,
+          }
+        : null;
+    lootField.setSlots(open.x, open.y, updatedSlots);
+
+    if (!lootField.getBoxAt(open.x, open.y, map)) {
+      lootUi.close();
+    }
+  };
+
+  const onWorldClick = (worldPoint: Vector2D): boolean => {
+    const hit = lootField.findNearestBox(
+      worldPoint.x,
+      worldPoint.y,
+      GAME_CONFIG.lootBoxClickRange,
+      map,
+    );
+    if (!hit) {
+      return false;
+    }
+
+    lootUi.open(hit.x, hit.y);
+    return true;
   };
 
   let camera!: IsometricCameraEntity;
@@ -176,27 +278,16 @@ export const bootstrapGame = (): void => {
         map,
         terminator,
         player,
-        "behind-player",
         tileAtlas,
         GAME_CONFIG.tileWidth,
         GAME_CONFIG.tileHeight,
+        {
+          isSelectedAt: (x, y) => lootUi.openBox?.x === x && lootUi.openBox?.y === y,
+        },
+        runtime,
       ),
     );
     mapRenderBehindNode.awake();
-
-    const mapRenderFrontNode = new RenderNodeEntity();
-    mapRenderFrontNode.addComponent(
-      new TilemapRenderComponent(
-        map,
-        terminator,
-        player,
-        "front-player",
-        tileAtlas,
-        GAME_CONFIG.tileWidth,
-        GAME_CONFIG.tileHeight,
-      ),
-    );
-    mapRenderFrontNode.awake();
 
     const markerNode = new RenderNodeEntity();
     markerNode.addComponent(new WorldMarkerRenderComponent(markerState));
@@ -212,6 +303,11 @@ export const bootstrapGame = (): void => {
         heat: player.temperature.heat,
         cold: player.temperature.cold,
       }),
+      inventory,
+      lootUi,
+      getLootWindow,
+      onLootSlotClick,
+      onLootClose: () => lootUi.close(),
       onStartOver: () => {
         allowAutosave = false;
         saveManager.clearAutosave();
@@ -229,7 +325,21 @@ export const bootstrapGame = (): void => {
   const renderSystem = new RenderSystem(canvasState, camera, runtime, hudViewport);
 
   world.addSystem(new InputIntentSystem(runtime));
-  world.addSystem(new PointerMarkerSystem(camera, canvas, markerState, runtime));
+  world.addSystem(new LootBoxChunkSystem(map, lootField, player, GAME_CONFIG.chunkRadius));
+  world.addSystem(new PlayerTilePositionSystem(map, player));
+  world.addSystem(
+    new LootInteractSystem(
+      map,
+      lootField,
+      player,
+      lootUi,
+      {
+        interactRange: GAME_CONFIG.lootBoxInteractRange,
+      },
+      runtime,
+    ),
+  );
+  world.addSystem(new PointerMarkerSystem(camera, canvas, markerState, runtime, onWorldClick));
   world.addSystem(
     new TopDownControllerSystem(
       {
@@ -256,6 +366,9 @@ export const bootstrapGame = (): void => {
     new TilemapCollisionSystem(map, player, {
       playerRadius: player.collisionRadius,
       iterations: 5,
+      maxStepUp: GAME_CONFIG.maxStepUpHeight,
+      maxStepDown: GAME_CONFIG.maxStepDownHeight,
+      isBlockedAt: (x, y) => lootField.getBoxAt(x, y, map) !== null,
     }),
   );
   world.addSystem(
