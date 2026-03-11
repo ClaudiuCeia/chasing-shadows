@@ -15,11 +15,9 @@ import {
 } from "@claudiu-ceia/tick";
 import { GAME_CONFIG } from "../game/config/game-config.ts";
 import { PlayerEntity } from "../game/entities/PlayerEntity.ts";
-import { RenderNodeEntity } from "../game/entities/RenderNodeEntity.ts";
+import { TilemapEntity } from "../game/entities/TilemapEntity.ts";
 import { IsometricCameraEntity } from "../game/render/IsometricCameraEntity.ts";
 import { PlayerRenderComponent } from "../game/render/PlayerRenderComponent.ts";
-import { createTileAtlas } from "../game/render/TileAtlas.ts";
-import { TilemapRenderComponent } from "../game/render/TilemapRenderComponent.ts";
 import { InventoryState } from "../game/state/InventoryState.ts";
 import { LootUiState } from "../game/state/LootUiState.ts";
 import { MarkerState } from "../game/state/MarkerState.ts";
@@ -369,31 +367,24 @@ export const bootstrapGame = (): void => {
     syncPlayerToTerrain(map, player);
     player.awake();
 
-    const mapRenderBehindNode = new RenderNodeEntity();
-    const tileAtlas = createTileAtlas(GAME_CONFIG.tileWidth, GAME_CONFIG.tileHeight);
-    mapRenderBehindNode.addComponent(
-      new TilemapRenderComponent(
-        map,
-        terminator,
-        tileAtlas,
-        GAME_CONFIG.tileWidth,
-        GAME_CONFIG.tileHeight,
-        {
-          isSelectedAt: (x, y, z) => {
-            const open = lootUi.openBox;
-            if (!open || open.x !== x || open.y !== y) {
-              return false;
-            }
+    const tilemap = new TilemapEntity(map, terminator, {
+      tileWidth: GAME_CONFIG.tileWidth,
+      tileHeight: GAME_CONFIG.tileHeight,
+      render: {
+        isSelectedAt: (x, y, z) => {
+          const open = lootUi.openBox;
+          if (!open || open.x !== x || open.y !== y) {
+            return false;
+          }
 
-            return Math.abs(map.getElevationAt(open.x, open.y) - z) <= 0.6;
-          },
-          maxTerrainElevation: GAME_CONFIG.maxTerrainElevation,
-          southCullingPadding: 6,
+          return Math.abs(map.getElevationAt(open.x, open.y) - z) <= 0.6;
         },
-        runtime,
-      ),
-    );
-    mapRenderBehindNode.awake();
+        maxTerrainElevation: GAME_CONFIG.maxTerrainElevation,
+        southCullingPadding: 6,
+      },
+      runtime,
+    });
+    tilemap.awake();
 
     createHud({
       getInfo: () => ({
