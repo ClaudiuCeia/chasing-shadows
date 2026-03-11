@@ -36,6 +36,7 @@ describe("InfiniteTilemap", () => {
       blocking: shelter.blocking,
       occluder: true,
       corners: { northWest: 1, northEast: 2, southEast: 2, southWest: 1 },
+      surfaceVariant: shelter.surfaceVariant,
     });
 
     const restored = new InfiniteTilemap({ seed: 5, chunkSize: 16 });

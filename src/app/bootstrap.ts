@@ -1,8 +1,14 @@
 import {
   EcsRuntime,
+  EntityProfiler,
+  Entity,
+  HudInputRouter,
+  HudLayoutNodeComponent,
   HudViewport,
   PhysicsSystem,
   RenderSystem,
+  Scene,
+  SceneManager,
   TransformComponent,
   Vector2D,
   World,
@@ -33,6 +39,10 @@ import { TerminatorSystem } from "../game/systems/TerminatorSystem.ts";
 import { TilemapCollisionSystem } from "../game/systems/TilemapCollisionSystem.ts";
 import { TopDownControllerSystem } from "../game/systems/TopDownControllerSystem.ts";
 import { createHud } from "../game/ui/createHud.ts";
+import { getAmbientTemperature } from "../game/ui/environment-temperature.ts";
+import { TitleMenuInputComponent } from "../game/ui/TitleMenuInputComponent.ts";
+import { TitleMenuRenderComponent } from "../game/ui/TitleMenuRenderComponent.ts";
+import { TitleMenuState } from "../game/ui/TitleMenuState.ts";
 import { InfiniteTilemap } from "../game/world/InfiniteTilemap.ts";
 import { LootBoxField } from "../game/world/LootBoxField.ts";
 import { TerminatorModel } from "../game/world/TerminatorModel.ts";
@@ -151,7 +161,8 @@ export const bootstrapGame = (): void => {
   if (!context) {
     throw new Error("Unable to acquire 2D rendering context");
   }
-  context.imageSmoothingEnabled = false;
+  const gameContext = context;
+  gameContext.imageSmoothingEnabled = false;
 
   const saveManager = new SaveGameManager();
   const autosave = saveManager.loadAutosave();
@@ -202,6 +213,10 @@ export const bootstrapGame = (): void => {
     size: resizeCanvas(canvas),
   };
   let allowAutosave = true;
+  let fps = 0;
+  let frameTimeMs = 0;
+  let fpsFrames = 0;
+  let fpsAccumulator = 0;
 
   const createSnapshot = (): SaveGameV1 => {
     const position = player.getComponent(TransformComponent).transform.position;
@@ -406,25 +421,24 @@ export const bootstrapGame = (): void => {
 
     createHud({
       getInfo: () => ({
-        seed,
-        elapsedSeconds: terminatorSystem.getElapsedSeconds(),
         hp: player.health.hp,
         hunger: player.needs.hunger,
         thirst: player.needs.thirst,
-        heat: player.temperature.heat,
-        cold: player.temperature.cold,
+        ambientCelsius: getAmbientTemperature(terminator, player.transform.transform.position).celsius,
       }),
+      getTemperature: () => {
+        const position = player.transform.transform.position;
+        const ambient = getAmbientTemperature(terminator, position);
+        return {
+          ambientCelsius: ambient.celsius,
+        };
+      },
+      getFps: () => ({ fps, frameTimeMs }),
       inventory,
       lootUi,
       getLootWindow,
       onLootSlotClick,
       onLootClose: () => lootUi.close(),
-      onStartOver: () => {
-        allowAutosave = false;
-        saveManager.clearAutosave();
-        window.removeEventListener("beforeunload", onBeforeUnload);
-        window.location.reload();
-      },
     });
   });
 
@@ -434,6 +448,23 @@ export const bootstrapGame = (): void => {
     true,
   );
   const renderSystem = new RenderSystem(canvasState, camera, runtime, hudViewport);
+  const titleRuntime = new EcsRuntime();
+  let pendingScene: "title" | "gameplay" | null = null;
+
+  class HudOnlyCamera extends Entity {
+    public toCanvas(worldPos: Vector2D): Vector2D {
+      return worldPos;
+    }
+
+    public override update(_dt: number): void {}
+  }
+
+  class HudRootEntity extends Entity {
+    public override update(_dt: number): void {}
+  }
+
+  const titleCamera = new HudOnlyCamera();
+  const titleRenderSystem = new RenderSystem(canvasState, titleCamera, titleRuntime, hudViewport);
 
   world.addSystem(new InputIntentSystem(runtime));
   world.addSystem(new LootBoxChunkSystem(map, lootField, player, GAME_CONFIG.chunkRadius));
@@ -507,26 +538,161 @@ export const bootstrapGame = (): void => {
     }),
   );
 
-  runtime.input.init(window);
   window.addEventListener("beforeunload", onBeforeUnload);
   window.addEventListener("resize", () => {
     canvasState.size = resizeCanvas(canvas);
   });
 
+  const restartGame = (): void => {
+    allowAutosave = false;
+    saveManager.clearAutosave();
+    window.removeEventListener("beforeunload", onBeforeUnload);
+    window.location.reload();
+  };
+
+  const clearSceneInput = (): void => {
+    runtime.input.clearFrame();
+    titleRuntime.input.clearFrame();
+  };
+
+  const requestGameplayScene = (): void => {
+    pendingScene = "gameplay";
+  };
+
+  const requestTitleScene = (): void => {
+    pendingScene = "title";
+  };
+
+  const flushSceneChange = (): void => {
+    if (!pendingScene) {
+      return;
+    }
+
+    const nextScene = pendingScene;
+    pendingScene = null;
+    clearSceneInput();
+    sceneManager.changeScene(nextScene === "gameplay" ? new GameplayScene() : new TitleScene());
+  };
+
+  const sceneManager = new SceneManager();
+
+  class GameplayScene extends Scene {
+    public awake(): void {
+      runtime.input.init(window);
+    }
+
+    public update(dt: number): void {
+      if (runtime.input.isPressed("Escape")) {
+        lootUi.close();
+        requestTitleScene();
+        return;
+      }
+
+      world.step(dt);
+    }
+
+    public render(_ctx: CanvasRenderingContext2D): void {
+      gameContext.imageSmoothingEnabled = false;
+      gameContext.setTransform(1, 0, 0, 1, 0, 0);
+      gameContext.fillStyle = "#18110d";
+      gameContext.fillRect(0, 0, canvas.width, canvas.height);
+      renderSystem.render();
+    }
+
+    public destroy(): void {
+      runtime.input.dispose();
+    }
+  }
+
+  class TitleScene extends Scene {
+    private root: Entity | null = null;
+
+    public awake(): void {
+      const state = new TitleMenuState();
+      EcsRuntime.runWith(titleRuntime, () => {
+        const root = new HudRootEntity();
+        root.addComponent(
+          new HudLayoutNodeComponent({
+            width: GAME_CONFIG.hudReferenceWidth,
+            height: GAME_CONFIG.hudReferenceHeight,
+            anchor: "center",
+          }),
+        );
+        root.addComponent(new TitleMenuRenderComponent(state));
+        root.addComponent(
+          new TitleMenuInputComponent(
+            state,
+            requestGameplayScene,
+            restartGame,
+          ),
+        );
+        root.awake();
+        this.root = root;
+      });
+    }
+
+    public update(_dt: number): void {}
+
+    public render(_ctx: CanvasRenderingContext2D): void {
+      titleRenderSystem.render();
+    }
+
+    public destroy(): void {
+      this.root?.destroy();
+      this.root = null;
+      HudInputRouter.detach(titleRuntime);
+      titleRuntime.input.dispose();
+    }
+  }
+
+  const globalWindow = window as Window & typeof globalThis & {
+    __tickProfiler?: {
+      clear: () => void;
+      start: () => void;
+      stop: () => void;
+      report: (topN?: number) => void;
+      scanOffscreenColliders: () => void;
+    };
+  };
+
+  globalWindow.__tickProfiler = {
+    clear: () => EntityProfiler.clear(),
+    start: () => {
+      EntityProfiler.clear();
+      EntityProfiler.start();
+    },
+    stop: () => EntityProfiler.stop(),
+    report: (topN = 12) => {
+      EntityProfiler.printTopSlow("update", topN);
+      EntityProfiler.printTopSlow("render", topN);
+    },
+    scanOffscreenColliders: () => {
+      EcsRuntime.runWith(runtime, () => {
+        EntityProfiler.scanOffscreenCollision(camera);
+      });
+    },
+  };
+
+  requestTitleScene();
+
   let lastTime = performance.now();
   const frame = (now: number): void => {
     const deltaTime = (now - lastTime) / 1000;
     lastTime = now;
+    frameTimeMs = deltaTime * 1000;
+    fpsFrames += 1;
+    fpsAccumulator += deltaTime;
+    if (fpsAccumulator >= 0.25) {
+      fps = Math.round(fpsFrames / fpsAccumulator);
+      fpsFrames = 0;
+      fpsAccumulator = 0;
+    }
 
-    world.step(deltaTime);
-    
-    context.imageSmoothingEnabled = false;
-    context.setTransform(1, 0, 0, 1, 0, 0);
-    context.fillStyle = "#18110d";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    renderSystem.render();
+    flushSceneChange();
+    sceneManager.update(deltaTime);
+    sceneManager.render(gameContext);
     runtime.input.clearFrame();
+    titleRuntime.input.clearFrame();
 
     window.requestAnimationFrame(frame);
   };

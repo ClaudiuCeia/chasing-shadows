@@ -8,7 +8,7 @@ const tileKey = (x: number, y: number): string => `${x}:${y}`;
 
 export class LootBoxChunkSystem implements System {
   public readonly phase = SystemPhase.Simulation;
-  public readonly tickMode = SystemTickMode.Fixed;
+  public readonly tickMode = SystemTickMode.Frame;
 
   private readonly active = new Map<string, LootBoxEntity>();
   private initialized = false;

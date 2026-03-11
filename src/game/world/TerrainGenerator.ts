@@ -131,6 +131,28 @@ const sampleSurfaceVariant = (x: number, y: number, seed: number): TileData["sur
   return "neutral";
 };
 
+const sampleTileKind = (
+  x: number,
+  y: number,
+  elevation: number,
+  seed: number,
+): TileData["kind"] => {
+  const broad = valueNoise(x + 13.4, y - 27.1, seed + 811, 48);
+  const detail = valueNoise(x - 8.2, y + 19.6, seed + 853, 20);
+  const combined = broad * 0.7 + detail * 0.3;
+
+  if (elevation >= 5 || combined > 0.8) {
+    return "rock";
+  }
+  if (combined > 0.6) {
+    return "scrap";
+  }
+  if (combined < 0.16) {
+    return "shelter";
+  }
+  return "regolith";
+};
+
 const sampleRawVertexHeight = (vx: number, vy: number, seed: number): number => {
   const x = vx * 0.5;
   const y = vy * 0.5;
@@ -179,7 +201,7 @@ export const generateTerrainTile = (x: number, y: number, seed: number): TileDat
   );
 
   return {
-    kind: "regolith",
+    kind: sampleTileKind(x, y, tileElevation, seed),
     blocking: false,
     elevation: tileElevation,
     occluder: tileElevation > 0,

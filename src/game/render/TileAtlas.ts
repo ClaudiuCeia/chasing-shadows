@@ -183,7 +183,7 @@ const BASE_TILE_COLORS: Record<TileKind, { base: string; raised: boolean }> = {
   regolith: { base: "#7a6c57", raised: false },
   scrap: { base: "#8f7c55", raised: false },
   shelter: { base: "#5e7469", raised: false },
-  rock: { base: "#7b7269", raised: true },
+  rock: { base: "#7b7269", raised: false },
 };
 
 const createTilePalette = (baseColor: string, raised: boolean): TilePalette => ({

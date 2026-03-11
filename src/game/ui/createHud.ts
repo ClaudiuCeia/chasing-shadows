@@ -1,13 +1,12 @@
 import { Entity, HudLayoutNodeComponent } from "@claudiu-ceia/tick";
-import { HudButtonRenderComponent } from "./HudButtonRenderComponent.ts";
-import { createButtonVisualState } from "./HudButtonVisualState.ts";
+import { FpsCounterRenderComponent, type FpsSnapshot } from "./FpsCounterRenderComponent.ts";
 import { HudInfoRenderComponent, type HudInfoSnapshot } from "./HudInfoRenderComponent.ts";
+import { HudTemperatureRenderComponent, type HudTemperatureSnapshot } from "./HudTemperatureRenderComponent.ts";
 import { LootWindowInputComponent } from "./LootWindowInputComponent.ts";
 import { LootWindowRenderComponent, type LootWindowSnapshot } from "./LootWindowRenderComponent.ts";
 import { QuickbarRenderComponent } from "./QuickbarRenderComponent.ts";
-import { StartOverButtonInputComponent } from "./StartOverButtonInputComponent.ts";
-import { InventoryState } from "../state/InventoryState.ts";
-import { LootUiState } from "../state/LootUiState.ts";
+import type { InventoryState } from "../state/InventoryState.ts";
+import type { LootUiState } from "../state/LootUiState.ts";
 
 class HudNodeEntity extends Entity {
   public override update(_dt: number): void {}
@@ -15,7 +14,8 @@ class HudNodeEntity extends Entity {
 
 export type CreateHudOptions = {
   getInfo: () => HudInfoSnapshot;
-  onStartOver: () => void;
+  getTemperature: () => HudTemperatureSnapshot;
+  getFps: () => FpsSnapshot;
   inventory: InventoryState;
   lootUi: LootUiState;
   getLootWindow: () => LootWindowSnapshot | null;
@@ -27,37 +27,47 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
   const info = new HudNodeEntity();
   info.addComponent(
     new HudLayoutNodeComponent({
-      width: 420,
-      height: 220,
+      width: 276,
+      height: 78,
       anchor: "top-left",
-      offset: { x: 24, y: 24 },
+      offset: { x: 18, y: 18 },
     }),
   );
   info.addComponent(new HudInfoRenderComponent(options.getInfo));
 
-  const button = new HudNodeEntity();
-  const buttonVisual = createButtonVisualState();
-  button.addComponent(
+  const temperature = new HudNodeEntity();
+  temperature.addComponent(
     new HudLayoutNodeComponent({
-      width: 260,
-      height: 70,
+      width: 108,
+      height: 38,
       anchor: "top-right",
-      offset: { x: -24, y: 24 },
+      offset: { x: -18, y: 18 },
     }),
   );
-  button.addComponent(new HudButtonRenderComponent("Start Over (R)", buttonVisual));
-  button.addComponent(new StartOverButtonInputComponent(buttonVisual, options.onStartOver));
+  temperature.addComponent(new HudTemperatureRenderComponent(options.getTemperature));
 
   const quickbar = new HudNodeEntity();
   quickbar.addComponent(
     new HudLayoutNodeComponent({
-      width: 900,
-      height: 120,
+      width: 620,
+      height: 82,
       anchor: "bottom-center",
-      offset: { x: 0, y: -26 },
+      offset: { x: 0, y: -18 },
     }),
   );
   quickbar.addComponent(new QuickbarRenderComponent(options.inventory));
+
+  const fpsCounter = new HudNodeEntity();
+  fpsCounter.addComponent(
+    new HudLayoutNodeComponent({
+      width: 75,
+      height: 38,
+      anchor: "bottom-right",
+      offset: { x: -12, y: -12 },
+      order: 95,
+    }),
+  );
+  fpsCounter.addComponent(new FpsCounterRenderComponent(options.getFps));
 
   const lootWindow = new HudNodeEntity();
   lootWindow.addComponent(
@@ -80,8 +90,9 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
   );
 
   info.awake();
-  button.awake();
+  temperature.awake();
   quickbar.awake();
+  fpsCounter.awake();
   lootWindow.awake();
-  return [info, button, quickbar, lootWindow];
+  return [info, temperature, quickbar, fpsCounter, lootWindow];
 };

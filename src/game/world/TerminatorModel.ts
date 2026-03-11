@@ -52,16 +52,37 @@ export class TerminatorModel {
     return this.direction.multiply(this.travelDistance);
   }
 
+  public getCenterX(): number {
+    return this.direction.x * this.travelDistance;
+  }
+
+  public getCenterY(): number {
+    return this.direction.y * this.travelDistance;
+  }
+
+  public signedDistanceXY(x: number, y: number): number {
+    const centerX = this.getCenterX();
+    const centerY = this.getCenterY();
+    return (x - centerX) * this.normal.x + (y - centerY) * this.normal.y;
+  }
+
   public signedDistance(point: Vector2D): number {
-    const center = this.getCenterPoint();
-    return point.subtract(center).dot(this.normal);
+    return this.signedDistanceXY(point.x, point.y);
+  }
+
+  public distanceOutsideSafeBandXY(x: number, y: number): number {
+    return Math.max(0, Math.abs(this.signedDistanceXY(x, y)) - this.safeBandHalfWidth);
   }
 
   public distanceOutsideSafeBand(point: Vector2D): number {
-    return Math.max(0, Math.abs(this.signedDistance(point)) - this.safeBandHalfWidth);
+    return this.distanceOutsideSafeBandXY(point.x, point.y);
+  }
+
+  public getSideXY(x: number, y: number): TerminatorSide {
+    return this.signedDistanceXY(x, y) >= 0 ? "sun" : "dark";
   }
 
   public getSide(point: Vector2D): TerminatorSide {
-    return this.signedDistance(point) >= 0 ? "sun" : "dark";
+    return this.getSideXY(point.x, point.y);
   }
 }
