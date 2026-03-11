@@ -1,4 +1,13 @@
-import { createTileData, type TileData, type TileKind } from "./tile-types.ts";
+import {
+  createTileData,
+  createTileCornerHeights,
+  getTileSurfaceElevation,
+  normalizeTileData,
+  type TileData,
+  type TileCornerHeights,
+  type TileKind,
+  type TileSurfaceVariant,
+} from "./tile-types.ts";
 import { generateTerrainTile } from "./TerrainGenerator.ts";
 
 export type TileDelta = {
@@ -8,6 +17,8 @@ export type TileDelta = {
   elevation?: number;
   blocking?: boolean;
   occluder?: boolean;
+  corners?: Partial<TileCornerHeights>;
+  surfaceVariant?: TileSurfaceVariant;
 };
 
 export type InfiniteTilemapOptions = {
@@ -70,12 +81,16 @@ export class InfiniteTilemap {
   public setTileData(worldX: number, worldY: number, tile: TileData): void {
     const dx = Math.floor(worldX);
     const dy = Math.floor(worldY);
-    this.deltas.set(tileKey(dx, dy), {
-      kind: tile.kind,
-      blocking: tile.blocking,
-      elevation: tile.elevation,
-      occluder: tile.occluder,
-    });
+    this.deltas.set(tileKey(dx, dy), normalizeTileData(tile));
+  }
+
+  public getElevationAt(worldX: number, worldY: number): number {
+    const tileX = Math.round(worldX);
+    const tileY = Math.round(worldY);
+    const tile = this.getTile(tileX, tileY);
+    const localX = worldX - tileX + 0.5;
+    const localY = worldY - tileY + 0.5;
+    return getTileSurfaceElevation(tile, localX, localY);
   }
 
   public getChunk(chunkX: number, chunkY: number): ChunkData {
@@ -110,6 +125,8 @@ export class InfiniteTilemap {
         elevation: tile.elevation,
         blocking: tile.blocking,
         occluder: tile.occluder,
+        corners: createTileCornerHeights(tile.corners, tile.elevation),
+        surfaceVariant: tile.surfaceVariant,
       });
     }
     return result;
@@ -120,9 +137,11 @@ export class InfiniteTilemap {
       const base = createTileData(delta.kind);
       this.setTileData(delta.x, delta.y, {
         kind: delta.kind,
-        elevation: delta.elevation ?? base.elevation,
         blocking: delta.blocking ?? base.blocking,
+        elevation: delta.elevation ?? base.elevation,
         occluder: delta.occluder ?? base.occluder,
+        corners: createTileCornerHeights(delta.corners ?? base.corners, delta.elevation ?? base.elevation),
+        surfaceVariant: delta.surfaceVariant ?? base.surfaceVariant,
       });
     }
   }

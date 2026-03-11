@@ -30,4 +30,43 @@ describe("TerrainGenerator", () => {
     expect(generateTerrainTile(16, 15, seed)).toEqual(edgeB);
     expect(generateTerrainTile(15, 16, seed)).toEqual(edgeC);
   });
+
+  test("heavily favors single-step terrain transitions", () => {
+    let singleStepEdges = 0;
+    let steepEdges = 0;
+    let slopedTiles = 0;
+
+    for (let y = -24; y <= 24; y++) {
+      for (let x = -24; x <= 24; x++) {
+        const tile = generateTerrainTile(x, y, 321);
+        const elevation = tile.elevation;
+        const eastDelta = Math.abs(generateTerrainTile(x + 1, y, 321).elevation - elevation);
+        const southDelta = Math.abs(generateTerrainTile(x, y + 1, 321).elevation - elevation);
+
+        const isSloped =
+          tile.corners.northWest !== tile.corners.northEast ||
+          tile.corners.northEast !== tile.corners.southEast ||
+          tile.corners.southEast !== tile.corners.southWest;
+
+        if (isSloped) {
+          slopedTiles++;
+        }
+
+        if (eastDelta === 1) {
+          singleStepEdges++;
+        } else if (eastDelta > 1) {
+          steepEdges++;
+        }
+
+        if (southDelta === 1) {
+          singleStepEdges++;
+        } else if (southDelta > 1) {
+          steepEdges++;
+        }
+      }
+    }
+
+    expect(singleStepEdges).toBeGreaterThan(steepEdges * 3);
+    expect(slopedTiles).toBeGreaterThan(100);
+  });
 });

@@ -36,6 +36,7 @@ import { createHud } from "../game/ui/createHud.ts";
 import { InfiniteTilemap } from "../game/world/InfiniteTilemap.ts";
 import { LootBoxField } from "../game/world/LootBoxField.ts";
 import { TerminatorModel } from "../game/world/TerminatorModel.ts";
+import { getTileSlopeRange, isTileFlat } from "../game/world/tile-types.ts";
 import { randomSeed } from "../shared/math/hash.ts";
 import { isoToWorld } from "../shared/math/iso.ts";
 
@@ -69,6 +70,12 @@ const restorePlayerFromAutosave = (autosave: SaveGameV1 | null, player: PlayerEn
   player.health.hp = autosave.hp;
 };
 
+const syncPlayerToTerrain = (map: InfiniteTilemap, player: PlayerEntity): void => {
+  const position = player.transform.transform.position;
+  const elevation = map.getElevationAt(position.x, position.y);
+  player.tilePosition.set(position.x, position.y, elevation);
+};
+
 const restoreInventoryFromAutosave = (
   autosave: SaveGameV1 | null,
   inventory: InventoryState,
@@ -78,6 +85,59 @@ const restoreInventoryFromAutosave = (
   }
 
   inventory.hydrate(autosave.inventory);
+};
+
+const findInitialPlayerSpawn = (map: InfiniteTilemap): Vector2D => {
+  let best = new Vector2D(0, 0);
+  let bestScore = -Infinity;
+
+  const isSpawnSafe = (x: number, y: number): boolean => {
+    const center = map.getTile(x, y);
+    if (!isTileFlat(center)) {
+      return false;
+    }
+
+    for (let oy = -1; oy <= 1; oy++) {
+      for (let ox = -1; ox <= 1; ox++) {
+        const neighbor = map.getTile(x + ox, y + oy);
+        if (!isTileFlat(neighbor) || neighbor.elevation !== center.elevation) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  };
+
+  for (let radius = 0; radius <= 28; radius++) {
+    for (let y = -radius; y <= radius; y++) {
+      for (let x = -radius; x <= radius; x++) {
+        if (Math.max(Math.abs(x), Math.abs(y)) !== radius) {
+          continue;
+        }
+
+        const tile = map.getTile(x, y);
+        if (!isSpawnSafe(x, y)) {
+          continue;
+        }
+
+        const slopePenalty = getTileSlopeRange(tile) * 20;
+        const distancePenalty = Math.abs(x) + Math.abs(y);
+        const score = 140 + tile.elevation * 16 - slopePenalty - distancePenalty;
+
+        if (score > bestScore) {
+          bestScore = score;
+          best = new Vector2D(x, y);
+        }
+      }
+    }
+
+    if (bestScore >= 100) {
+      return best;
+    }
+  }
+
+  throw new Error("Failed to find a safe initial spawn tile within search radius");
 };
 
 export const bootstrapGame = (): void => {
@@ -100,8 +160,6 @@ export const bootstrapGame = (): void => {
   const map = new InfiniteTilemap({ seed, chunkSize: GAME_CONFIG.chunkSize });
   if (autosave) {
     map.applyDeltas(autosave.mapDeltas);
-  } else {
-    map.setTile(0, 0, "regolith");
   }
 
   const lootField = new LootBoxField({
@@ -243,23 +301,34 @@ export const bootstrapGame = (): void => {
 
   const resolvePointerWorldPoint = (canvasPoint: Vector2D): { world: Vector2D; elevation: number } => {
     const canvasSize = new Vector2D(canvas.width, canvas.height);
+    let bestMatch: { world: Vector2D; elevation: number; distanceSq: number } | null = null;
 
     for (let elevation = GAME_CONFIG.maxTerrainElevation; elevation >= 0; elevation--) {
       const candidateWorld = camera.canvasToWorldAt(canvasPoint, elevation, canvasSize);
-      const tileX = Math.round(candidateWorld.x);
-      const tileY = Math.round(candidateWorld.y);
-      if (map.getTile(tileX, tileY).elevation !== elevation) {
-        continue;
-      }
+      const surfaceElevation = map.getElevationAt(candidateWorld.x, candidateWorld.y);
+      const projected = camera.toCanvasAt(candidateWorld, surfaceElevation, canvasSize);
+      const dx = projected.x - canvasPoint.x;
+      const dy = projected.y - canvasPoint.y;
+      const distanceSq = dx * dx + dy * dy;
 
+      if (!bestMatch || distanceSq < bestMatch.distanceSq) {
+        bestMatch = {
+          world: candidateWorld,
+          elevation: surfaceElevation,
+          distanceSq,
+        };
+      }
+    }
+
+    if (bestMatch) {
       return {
-        world: candidateWorld,
-        elevation,
+        world: bestMatch.world,
+        elevation: bestMatch.elevation,
       };
     }
 
     const fallbackWorld = camera.canvasToWorld(canvasPoint, canvasSize);
-    const fallbackElevation = map.getTile(fallbackWorld.x, fallbackWorld.y).elevation;
+    const fallbackElevation = map.getElevationAt(fallbackWorld.x, fallbackWorld.y);
     return {
       world: fallbackWorld,
       elevation: fallbackElevation,
@@ -269,7 +338,8 @@ export const bootstrapGame = (): void => {
   const onWorldClick = (worldPoint: Vector2D, _canvasPoint: Vector2D, elevation: number): boolean => {
     const tileX = Math.round(worldPoint.x);
     const tileY = Math.round(worldPoint.y);
-    if (map.getTile(tileX, tileY).elevation === elevation && lootField.getBoxAt(tileX, tileY, map)) {
+    const tileElevation = map.getElevationAt(tileX, tileY);
+    if (Math.abs(tileElevation - elevation) <= 0.6 && lootField.getBoxAt(tileX, tileY, map)) {
       lootUi.open(tileX, tileY);
       return true;
     }
@@ -279,7 +349,7 @@ export const bootstrapGame = (): void => {
       return false;
     }
 
-    if (map.getTile(hit.x, hit.y).elevation !== elevation) {
+    if (Math.abs(map.getElevationAt(hit.x, hit.y) - elevation) > 0.6) {
       return false;
     }
 
@@ -297,9 +367,11 @@ export const bootstrapGame = (): void => {
     }, GAME_CONFIG.elevationStepPixels);
     camera.awake();
 
-    player = new PlayerEntity(new Vector2D(0, 0), GAME_CONFIG.playerBaseSpeed);
+    const playerSpawn = autosave ? new Vector2D(0, 0) : findInitialPlayerSpawn(map);
+    player = new PlayerEntity(playerSpawn, GAME_CONFIG.playerBaseSpeed);
     player.addComponent(new PlayerRenderComponent());
     restorePlayerFromAutosave(autosave, player);
+    syncPlayerToTerrain(map, player);
     player.awake();
 
     const mapRenderBehindNode = new RenderNodeEntity();
@@ -308,7 +380,6 @@ export const bootstrapGame = (): void => {
       new TilemapRenderComponent(
         map,
         terminator,
-        player,
         tileAtlas,
         GAME_CONFIG.tileWidth,
         GAME_CONFIG.tileHeight,
@@ -319,7 +390,7 @@ export const bootstrapGame = (): void => {
               return false;
             }
 
-            return map.getTile(open.x, open.y).elevation === z;
+            return Math.abs(map.getElevationAt(open.x, open.y) - z) <= 0.6;
           },
           maxTerrainElevation: GAME_CONFIG.maxTerrainElevation,
           southCullingPadding: 6,

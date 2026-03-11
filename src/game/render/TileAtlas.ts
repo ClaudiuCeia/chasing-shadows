@@ -1,5 +1,14 @@
 import type { TileKind } from "../world/tile-types.ts";
 
+export type TileLighting = "neutral" | "sun" | "dark";
+
+export type TilePalette = {
+  neutral: string;
+  sun: string;
+  dark: string;
+  raised: boolean;
+};
+
 export type TileAtlas = {
   variants: Record<
     TileKind,
@@ -9,6 +18,7 @@ export type TileAtlas = {
       dark: HTMLCanvasElement;
     }
   >;
+  palettes: Record<TileKind, TilePalette>;
 };
 
 type Rgb = { r: number; g: number; b: number };
@@ -155,27 +165,49 @@ const createRockTile = (
 const createVariantSet = (
   tileWidth: number,
   tileHeight: number,
-  baseColor: string,
-  raised: boolean,
+  palette: TilePalette,
 ): { neutral: HTMLCanvasElement; sun: HTMLCanvasElement; dark: HTMLCanvasElement } => {
-  const sunColor = blend(baseColor, "#b26139", 0.22);
-  const darkColor = blend(baseColor, "#36557f", 0.28);
-
   const draw = (color: string): HTMLCanvasElement =>
-    raised ? createRockTile(tileWidth, tileHeight, color) : createFlatTile(tileWidth, tileHeight, color);
+    palette.raised
+      ? createRockTile(tileWidth, tileHeight, color)
+      : createFlatTile(tileWidth, tileHeight, color);
 
   return {
-    neutral: draw(baseColor),
-    sun: draw(sunColor),
-    dark: draw(darkColor),
+    neutral: draw(palette.neutral),
+    sun: draw(palette.sun),
+    dark: draw(palette.dark),
   };
 };
 
-export const createTileAtlas = (tileWidth: number, tileHeight: number): TileAtlas => ({
-  variants: {
-    regolith: createVariantSet(tileWidth, tileHeight, "#7a6c57", false),
-    scrap: createVariantSet(tileWidth, tileHeight, "#8f7c55", false),
-    shelter: createVariantSet(tileWidth, tileHeight, "#5e7469", false),
-    rock: createVariantSet(tileWidth, tileHeight, "#7b7269", true),
-  },
+const BASE_TILE_COLORS: Record<TileKind, { base: string; raised: boolean }> = {
+  regolith: { base: "#7a6c57", raised: false },
+  scrap: { base: "#8f7c55", raised: false },
+  shelter: { base: "#5e7469", raised: false },
+  rock: { base: "#7b7269", raised: true },
+};
+
+const createTilePalette = (baseColor: string, raised: boolean): TilePalette => ({
+  neutral: baseColor,
+  sun: blend(baseColor, "#b26139", 0.22),
+  dark: blend(baseColor, "#36557f", 0.28),
+  raised,
 });
+
+export const createTileAtlas = (tileWidth: number, tileHeight: number): TileAtlas => {
+  const palettes: Record<TileKind, TilePalette> = {
+    regolith: createTilePalette(BASE_TILE_COLORS.regolith.base, BASE_TILE_COLORS.regolith.raised),
+    scrap: createTilePalette(BASE_TILE_COLORS.scrap.base, BASE_TILE_COLORS.scrap.raised),
+    shelter: createTilePalette(BASE_TILE_COLORS.shelter.base, BASE_TILE_COLORS.shelter.raised),
+    rock: createTilePalette(BASE_TILE_COLORS.rock.base, BASE_TILE_COLORS.rock.raised),
+  };
+
+  return {
+    variants: {
+      regolith: createVariantSet(tileWidth, tileHeight, palettes.regolith),
+      scrap: createVariantSet(tileWidth, tileHeight, palettes.scrap),
+      shelter: createVariantSet(tileWidth, tileHeight, palettes.shelter),
+      rock: createVariantSet(tileWidth, tileHeight, palettes.rock),
+    },
+    palettes,
+  };
+};

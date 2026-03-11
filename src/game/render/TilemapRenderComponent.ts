@@ -9,11 +9,10 @@ import {
 import { IsometricRenderNodeComponent } from "../components/IsometricRenderNodeComponent.ts";
 import { IsometricRenderableComponent } from "../components/IsometricRenderableComponent.ts";
 import { TilePositionComponent } from "../components/TilePositionComponent.ts";
-import { PlayerEntity } from "../entities/PlayerEntity.ts";
 import type { TerminatorModel } from "../world/TerminatorModel.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
-import type { TileData } from "../world/tile-types.ts";
-import type { TileAtlas } from "./TileAtlas.ts";
+import { isTileFlat, type TileData } from "../world/tile-types.ts";
+import type { TileAtlas, TileLighting } from "./TileAtlas.ts";
 import { IsometricCameraEntity } from "./IsometricCameraEntity.ts";
 
 export type TilemapRenderOptions = {
@@ -28,16 +27,27 @@ type IsometricRenderableEntity = {
 };
 
 type TileCommand = {
-  kind: "tile";
   depth: number;
   tile: TileData;
-  screen: Vector2D;
+  lighting: TileLighting;
   sprite: HTMLCanvasElement;
   x: number;
   y: number;
+  screen: Vector2D;
 };
 
-type RenderableCommand = {
+type FaceCommand = {
+  kind: "east-face" | "south-face";
+  depth: number;
+  tile: TileData;
+  lighting: TileLighting;
+  sprite: HTMLCanvasElement;
+  x: number;
+  y: number;
+  screen: Vector2D;
+};
+
+type EntityCommand = {
   kind: "entity";
   depth: number;
   screen: Vector2D;
@@ -45,13 +55,86 @@ type RenderableCommand = {
   selected: boolean;
 };
 
-type DrawCommand = TileCommand | RenderableCommand;
+type OverlayCommand = FaceCommand | EntityCommand;
+
+type TileCornerPoints = {
+  northWest: Vector2D;
+  northEast: Vector2D;
+  southEast: Vector2D;
+  southWest: Vector2D;
+};
+
+type Rgb = { r: number; g: number; b: number };
 
 const DEPTH_EPSILON = 1e-5;
 const FLOOR_TILE_DEPTH_BIAS = 1;
 const ENTITY_DEPTH_EPSILON = 0.001;
 const DEFAULT_MAX_TERRAIN_ELEVATION = 6;
 const DEFAULT_SOUTH_CULLING_PADDING = 5;
+
+const parseHexColor = (hex: string): Rgb => {
+  const value = hex.replace("#", "");
+  if (value.length !== 6) {
+    throw new Error(`Expected 6-char hex color, got '${hex}'`);
+  }
+
+  return {
+    r: Number.parseInt(value.slice(0, 2), 16),
+    g: Number.parseInt(value.slice(2, 4), 16),
+    b: Number.parseInt(value.slice(4, 6), 16),
+  };
+};
+
+const clampChannel = (value: number): number => Math.max(0, Math.min(255, Math.round(value)));
+
+const rgbToHex = ({ r, g, b }: Rgb): string => {
+  const toHex = (channel: number): string => clampChannel(channel).toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
+
+const blendColor = (baseHex: string, tintHex: string, amount: number): string => {
+  const t = Math.max(0, Math.min(1, amount));
+  const base = parseHexColor(baseHex);
+  const tint = parseHexColor(tintHex);
+  return rgbToHex({
+    r: base.r + (tint.r - base.r) * t,
+    g: base.g + (tint.g - base.g) * t,
+    b: base.b + (tint.b - base.b) * t,
+  });
+};
+
+const getLightingBlend = (lighting: TileLighting): number => {
+  switch (lighting) {
+    case "sun":
+      return 0.72;
+    case "dark":
+      return 0.9;
+    case "neutral":
+      return 0;
+  }
+};
+
+const getLightingOverlayAlpha = (lighting: TileLighting): number => {
+  switch (lighting) {
+    case "sun":
+      return 0.34;
+    case "dark":
+      return 0.62;
+    case "neutral":
+      return 0;
+  }
+};
+
+const getLightingOverlayColor = (lighting: TileLighting): string => {
+  switch (lighting) {
+    case "sun":
+      return "#f0b36a";
+    case "dark":
+      return "#11233f";
+    case "neutral":
+      return "#000000";
+  }
+};
 
 export class TilemapRenderComponent extends RenderComponent {
   private readonly runtime: EcsRuntime;
@@ -62,7 +145,6 @@ export class TilemapRenderComponent extends RenderComponent {
   public constructor(
     private readonly map: InfiniteTilemap,
     private readonly terminator: TerminatorModel,
-    private readonly player: PlayerEntity,
     private readonly atlas: TileAtlas,
     tileWidth: number,
     tileHeight: number,
@@ -96,70 +178,75 @@ export class TilemapRenderComponent extends RenderComponent {
     }
 
     const center = camera.transform.transform.position;
-    const playerPosition = this.player.transform.transform.position;
-    const playerElevation = this.player.tilePosition.z;
-    const playerDepth = playerPosition.x + playerPosition.y + playerElevation;
-
     const radiusX = Math.ceil(canvasSize.x / this.tileWidth) + 8;
     const radiusY = Math.ceil(canvasSize.y / this.tileHeight) + 8;
     const elevationPixels = camera.getElevationStepPixels();
-    const maxTerrainElevation =
-      this.options?.maxTerrainElevation ?? DEFAULT_MAX_TERRAIN_ELEVATION;
-    const southCullingPadding =
-      this.options?.southCullingPadding ?? DEFAULT_SOUTH_CULLING_PADDING;
-    const verticalPadding =
-      Math.ceil((maxTerrainElevation * elevationPixels) / this.tileHeight) + 2;
+    const maxTerrainElevation = this.options?.maxTerrainElevation ?? DEFAULT_MAX_TERRAIN_ELEVATION;
+    const southCullingPadding = this.options?.southCullingPadding ?? DEFAULT_SOUTH_CULLING_PADDING;
+    const verticalPadding = Math.ceil((maxTerrainElevation * elevationPixels) / this.tileHeight) + 2;
 
     const minX = Math.floor(center.x) - radiusX;
     const maxX = Math.floor(center.x) + radiusX;
     const minY = Math.floor(center.y) - radiusY - verticalPadding;
-    const maxY =
-      Math.floor(center.y) + radiusY + verticalPadding + southCullingPadding;
+    const maxY = Math.floor(center.y) + radiusY + verticalPadding + southCullingPadding;
 
-    const commands: DrawCommand[] = [];
+    const tileCommands: TileCommand[] = [];
 
     for (let y = minY; y <= maxY; y++) {
       for (let x = minX; x <= maxX; x++) {
         const world = new Vector2D(x, y);
         const tile = this.map.getTile(x, y);
-        const variantSet = this.atlas.variants[tile.kind];
         const distance = this.terminator.distanceOutsideSafeBand(world);
-        const isNeutral = distance <= 0;
-        const sprite = isNeutral
-          ? variantSet.neutral
+        const lighting: TileLighting = distance <= 0
+          ? "neutral"
           : this.terminator.getSide(world) === "sun"
-            ? variantSet.sun
-            : variantSet.dark;
+            ? "sun"
+            : "dark";
 
         const tileDepth = x + y + tile.elevation;
-        const drawDepth = tile.occluder
-          ? tileDepth
-          : tileDepth - FLOOR_TILE_DEPTH_BIAS;
+        const drawDepth = tile.occluder ? tileDepth : tileDepth - FLOOR_TILE_DEPTH_BIAS;
 
-        commands.push({
-          kind: "tile",
+        tileCommands.push({
           depth: drawDepth,
           tile,
-          screen: camera.toCanvasAt(world, tile.elevation, canvasSize),
-          sprite,
+          lighting,
+          sprite: this.atlas.variants[tile.kind][tile.surfaceVariant],
           x,
           y,
+          screen: camera.toCanvasAt(world, tile.elevation, canvasSize),
         });
       }
     }
 
-    for (const renderable of this.collectRenderableCommands(
+    tileCommands.sort((a, b) => {
+      const depthDelta = a.depth - b.depth;
+      if (Math.abs(depthDelta) > DEPTH_EPSILON) {
+        return depthDelta;
+      }
+
+      const screenYDelta = a.screen.y - b.screen.y;
+      if (Math.abs(screenYDelta) > DEPTH_EPSILON) {
+        return screenYDelta;
+      }
+
+      return 0;
+    });
+
+    for (const command of tileCommands) {
+      this.drawTopFace(ctx, command, camera, canvasSize);
+    }
+
+    const overlayCommands = this.collectOverlayCommands(
+      tileCommands,
       minX,
       maxX,
       minY,
       maxY,
       camera,
       canvasSize,
-    )) {
-      commands.push(renderable);
-    }
+    );
 
-    commands.sort((a, b) => {
+    overlayCommands.sort((a, b) => {
       const depthDelta = a.depth - b.depth;
       if (Math.abs(depthDelta) > DEPTH_EPSILON) {
         return depthDelta;
@@ -171,38 +258,25 @@ export class TilemapRenderComponent extends RenderComponent {
       }
 
       if (a.kind !== b.kind) {
-        return a.kind === "tile" ? -1 : 1;
+        return a.kind === "entity" ? -1 : 1;
       }
 
       return 0;
     });
 
-    for (const command of commands) {
-      if (command.kind === "tile") {
-        this.drawCliffFaces(ctx, command, camera);
-
-        const left = Math.floor(command.screen.x - command.sprite.width / 2);
-        const top = Math.floor(
-          command.screen.y -
-            this.tileHeight / 2 -
-            (command.sprite.height - this.tileHeight),
-        );
-
-        ctx.drawImage(command.sprite, left, top);
-        this.drawDropEdgeOutlines(ctx, command);
+    for (const command of overlayCommands) {
+      if (command.kind === "entity") {
+        command.renderable.renderIsometric(ctx, command.screen, command.selected);
+      } else if (command.kind === "east-face") {
+        this.drawEastFace(ctx, command, camera, canvasSize);
       } else {
-        command.renderable.renderIsometric(
-          ctx,
-          command.screen,
-          command.selected,
-        );
+        this.drawSouthFace(ctx, command, camera, canvasSize);
       }
     }
 
     const centerPoint = this.terminator.getCenterPoint();
     const tangent = this.terminator.tangent;
     const half = 200;
-
     const a = centerPoint.add(tangent.multiply(-half));
     const b = centerPoint.add(tangent.multiply(half));
     const aScreen = camera.toCanvas(a, canvasSize);
@@ -216,27 +290,52 @@ export class TilemapRenderComponent extends RenderComponent {
     ctx.stroke();
   }
 
-  private collectRenderableCommands(
+  private collectOverlayCommands(
+    tileCommands: readonly TileCommand[],
     minX: number,
     maxX: number,
     minY: number,
     maxY: number,
     camera: IsometricCameraEntity,
     canvasSize: Vector2D,
-  ): RenderableCommand[] {
-    const commands: RenderableCommand[] = [];
+  ): OverlayCommand[] {
+    const commands: OverlayCommand[] = [];
+
+    for (const tile of tileCommands) {
+      if (this.hasEastFace(tile)) {
+        commands.push({
+          kind: "east-face",
+          depth: tile.depth + 0.2,
+          tile: tile.tile,
+          lighting: tile.lighting,
+          sprite: tile.sprite,
+          x: tile.x,
+          y: tile.y,
+          screen: tile.screen,
+        });
+      }
+
+      if (this.hasSouthFace(tile)) {
+        commands.push({
+          kind: "south-face",
+          depth: tile.depth + 0.3,
+          tile: tile.tile,
+          lighting: tile.lighting,
+          sprite: tile.sprite,
+          x: tile.x,
+          y: tile.y,
+          screen: tile.screen,
+        });
+      }
+    }
+
     if (!this.renderNodeQuery) {
       return commands;
     }
 
     for (const entity of this.renderNodeQuery.run() as IsometricRenderableEntity[]) {
       const position = entity.getComponent(TilePositionComponent);
-      if (
-        position.x < minX ||
-        position.x > maxX ||
-        position.y < minY ||
-        position.y > maxY
-      ) {
+      if (position.x < minX || position.x > maxX || position.y < minY || position.y > maxY) {
         continue;
       }
 
@@ -248,24 +347,13 @@ export class TilemapRenderComponent extends RenderComponent {
         continue;
       }
 
-      const screen = camera.toCanvasAt(
-        new Vector2D(position.x, position.y),
-        position.z,
-        canvasSize,
-      );
-      const selected =
-        this.options?.isSelectedAt?.(position.x, position.y, position.z) ??
-        false;
+      const screen = camera.toCanvasAt(new Vector2D(position.x, position.y), position.z, canvasSize);
+      const selected = this.options?.isSelectedAt?.(position.x, position.y, position.z) ?? false;
 
       for (const renderable of renderables) {
         commands.push({
           kind: "entity",
-          depth:
-            position.x +
-            position.y +
-            position.z +
-            renderable.sortOffset +
-            ENTITY_DEPTH_EPSILON,
+          depth: position.x + position.y + position.z + renderable.sortOffset + ENTITY_DEPTH_EPSILON,
           screen,
           renderable,
           selected,
@@ -276,135 +364,166 @@ export class TilemapRenderComponent extends RenderComponent {
     return commands;
   }
 
-  private drawCliffFaces(
+  private hasEastFace(command: TileCommand): boolean {
+    const neighbor = this.map.getTile(command.x + 1, command.y);
+    return Math.max(
+      0,
+      command.tile.corners.northEast - neighbor.corners.northWest,
+      command.tile.corners.southEast - neighbor.corners.southWest,
+    ) > 0;
+  }
+
+  private hasSouthFace(command: TileCommand): boolean {
+    const neighbor = this.map.getTile(command.x, command.y + 1);
+    return Math.max(
+      0,
+      command.tile.corners.southWest - neighbor.corners.northWest,
+      command.tile.corners.southEast - neighbor.corners.northEast,
+    ) > 0;
+  }
+
+  private drawTopFace(
     ctx: CanvasRenderingContext2D,
     command: TileCommand,
     camera: IsometricCameraEntity,
+    canvasSize: Vector2D,
   ): void {
-    const elevation = command.tile.elevation;
-    if (elevation <= 0) {
-      return;
-    }
+    const corners = this.getCornerPoints(command, camera, canvasSize);
+    const palette = this.atlas.palettes[command.tile.kind];
+    const baseColor = palette[command.tile.surfaceVariant];
+    const litColor = command.lighting === "neutral"
+      ? baseColor
+      : blendColor(baseColor, getLightingOverlayColor(command.lighting), getLightingBlend(command.lighting));
+    const overlayAlpha = getLightingOverlayAlpha(command.lighting);
 
-    const eastHeight = this.map.getTile(command.x + 1, command.y).elevation;
-    const southHeight = this.map.getTile(command.x, command.y + 1).elevation;
-
-    const eastDrop = elevation - eastHeight;
-    const southDrop = elevation - southHeight;
-    if (eastDrop <= 0 && southDrop <= 0) {
-      return;
-    }
-
-    const hw = this.tileWidth / 2;
-    const hh = this.tileHeight / 2;
-    const dropScale = camera.getElevationStepPixels();
-
-    const east = new Vector2D(command.screen.x + hw, command.screen.y);
-    const south = new Vector2D(command.screen.x, command.screen.y + hh);
-    const west = new Vector2D(command.screen.x - hw, command.screen.y);
-
-    const eastFaceColor = "#3a2a1f";
-    const southFaceColor = "#281d14";
-
-    if (eastDrop > 0) {
-      this.drawDropFace(ctx, east, south, eastDrop * dropScale, eastFaceColor);
-    }
-
-    if (southDrop > 0) {
-      this.drawDropFace(
-        ctx,
-        south,
-        west,
-        southDrop * dropScale,
-        southFaceColor,
-      );
-    }
-  }
-
-  private drawDropFace(
-    ctx: CanvasRenderingContext2D,
-    a: Vector2D,
-    b: Vector2D,
-    dropPixels: number,
-    fillStyle: string,
-  ): void {
-    if (dropPixels <= 0.001) {
-      return;
-    }
-
-    ctx.fillStyle = fillStyle;
+    ctx.save();
     ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.lineTo(b.x, b.y + dropPixels);
-    ctx.lineTo(a.x, a.y + dropPixels);
+    ctx.moveTo(corners.northWest.x, corners.northWest.y);
+    ctx.lineTo(corners.northEast.x, corners.northEast.y);
+    ctx.lineTo(corners.southEast.x, corners.southEast.y);
+    ctx.lineTo(corners.southWest.x, corners.southWest.y);
     ctx.closePath();
-    ctx.fill();
+
+    if (isTileFlat(command.tile)) {
+      ctx.clip();
+      const left = Math.floor(command.screen.x - command.sprite.width / 2);
+      const top = Math.floor(
+        command.screen.y -
+          this.tileHeight / 2 -
+          (command.sprite.height - this.tileHeight),
+      );
+      ctx.drawImage(command.sprite, left, top);
+      if (command.lighting !== "neutral") {
+        ctx.globalCompositeOperation = "source-atop";
+        ctx.fillStyle = getLightingOverlayColor(command.lighting);
+        ctx.globalAlpha = overlayAlpha;
+        ctx.fillRect(left, top, command.sprite.width, command.sprite.height);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+      }
+    } else {
+      ctx.fillStyle = litColor;
+      ctx.fill();
+    }
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.08)";
+    ctx.stroke();
+    ctx.restore();
   }
 
-  private drawDropEdgeOutlines(
+  private drawEastFace(
     ctx: CanvasRenderingContext2D,
-    command: TileCommand,
+    command: FaceCommand,
+    camera: IsometricCameraEntity,
+    canvasSize: Vector2D,
   ): void {
-    const elevation = command.tile.elevation;
+    const tileCorners = this.getCornerPoints(command, camera, canvasSize);
+    const neighbor = this.map.getTile(command.x + 1, command.y);
+    const neighborCorners = this.getCornerPointsForTile(command.x + 1, command.y, neighbor, camera, canvasSize);
+    const drop = Math.max(
+      0,
+      command.tile.corners.northEast - neighbor.corners.northWest,
+      command.tile.corners.southEast - neighbor.corners.southWest,
+    );
 
-    const northHeight = this.map.getTile(command.x - 1, command.y).elevation;
-    const westHeight = this.map.getTile(command.x, command.y - 1).elevation;
-    const eastHeight = this.map.getTile(command.x + 1, command.y).elevation;
-    const southHeight = this.map.getTile(command.x, command.y + 1).elevation;
-
-    const northDrop = northHeight - elevation;
-    const westDrop = westHeight - elevation;
-    const eastDrop = elevation - eastHeight;
-    const southDrop = elevation - southHeight;
-
-    const northDropDown = elevation - northHeight;
-    const westDropDown = elevation - westHeight;
-
-    const hasAnyEdge =
-      northDrop > 0 ||
-      westDrop > 0 ||
-      eastDrop > 0 ||
-      southDrop > 0 ||
-      northDropDown > 0 ||
-      westDropDown > 0;
-    if (!hasAnyEdge) {
-      return;
-    }
-
-    const hw = this.tileWidth / 2;
-    const hh = this.tileHeight / 2;
-    const north = new Vector2D(command.screen.x, command.screen.y - hh);
-    const east = new Vector2D(command.screen.x + hw, command.screen.y);
-    const south = new Vector2D(command.screen.x, command.screen.y + hh);
-    const west = new Vector2D(command.screen.x - hw, command.screen.y);
-
-    const segments: Array<[Vector2D, Vector2D]> = [];
-
-    if (westDropDown > 0) {
-      segments.push([north, east]);
-    }
-
-    if (northDropDown > 0) {
-      segments.push([west, north]);
-    }
-
-    if (segments.length === 0) {
+    if (drop <= 0) {
       return;
     }
 
     ctx.save();
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-
-    ctx.strokeStyle = "rgba(21, 14, 9, 0.95)";
-    ctx.lineWidth = 3;
+    const palette = this.atlas.palettes[command.tile.kind];
+    const baseFaceColor = blendColor(palette[command.tile.surfaceVariant], "#000000", 0.38);
+    const litFaceColor = command.lighting === "neutral"
+      ? baseFaceColor
+      : blendColor(baseFaceColor, getLightingOverlayColor(command.lighting), getLightingBlend(command.lighting));
+    ctx.fillStyle = litFaceColor;
     ctx.beginPath();
-    for (const [start, end] of segments) {
-      ctx.moveTo(start.x, start.y);
-      ctx.lineTo(end.x, end.y);
-    }
-    ctx.stroke();
+    ctx.moveTo(tileCorners.northEast.x, tileCorners.northEast.y);
+    ctx.lineTo(tileCorners.southEast.x, tileCorners.southEast.y);
+    ctx.lineTo(neighborCorners.southWest.x, neighborCorners.southWest.y);
+    ctx.lineTo(neighborCorners.northWest.x, neighborCorners.northWest.y);
+    ctx.closePath();
+    ctx.fill();
     ctx.restore();
+  }
+
+  private drawSouthFace(
+    ctx: CanvasRenderingContext2D,
+    command: FaceCommand,
+    camera: IsometricCameraEntity,
+    canvasSize: Vector2D,
+  ): void {
+    const tileCorners = this.getCornerPoints(command, camera, canvasSize);
+    const neighbor = this.map.getTile(command.x, command.y + 1);
+    const neighborCorners = this.getCornerPointsForTile(command.x, command.y + 1, neighbor, camera, canvasSize);
+    const drop = Math.max(
+      0,
+      command.tile.corners.southWest - neighbor.corners.northWest,
+      command.tile.corners.southEast - neighbor.corners.northEast,
+    );
+
+    if (drop <= 0) {
+      return;
+    }
+
+    ctx.save();
+    const palette = this.atlas.palettes[command.tile.kind];
+    const baseFaceColor = blendColor(palette[command.tile.surfaceVariant], "#000000", 0.5);
+    const litFaceColor = command.lighting === "neutral"
+      ? baseFaceColor
+      : blendColor(baseFaceColor, getLightingOverlayColor(command.lighting), getLightingBlend(command.lighting));
+    ctx.fillStyle = litFaceColor;
+    ctx.beginPath();
+    ctx.moveTo(tileCorners.southWest.x, tileCorners.southWest.y);
+    ctx.lineTo(tileCorners.southEast.x, tileCorners.southEast.y);
+    ctx.lineTo(neighborCorners.northEast.x, neighborCorners.northEast.y);
+    ctx.lineTo(neighborCorners.northWest.x, neighborCorners.northWest.y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  private getCornerPoints(
+    command: TileCommand,
+    camera: IsometricCameraEntity,
+    canvasSize: Vector2D,
+  ): TileCornerPoints {
+    return this.getCornerPointsForTile(command.x, command.y, command.tile, camera, canvasSize);
+  }
+
+  private getCornerPointsForTile(
+    x: number,
+    y: number,
+    tile: TileData,
+    camera: IsometricCameraEntity,
+    canvasSize: Vector2D,
+  ): TileCornerPoints {
+    return {
+      northWest: camera.toCanvasAt(new Vector2D(x - 0.5, y - 0.5), tile.corners.northWest, canvasSize),
+      northEast: camera.toCanvasAt(new Vector2D(x + 0.5, y - 0.5), tile.corners.northEast, canvasSize),
+      southEast: camera.toCanvasAt(new Vector2D(x + 0.5, y + 0.5), tile.corners.southEast, canvasSize),
+      southWest: camera.toCanvasAt(new Vector2D(x - 0.5, y + 0.5), tile.corners.southWest, canvasSize),
+    };
   }
 }

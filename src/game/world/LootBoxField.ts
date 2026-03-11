@@ -2,6 +2,7 @@ import type { ItemStack } from "../items/item-catalog.ts";
 import { ITEM_DEFINITIONS } from "../items/item-catalog.ts";
 import { hash2 } from "../../shared/math/hash.ts";
 import { InfiniteTilemap } from "./InfiniteTilemap.ts";
+import { isTileFlat } from "./tile-types.ts";
 
 export const LOOT_BOX_SLOT_COUNT = 16;
 
@@ -94,7 +95,7 @@ export class LootBoxField {
 
     const base = this.createGeneratedBox(x, y, map);
     const override = this.overrides.get(key);
-    const box = this.applyOverride(base, override, x, y);
+    const box = this.applyOverride(base, override, x, y, map);
     this.cache.set(key, box);
     return box;
   }
@@ -198,7 +199,7 @@ export class LootBoxField {
 
   private createGeneratedBox(x: number, y: number, map: InfiniteTilemap): LootBoxState | null {
     const tile = map.getTile(x, y);
-    if (tile.blocking) {
+    if (tile.blocking || !isTileFlat(tile)) {
       return null;
     }
 
@@ -259,7 +260,13 @@ export class LootBoxField {
     override: LootBoxOverride | undefined,
     x: number,
     y: number,
+    map: InfiniteTilemap,
   ): LootBoxState | null {
+    const tile = map.getTile(x, y);
+    if (tile.blocking || !isTileFlat(tile)) {
+      return null;
+    }
+
     if (!override) {
       return base;
     }

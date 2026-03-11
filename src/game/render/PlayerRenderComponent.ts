@@ -19,6 +19,7 @@ const FRAME_COLS = 14;
 const FRAME_ROWS = 8;
 const FOOT_ANCHOR_Y = 88;
 const SPRITE_SCALE = 3;
+const GROUND_CLEARANCE_PX = 7;
 
 const WALK_FPS_MIN = 12;
 const WALK_FPS_MAX = 24;
@@ -125,7 +126,7 @@ export class PlayerRenderComponent extends IsometricRenderableComponent {
     const drawWidth = Math.floor(FRAME_SIZE * SPRITE_SCALE);
     const drawHeight = Math.floor(FRAME_SIZE * SPRITE_SCALE);
     const drawX = Math.floor(screen.x - drawWidth / 2);
-    const drawY = Math.floor(screen.y - FOOT_ANCHOR_Y * SPRITE_SCALE);
+    const drawY = Math.floor(screen.y - FOOT_ANCHOR_Y * SPRITE_SCALE - GROUND_CLEARANCE_PX);
 
     ctx.drawImage(
       sheet,

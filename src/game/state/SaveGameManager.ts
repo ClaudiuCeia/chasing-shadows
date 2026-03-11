@@ -4,7 +4,21 @@ import { LOOT_BOX_SLOT_COUNT } from "../world/LootBoxField.ts";
 import type { SaveGameV1 } from "./save-types.ts";
 
 const VALID_TILE_KINDS = new Set(["regolith", "rock", "scrap", "shelter"]);
+const VALID_TILE_SURFACE_VARIANTS = new Set(["neutral", "sun", "dark"]);
 const VALID_ITEM_IDS = new Set<string>(ITEM_IDS);
+
+const isTileCorners = (value: unknown): boolean => {
+  if (!isObject(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.northWest === "number" &&
+    typeof value.northEast === "number" &&
+    typeof value.southEast === "number" &&
+    typeof value.southWest === "number"
+  );
+};
 
 export interface StorageLike {
   getItem(key: string): string | null;
@@ -73,6 +87,15 @@ const isSaveGameV1 = (value: unknown): value is SaveGameV1 => {
       return false;
     }
     if (entry.occluder !== undefined && typeof entry.occluder !== "boolean") {
+      return false;
+    }
+    if (
+      entry.surfaceVariant !== undefined &&
+      (typeof entry.surfaceVariant !== "string" || !VALID_TILE_SURFACE_VARIANTS.has(entry.surfaceVariant))
+    ) {
+      return false;
+    }
+    if (entry.corners !== undefined && !isTileCorners(entry.corners)) {
       return false;
     }
   }

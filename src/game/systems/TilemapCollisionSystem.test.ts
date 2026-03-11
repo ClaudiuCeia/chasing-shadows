@@ -5,7 +5,7 @@ import { PlayerEntity } from "../entities/PlayerEntity.ts";
 import { TopDownControllerSystem } from "./TopDownControllerSystem.ts";
 import { TilemapCollisionSystem } from "./TilemapCollisionSystem.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
-import { createTileData } from "../world/tile-types.ts";
+import { createTileCornerHeights, createTileData } from "../world/tile-types.ts";
 
 const stepN = (world: World, n: number, dt: number): void => {
   for (let i = 0; i < n; i++) {
@@ -101,6 +101,7 @@ describe("TilemapCollisionSystem", () => {
       ...createTileData("regolith"),
       elevation: 3,
       occluder: true,
+      corners: createTileCornerHeights(3),
     });
 
     const world = new World({ fixedDeltaTime: 1 / 60 });
@@ -128,11 +129,13 @@ describe("TilemapCollisionSystem", () => {
       ...createTileData("regolith"),
       elevation: 3,
       occluder: true,
+      corners: createTileCornerHeights(3),
     });
     map.setTileData(1, 0, {
       ...createTileData("regolith"),
       elevation: 0,
       occluder: false,
+      corners: createTileCornerHeights(0),
     });
 
     const world = new World({ fixedDeltaTime: 1 / 60 });
@@ -153,6 +156,47 @@ describe("TilemapCollisionSystem", () => {
 
     stepN(world, 220, 1 / 60);
     expect(player.transform.transform.position.x).toBeLessThanOrEqual(0.31);
+  });
+
+  test("blocks excessive drop-offs from the southwest edge of a raised tile", () => {
+    const map = new InfiniteTilemap({ seed: 53, chunkSize: 16 });
+    map.setTileData(0, 0, {
+      ...createTileData("regolith"),
+      elevation: 2,
+      occluder: true,
+      corners: createTileCornerHeights(2),
+    });
+    map.setTileData(-1, 0, {
+      ...createTileData("regolith"),
+      elevation: 0,
+      occluder: false,
+      corners: createTileCornerHeights(0),
+    });
+    map.setTileData(0, 1, {
+      ...createTileData("regolith"),
+      elevation: 0,
+      occluder: false,
+      corners: createTileCornerHeights(0),
+    });
+
+    const world = new World({ fixedDeltaTime: 1 / 60 });
+    world.addSystem(new TopDownControllerSystem({ isoConfig: { tileWidth: 128, tileHeight: 64 } }));
+    world.addSystem(new PhysicsSystem({ gravity: Vector2D.zero }));
+
+    const player = new PlayerEntity(new Vector2D(-0.35, 0), 7);
+    player.awake();
+    player.getComponent(MovementIntentComponent).setMoveTarget(-0.35, 1.5);
+
+    world.addSystem(
+      new TilemapCollisionSystem(map, player, {
+        playerRadius: player.collisionRadius,
+        maxStepUp: 1,
+        maxStepDown: 1,
+      }),
+    );
+
+    stepN(world, 220, 1 / 60);
+    expect(player.transform.transform.position.y).toBeLessThanOrEqual(0.31);
   });
 
   test("blocks movement against dynamic blockers", () => {

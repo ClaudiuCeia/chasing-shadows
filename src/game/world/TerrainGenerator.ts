@@ -1,5 +1,5 @@
 import { hash2 } from "../../shared/math/hash.ts";
-import type { TileData } from "./tile-types.ts";
+import { createTileCornerHeights, type TileData } from "./tile-types.ts";
 
 export const MAX_TERRAIN_ELEVATION = 6;
 
@@ -103,31 +103,87 @@ const riftStrength = (x: number, y: number, seed: number): number => {
   return smoothstep(0.74, 0.94, ridged);
 };
 
+const sampleBaseHeight = (x: number, y: number, seed: number): number => {
+  const continental = fbm(x, y, seed + 101, 320, 2);
+  const broadRelief = fbm(x - 91.7, y + 47.2, seed + 211, 180, 2);
+  const gentleVariation = fbm(x + 18.4, y - 83.1, seed + 307, 92, 2);
+  const uplift = smoothstep(0.54, 0.86, valueNoise(x + 31, y - 29, seed + 401, 210));
+  const crater = craterField(x, y, seed + 503, 120, 10, 22, 0.35);
+
+  return -0.9 + continental * 4.4 + broadRelief * 2.4 + gentleVariation * 1.15 + uplift * 1.35 - crater;
+};
+
+const sampleCliffField = (x: number, y: number, seed: number): number => {
+  const plateau = smoothstep(0.71, 0.88, valueNoise(x - 14.7, y + 22.1, seed + 601, 172));
+  const ridge = smoothstep(0.74, 0.91, valueNoise(x + 41.9, y - 16.8, seed + 613, 132));
+  const mask = plateau * 0.65 + ridge * 0.35;
+  return smoothstep(0.7, 0.94, mask);
+};
+
+const sampleSurfaceVariant = (x: number, y: number, seed: number): TileData["surfaceVariant"] => {
+  const noise = hash2(x, y, seed + 719);
+  if (noise < 0.18) {
+    return "sun";
+  }
+  if (noise > 0.82) {
+    return "dark";
+  }
+  return "neutral";
+};
+
+const sampleRawVertexHeight = (vx: number, vy: number, seed: number): number => {
+  const x = vx * 0.5;
+  const y = vy * 0.5;
+  const baseHeight = sampleBaseHeight(x, y, seed);
+  const cliffField = sampleCliffField(x, y, seed);
+  const cliffSteps = Math.round(cliffField * 2.2);
+  return baseHeight + cliffSteps;
+};
+
+const sampleVertexElevation = (vx: number, vy: number, seed: number): number => {
+  const x = vx * 0.5;
+  const y = vy * 0.5;
+  const center = sampleRawVertexHeight(vx, vy, seed);
+  const cardinals = (
+    sampleRawVertexHeight(vx - 1, vy, seed) +
+    sampleRawVertexHeight(vx + 1, vy, seed) +
+    sampleRawVertexHeight(vx, vy - 1, seed) +
+    sampleRawVertexHeight(vx, vy + 1, seed)
+  ) / 4;
+  const diagonals = (
+    sampleRawVertexHeight(vx - 1, vy - 1, seed) +
+    sampleRawVertexHeight(vx + 1, vy - 1, seed) +
+    sampleRawVertexHeight(vx - 1, vy + 1, seed) +
+    sampleRawVertexHeight(vx + 1, vy + 1, seed)
+  ) / 4;
+
+  const smoothedBase = center * 0.64 + cardinals * 0.24 + diagonals * 0.12;
+  const cliffField = sampleCliffField(x, y, seed);
+  const cliffBoost = cliffField > 0.84 ? 2 : cliffField > 0.74 ? 1 : 0;
+  return clamp(Math.round(smoothedBase) + cliffBoost, 0, MAX_TERRAIN_ELEVATION);
+};
+
 export const generateTerrainTile = (x: number, y: number, seed: number): TileData => {
-  const broadRelief = fbm(x, y, seed + 101, 140, 3);
-  const detailRelief = fbm(x + 73.1, y - 21.4, seed + 211, 52, 3);
-  const plateauMask = smoothstep(0.55, 0.86, valueNoise(x - 37, y + 12, seed + 307, 95));
+  const corners = createTileCornerHeights({
+    northWest: sampleVertexElevation(x * 2 - 1, y * 2 - 1, seed),
+    northEast: sampleVertexElevation(x * 2 + 1, y * 2 - 1, seed),
+    southEast: sampleVertexElevation(x * 2 + 1, y * 2 + 1, seed),
+    southWest: sampleVertexElevation(x * 2 - 1, y * 2 + 1, seed),
+  });
 
-  const baseHeight = 1 + broadRelief * 3.1 + detailRelief * 1.6 + plateauMask * 1.2;
-  const terraced = Math.round(baseHeight * 1.35) / 1.35;
-
-  const smallCrater = craterField(x, y, seed + 503, 34, 5, 10, 1.35);
-  const bigCrater = craterField(x, y, seed + 509, 72, 11, 20, 2.15);
-  const hugeCrater = craterField(x, y, seed + 521, 140, 22, 38, 3.1);
-  const craterDepth = Math.max(smallCrater, bigCrater, hugeCrater);
-
-  const rift = riftStrength(x, y, seed);
-  const ventMask = valueNoise(x + 11.9, y - 44.2, seed + 613, 15);
-  const vent = rift * smoothstep(0.73, 0.9, ventMask);
-
-  let height = terraced - craterDepth - rift * 1.2 + vent * 0.9;
-  height = Math.round(height);
-  const elevation = clamp(height, 0, MAX_TERRAIN_ELEVATION);
+  const tileElevation = Math.max(
+    corners.northWest,
+    corners.northEast,
+    corners.southEast,
+    corners.southWest,
+  );
 
   return {
     kind: "regolith",
     blocking: false,
-    elevation,
-    occluder: elevation > 0,
+    elevation: tileElevation,
+    occluder: tileElevation > 0,
+    corners,
+    surfaceVariant: sampleSurfaceVariant(x, y, seed),
   };
 };

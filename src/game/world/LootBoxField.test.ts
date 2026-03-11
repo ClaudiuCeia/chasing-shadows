@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { InfiniteTilemap } from "./InfiniteTilemap.ts";
 import { LootBoxField } from "./LootBoxField.ts";
+import { createTileCornerHeights, createTileData } from "./tile-types.ts";
 
 const findAnyBox = (
   field: LootBoxField,
@@ -65,5 +66,16 @@ describe("LootBoxField", () => {
     expect(restored.getBoxAt(location.x, location.y, map)).toEqual(
       original.getBoxAt(location.x, location.y, map),
     );
+  });
+
+  test("does not spawn loot boxes on sloped tiles", () => {
+    const map = new InfiniteTilemap({ seed: 19, chunkSize: 16 });
+    map.setTileData(0, 0, {
+      ...createTileData("regolith"),
+      corners: createTileCornerHeights({ northWest: 2, northEast: 3, southEast: 3, southWest: 2 }),
+    });
+
+    const field = new LootBoxField({ seed: 555, spawnChance: 1 });
+    expect(field.getBoxAt(0, 0, map)).toBeNull();
   });
 });

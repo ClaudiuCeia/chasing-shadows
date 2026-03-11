@@ -88,7 +88,7 @@ export class TilemapCollisionSystem implements System {
   }
 
   private resolvePass(position: Vector2D): Vector2D {
-    const currentElevation = this.map.getTile(position.x, position.y).elevation;
+    const currentElevation = this.map.getElevationAt(position.x, position.y);
     const minX = Math.floor(position.x - this.playerRadius - this.tileHalfExtent);
     const maxX = Math.floor(position.x + this.playerRadius + this.tileHalfExtent);
     const minY = Math.floor(position.y - this.playerRadius - this.tileHalfExtent);
@@ -99,17 +99,21 @@ export class TilemapCollisionSystem implements System {
     for (let y = minY; y <= maxY; y++) {
       for (let x = minX; x <= maxX; x++) {
         const tile = this.map.getTile(x, y);
-        const elevationDelta = tile.elevation - currentElevation;
-        const blockedByElevation =
-          elevationDelta > this.maxStepUp || elevationDelta < -this.maxStepDown;
         const blockedByDynamicObstacle = this.isBlockedAt?.(x, y) ?? false;
-
-        if (!tile.blocking && !blockedByElevation && !blockedByDynamicObstacle) {
-          continue;
-        }
 
         const correction = this.circleVsTileCorrection(position, x, y);
         if (!correction) {
+          continue;
+        }
+
+        const probeX = clamp(position.x, x - this.tileHalfExtent, x + this.tileHalfExtent);
+        const probeY = clamp(position.y, y - this.tileHalfExtent, y + this.tileHalfExtent);
+        const targetElevation = this.map.getElevationAt(probeX, probeY);
+        const elevationDelta = targetElevation - currentElevation;
+        const blockedByElevation =
+          elevationDelta > this.maxStepUp || elevationDelta < -this.maxStepDown;
+
+        if (!tile.blocking && !blockedByElevation && !blockedByDynamicObstacle) {
           continue;
         }
 
