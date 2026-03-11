@@ -1,19 +1,18 @@
 import {
   EcsRuntime,
   EntityProfiler,
-  Entity,
-  HudInputRouter,
-  HudLayoutNodeComponent,
   HudViewport,
   PhysicsSystem,
   RenderSystem,
-  Scene,
   SceneManager,
   TransformComponent,
   Vector2D,
   World,
 } from "@claudiu-ceia/tick";
+import { GameplayScene } from "./scenes/GameplayScene.ts";
+import { TitleScene } from "./scenes/TitleScene.ts";
 import { GAME_CONFIG } from "../game/config/game-config.ts";
+import { HudOnlyCamera } from "../game/entities/HudOnlyCamera.ts";
 import { PlayerEntity } from "../game/entities/PlayerEntity.ts";
 import { TilemapEntity } from "../game/entities/TilemapEntity.ts";
 import { IsometricCameraEntity } from "../game/render/IsometricCameraEntity.ts";
@@ -39,9 +38,6 @@ import { TilemapCollisionSystem } from "../game/systems/TilemapCollisionSystem.t
 import { TopDownControllerSystem } from "../game/systems/TopDownControllerSystem.ts";
 import { createHud } from "../game/ui/createHud.ts";
 import { getAmbientTemperature } from "../game/ui/environment-temperature.ts";
-import { TitleMenuInputComponent } from "../game/ui/TitleMenuInputComponent.ts";
-import { TitleMenuRenderComponent } from "../game/ui/TitleMenuRenderComponent.ts";
-import { TitleMenuState } from "../game/ui/TitleMenuState.ts";
 import { InfiniteTilemap } from "../game/world/InfiniteTilemap.ts";
 import { LootBoxField } from "../game/world/LootBoxField.ts";
 import { TerminatorModel } from "../game/world/TerminatorModel.ts";
@@ -418,18 +414,6 @@ export const bootstrapGame = (): void => {
   const titleRuntime = new EcsRuntime();
   let pendingScene: "title" | "gameplay" | null = null;
 
-  class HudOnlyCamera extends Entity {
-    public toCanvas(worldPos: Vector2D): Vector2D {
-      return worldPos;
-    }
-
-    public override update(_dt: number): void {}
-  }
-
-  class HudRootEntity extends Entity {
-    public override update(_dt: number): void {}
-  }
-
   const titleCamera = new HudOnlyCamera();
   const titleRenderSystem = new RenderSystem(canvasState, titleCamera, titleRuntime, hudViewport);
   const playerPointerActionHandler = new PlayerPointerActionHandler(map, lootField, lootUi, player);
@@ -540,79 +524,31 @@ export const bootstrapGame = (): void => {
     const nextScene = pendingScene;
     pendingScene = null;
     clearSceneInput();
-    sceneManager.changeScene(nextScene === "gameplay" ? new GameplayScene() : new TitleScene());
+    sceneManager.changeScene(
+      nextScene === "gameplay"
+        ? new GameplayScene({
+            runtime,
+            world,
+            lootUi,
+            onOpenTitle: requestTitleScene,
+            renderFrame: () => {
+              gameContext.imageSmoothingEnabled = false;
+              gameContext.setTransform(1, 0, 0, 1, 0, 0);
+              gameContext.fillStyle = "#18110d";
+              gameContext.fillRect(0, 0, canvas.width, canvas.height);
+              renderSystem.render();
+            },
+          })
+        : new TitleScene({
+            runtime: titleRuntime,
+            renderSystem: titleRenderSystem,
+            onContinue: requestGameplayScene,
+            onRestart: restartGame,
+          }),
+    );
   };
 
   const sceneManager = new SceneManager();
-
-  class GameplayScene extends Scene {
-    public awake(): void {
-      runtime.input.init(window);
-    }
-
-    public update(dt: number): void {
-      if (runtime.input.isPressed("Escape")) {
-        lootUi.close();
-        requestTitleScene();
-        return;
-      }
-
-      world.step(dt);
-    }
-
-    public render(_ctx: CanvasRenderingContext2D): void {
-      gameContext.imageSmoothingEnabled = false;
-      gameContext.setTransform(1, 0, 0, 1, 0, 0);
-      gameContext.fillStyle = "#18110d";
-      gameContext.fillRect(0, 0, canvas.width, canvas.height);
-      renderSystem.render();
-    }
-
-    public destroy(): void {
-      runtime.input.dispose();
-    }
-  }
-
-  class TitleScene extends Scene {
-    private root: Entity | null = null;
-
-    public awake(): void {
-      const state = new TitleMenuState();
-      EcsRuntime.runWith(titleRuntime, () => {
-        const root = new HudRootEntity();
-        root.addComponent(
-          new HudLayoutNodeComponent({
-            width: GAME_CONFIG.hudReferenceWidth,
-            height: GAME_CONFIG.hudReferenceHeight,
-            anchor: "center",
-          }),
-        );
-        root.addComponent(new TitleMenuRenderComponent(state));
-        root.addComponent(
-          new TitleMenuInputComponent(
-            state,
-            requestGameplayScene,
-            restartGame,
-          ),
-        );
-        root.awake();
-        this.root = root;
-      });
-    }
-
-    public update(_dt: number): void {}
-
-    public render(_ctx: CanvasRenderingContext2D): void {
-      titleRenderSystem.render();
-    }
-
-    public destroy(): void {
-      this.root?.destroy();
-      this.root = null;
-      HudInputRouter.detach(titleRuntime);
-      titleRuntime.input.dispose();
-    }
-  }
 
   const globalWindow = window as Window & typeof globalThis & {
     __tickProfiler?: {
