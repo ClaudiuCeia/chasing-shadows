@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { EcsRuntime, Vector2D, World } from "@claudiu-ceia/tick";
-import { LootBoxSpriteComponent } from "../components/LootBoxSpriteComponent.ts";
+import { LootBoxSpriteComponent } from "../render/LootBoxSpriteComponent.ts";
 import { TilePositionComponent } from "../components/TilePositionComponent.ts";
 import { PlayerEntity } from "../entities/PlayerEntity.ts";
 import { LOOT_BOX_SLOT_COUNT, LootBoxField } from "../world/LootBoxField.ts";

@@ -1,21 +1,21 @@
+import { EcsRuntime, defineAssetManifest } from "@claudiu-ceia/tick";
 import ItemSheetPng from "../../../assets/items/items.png";
+
+const ITEM_SPRITE_MANIFEST = defineAssetManifest({
+  images: {
+    sheet: ItemSheetPng,
+  },
+});
 
 export const ITEM_ICON_SIZE = 16;
 export const ITEM_SHEET_COLUMNS = 4;
 
 let sheetPromise: Promise<HTMLImageElement> | null = null;
 
-const loadImage = (src: string): Promise<HTMLImageElement> =>
-  new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error(`Failed to load item sheet image: ${src}`));
-    image.src = src;
-  });
-
-export const getItemSheet = (): Promise<HTMLImageElement> => {
+export const getItemSheet = (runtime: EcsRuntime = EcsRuntime.getCurrent()): Promise<HTMLImageElement> => {
   if (!sheetPromise) {
-    sheetPromise = loadImage(ItemSheetPng);
+    sheetPromise = runtime.assets.load(ITEM_SPRITE_MANIFEST, { scopeLabel: "item-sprites" })
+      .then((assets) => assets.images.sheet);
   }
 
   return sheetPromise;

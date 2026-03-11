@@ -1,14 +1,6 @@
-import { Vector2D } from "@claudiu-ceia/tick";
-import { IsometricRenderableComponent } from "./IsometricRenderableComponent.ts";
-import BoxesSheetPng from "../../../assets/cardboard-box/boxes_SpriteSheet.png";
-import BoxPointerPng from "../../../assets/cardboard-box/box pointer.png";
-import BoxShadowPng from "../../../assets/cardboard-box/shadow.png";
-
-type BoxSprites = {
-  sheet: HTMLImageElement;
-  shadow: HTMLImageElement;
-  pointer: HTMLImageElement;
-};
+import { EcsRuntime, Vector2D } from "@claudiu-ceia/tick";
+import { IsometricRenderableComponent } from "../components/IsometricRenderableComponent.ts";
+import { getLootBoxSprites, type BoxSprites } from "./loot-box-sprite-assets.ts";
 
 const BOX_FRAME_SIZE = 18;
 const BOX_SHEET_COLUMNS = 5;
@@ -18,14 +10,6 @@ const BOX_SCALE = 4.5;
 const POINTER_SRC_X = 20;
 const POINTER_SRC_WIDTH = 20;
 const POINTER_SCALE = 2.5;
-
-const loadImage = (src: string): Promise<HTMLImageElement> =>
-  new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error(`Failed to load loot-box image: ${src}`));
-    image.src = src;
-  });
 
 export class LootBoxSpriteComponent extends IsometricRenderableComponent {
   public static override type = "loot-box-sprite";
@@ -43,14 +27,10 @@ export class LootBoxSpriteComponent extends IsometricRenderableComponent {
     }
 
     if (!LootBoxSpriteComponent.spritesPromise) {
-      LootBoxSpriteComponent.spritesPromise = Promise.all([
-        loadImage(BoxesSheetPng),
-        loadImage(BoxShadowPng),
-        loadImage(BoxPointerPng),
-      ]).then(([sheet, shadow, pointer]) => ({ sheet, shadow, pointer }));
+      LootBoxSpriteComponent.spritesPromise = getLootBoxSprites(EcsRuntime.getCurrent());
     }
 
-    LootBoxSpriteComponent.spritesPromise
+    LootBoxSpriteComponent.spritesPromise!
       .then((sprites) => {
         this.sprites = sprites;
       })

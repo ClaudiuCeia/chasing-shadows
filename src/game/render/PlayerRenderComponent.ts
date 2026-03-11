@@ -1,8 +1,4 @@
-import {
-  PhysicsBodyComponent,
-  TransformComponent,
-  Vector2D,
-} from "@claudiu-ceia/tick";
+import { EcsRuntime, PhysicsBodyComponent, TransformComponent, Vector2D } from "@claudiu-ceia/tick";
 import { PlayerAttackComponent } from "../components/PlayerAttackComponent.ts";
 import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
 import { TopDownControllerComponent } from "../components/TopDownControllerComponent.ts";
@@ -15,35 +11,7 @@ import {
   MOVE_THRESHOLD,
 } from "./player-animation-logic.ts";
 import { screenVectorToDirectionIndex } from "./player-sprite-math.ts";
-import Attack1Sheet from "../../../assets/player/Attack1.png";
-import CrouchIdleSheet from "../../../assets/player/CrouchIdle.png";
-import CrouchRunSheet from "../../../assets/player/CrouchRun.png";
-import IdleSheet from "../../../assets/player/Idle.png";
-import RunBackwardsSheet from "../../../assets/player/RunBackwards.png";
-import RunBackwardsAttackSheet from "../../../assets/player/RunBackwardsAttack.png";
-import RunAttackSheet from "../../../assets/player/RunAttack.png";
-import RunSheet from "../../../assets/player/Run.png";
-import StrafeLeftSheet from "../../../assets/player/StrafeLeft.png";
-import StrafeLeftAttackSheet from "../../../assets/player/StrafeLeftAttack.png";
-import StrafeRightSheet from "../../../assets/player/StrafeRight.png";
-import StrafeRightAttackSheet from "../../../assets/player/StrafeRightAttack.png";
-import WalkSheet from "../../../assets/player/Walk.png";
-
-type PlayerSheets = {
-  attack1: HTMLImageElement;
-  crouchIdle: HTMLImageElement;
-  crouchRun: HTMLImageElement;
-  idle: HTMLImageElement;
-  run: HTMLImageElement;
-  runAttack: HTMLImageElement;
-  runBackwards: HTMLImageElement;
-  runBackwardsAttack: HTMLImageElement;
-  strafeLeft: HTMLImageElement;
-  strafeLeftAttack: HTMLImageElement;
-  strafeRight: HTMLImageElement;
-  strafeRightAttack: HTMLImageElement;
-  walk: HTMLImageElement;
-};
+import { getPlayerSheets, type PlayerSheets } from "./player-sprite-assets.ts";
 
 type AnimationClipName =
   | "attack1"
@@ -82,14 +50,6 @@ const CROUCH_FPS_MAX = 13;
 const IDLE_FPS = 6;
 const CROUCH_IDLE_FPS = 5;
 
-const loadImage = (src: string): Promise<HTMLImageElement> =>
-  new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error(`Failed to load sprite image: ${src}`));
-    image.src = src;
-  });
-
 export class PlayerRenderComponent extends IsometricRenderableComponent {
   private static sheetsPromise: Promise<PlayerSheets> | null = null;
 
@@ -107,52 +67,10 @@ export class PlayerRenderComponent extends IsometricRenderableComponent {
     }
 
     if (!PlayerRenderComponent.sheetsPromise) {
-      PlayerRenderComponent.sheetsPromise = Promise.all([
-        loadImage(CrouchIdleSheet),
-        loadImage(CrouchRunSheet),
-        loadImage(IdleSheet),
-        loadImage(RunSheet),
-        loadImage(RunAttackSheet),
-        loadImage(RunBackwardsSheet),
-        loadImage(RunBackwardsAttackSheet),
-        loadImage(StrafeLeftSheet),
-        loadImage(StrafeLeftAttackSheet),
-        loadImage(StrafeRightSheet),
-        loadImage(StrafeRightAttackSheet),
-        loadImage(WalkSheet),
-        loadImage(Attack1Sheet),
-      ]).then(([
-        crouchIdle,
-        crouchRun,
-        idle,
-        run,
-        runAttack,
-        runBackwards,
-        runBackwardsAttack,
-        strafeLeft,
-        strafeLeftAttack,
-        strafeRight,
-        strafeRightAttack,
-        walk,
-        attack1,
-      ]) => ({
-        attack1,
-        crouchIdle,
-        crouchRun,
-        idle,
-        run,
-        runAttack,
-        runBackwards,
-        runBackwardsAttack,
-        strafeLeft,
-        strafeLeftAttack,
-        strafeRight,
-        strafeRightAttack,
-        walk,
-      }));
+      PlayerRenderComponent.sheetsPromise = getPlayerSheets(EcsRuntime.getCurrent());
     }
 
-    PlayerRenderComponent.sheetsPromise
+    PlayerRenderComponent.sheetsPromise!
       .then((sheets) => {
         this.sheets = sheets;
       })

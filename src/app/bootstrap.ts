@@ -203,6 +203,7 @@ export const bootstrapGame = (): void => {
       { tileWidth: GAME_CONFIG.tileWidth, tileHeight: GAME_CONFIG.tileHeight },
     ).normalize(),
   });
+  
   const terminatorSystem = new TerminatorSystem(terminator);
   if (autosave) {
     terminatorSystem.setElapsedSeconds(autosave.elapsedSeconds);

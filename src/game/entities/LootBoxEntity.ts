@@ -1,6 +1,6 @@
 import { Entity } from "@claudiu-ceia/tick";
 import { IsometricRenderNodeComponent } from "../components/IsometricRenderNodeComponent.ts";
-import { LootBoxSpriteComponent } from "../components/LootBoxSpriteComponent.ts";
+import { LootBoxSpriteComponent } from "../render/LootBoxSpriteComponent.ts";
 import { TilePositionComponent } from "../components/TilePositionComponent.ts";
 
 export class LootBoxEntity extends Entity {
