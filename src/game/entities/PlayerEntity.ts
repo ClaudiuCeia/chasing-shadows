@@ -8,6 +8,7 @@ import {
   Vector2D,
 } from "@claudiu-ceia/tick";
 import { HealthComponent } from "../components/HealthComponent.ts";
+import { PlayerAttackComponent } from "../components/PlayerAttackComponent.ts";
 import { IsometricRenderNodeComponent } from "../components/IsometricRenderNodeComponent.ts";
 import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
 import { NeedsComponent } from "../components/NeedsComponent.ts";
@@ -26,6 +27,7 @@ export class PlayerEntity extends Entity {
   public readonly needs: NeedsComponent;
   public readonly temperature: TemperatureComponent;
   public readonly health: HealthComponent;
+  public readonly attack: PlayerAttackComponent;
 
   public constructor(spawn: Vector2D, baseSpeed: number) {
     super();
@@ -44,6 +46,7 @@ export class PlayerEntity extends Entity {
     this.needs = new NeedsComponent();
     this.temperature = new TemperatureComponent();
     this.health = new HealthComponent();
+    this.attack = new PlayerAttackComponent();
 
     this.addComponent(this.transform);
     this.addComponent(new IsometricRenderNodeComponent());
@@ -55,10 +58,12 @@ export class PlayerEntity extends Entity {
         maxSpeed: baseSpeed,
         acceleration: baseSpeed * 12,
         damping: 18,
-        sprintMultiplier: 1.45,
+        walkMultiplier: 0.62,
+        crouchMultiplier: 0.38,
       }),
     );
     this.addComponent(this.body);
+    this.addComponent(this.attack);
     this.addComponent(this.health);
     this.addComponent(this.needs);
     this.addComponent(this.temperature);

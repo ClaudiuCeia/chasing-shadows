@@ -58,13 +58,14 @@ describe("TopDownControllerSystem", () => {
 
     const actor = new ActorEntity(new Vector2D(0, 0));
     actor.awake();
-    actor.intent.setIntent(1, 0, false);
+    actor.intent.setIntent(0, 1, false, false);
 
     stepN(world, 30, 1 / 60);
 
-    expect(actor.body.getVelocity().x).toBeGreaterThan(0);
+    expect(actor.body.getVelocity().x).toBeLessThan(0);
     expect(actor.body.getVelocity().y).toBeLessThan(0);
-    expect(actor.transform.transform.position.x).toBeGreaterThan(0);
+    expect(actor.transform.transform.position.x).toBeLessThan(0);
+    expect(actor.transform.transform.position.y).toBeLessThan(0);
   });
 
   test("applies damping when no input", () => {
@@ -74,29 +75,52 @@ describe("TopDownControllerSystem", () => {
 
     const actor = new ActorEntity(new Vector2D(0, 0));
     actor.awake();
-    actor.intent.setIntent(1, 0, false);
+    actor.intent.setIntent(0, 1, false, false);
     stepN(world, 30, 1 / 60);
 
     const movingSpeed = actor.body.getVelocity().magnitude;
 
-    actor.intent.setIntent(0, 0, false);
+    actor.intent.setIntent(0, 0, false, false);
     stepN(world, 30, 1 / 60);
 
     expect(actor.body.getVelocity().magnitude).toBeLessThan(movingSpeed);
   });
 
-  test("moves toward click target when no keyboard intent", () => {
+  test("strafe movement follows facing-relative controls", () => {
     const world = new World({ fixedDeltaTime: 1 / 60 });
     world.addSystem(new TopDownControllerSystem({ isoConfig: { tileWidth: 64, tileHeight: 32 } }));
     world.addSystem(new PhysicsSystem({ gravity: Vector2D.zero }));
 
     const actor = new ActorEntity(new Vector2D(0, 0));
     actor.awake();
-    actor.intent.setMoveTarget(4, 0);
+    actor.intent.setIntent(1, 0, false, false);
 
     stepN(world, 20, 1 / 60);
 
-    expect(actor.transform.transform.position.x).toBeGreaterThan(0);
-    expect(actor.intent.targetX).not.toBeNull();
+    expect(actor.transform.transform.position.x).toBeGreaterThan(0.2);
+    expect(actor.transform.transform.position.y).toBeLessThan(-0.2);
+  });
+
+  test("walk and crouch reduce movement speed", () => {
+    const world = new World({ fixedDeltaTime: 1 / 60 });
+    world.addSystem(new TopDownControllerSystem({ isoConfig: { tileWidth: 64, tileHeight: 32 } }));
+    world.addSystem(new PhysicsSystem({ gravity: Vector2D.zero }));
+
+    const runActor = new ActorEntity(new Vector2D(0, 0));
+    runActor.awake();
+    runActor.intent.setIntent(0, 1, false, false);
+
+    const walkActor = new ActorEntity(new Vector2D(0, 2));
+    walkActor.awake();
+    walkActor.intent.setIntent(0, 1, true, false);
+
+    const crouchActor = new ActorEntity(new Vector2D(0, 4));
+    crouchActor.awake();
+    crouchActor.intent.setIntent(0, 1, true, true);
+
+    stepN(world, 30, 1 / 60);
+
+    expect(runActor.body.getVelocity().magnitude).toBeGreaterThan(walkActor.body.getVelocity().magnitude);
+    expect(walkActor.body.getVelocity().magnitude).toBeGreaterThan(crouchActor.body.getVelocity().magnitude);
   });
 });

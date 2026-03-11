@@ -32,7 +32,8 @@ describe("TilemapCollisionSystem", () => {
 
     const player = new PlayerEntity(new Vector2D(0, 0), 7);
     player.awake();
-    player.getComponent(MovementIntentComponent).setMoveTarget(3, 0);
+    player.transform.transform.rotation = 0;
+    player.getComponent(MovementIntentComponent).setIntent(0, 1, false, false);
 
     world.addSystem(
       new TilemapCollisionSystem(map, player, {
@@ -54,7 +55,8 @@ describe("TilemapCollisionSystem", () => {
 
     const player = new PlayerEntity(new Vector2D(0, 0), 7);
     player.awake();
-    player.getComponent(MovementIntentComponent).setMoveTarget(-2, 0);
+    player.transform.transform.rotation = Math.PI;
+    player.getComponent(MovementIntentComponent).setIntent(0, 1, false, false);
 
     world.addSystem(
       new TilemapCollisionSystem(map, player, {
@@ -110,7 +112,8 @@ describe("TilemapCollisionSystem", () => {
 
     const player = new PlayerEntity(new Vector2D(0, 0), 7);
     player.awake();
-    player.getComponent(MovementIntentComponent).setMoveTarget(2, 0);
+    player.transform.transform.rotation = 0;
+    player.getComponent(MovementIntentComponent).setIntent(0, 1, false, false);
 
     world.addSystem(
       new TilemapCollisionSystem(map, player, {
@@ -144,7 +147,8 @@ describe("TilemapCollisionSystem", () => {
 
     const player = new PlayerEntity(new Vector2D(0, 0), 7);
     player.awake();
-    player.getComponent(MovementIntentComponent).setMoveTarget(1.5, 0);
+    player.transform.transform.rotation = 0;
+    player.getComponent(MovementIntentComponent).setIntent(0, 1, false, false);
 
     world.addSystem(
       new TilemapCollisionSystem(map, player, {
@@ -185,7 +189,8 @@ describe("TilemapCollisionSystem", () => {
 
     const player = new PlayerEntity(new Vector2D(-0.35, 0), 7);
     player.awake();
-    player.getComponent(MovementIntentComponent).setMoveTarget(-0.35, 1.5);
+    player.transform.transform.rotation = Math.PI / 2;
+    player.getComponent(MovementIntentComponent).setIntent(0, 1, false, false);
 
     world.addSystem(
       new TilemapCollisionSystem(map, player, {
@@ -208,7 +213,8 @@ describe("TilemapCollisionSystem", () => {
 
     const player = new PlayerEntity(new Vector2D(0, 0), 7);
     player.awake();
-    player.getComponent(MovementIntentComponent).setMoveTarget(3, 0);
+    player.transform.transform.rotation = 0;
+    player.getComponent(MovementIntentComponent).setIntent(0, 1, false, false);
 
     world.addSystem(
       new TilemapCollisionSystem(map, player, {

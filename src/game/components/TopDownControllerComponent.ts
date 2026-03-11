@@ -4,14 +4,16 @@ export type TopDownControllerConfig = {
   maxSpeed: number;
   acceleration: number;
   damping: number;
-  sprintMultiplier: number;
+  walkMultiplier: number;
+  crouchMultiplier: number;
 };
 
 const defaultConfig: TopDownControllerConfig = {
   maxSpeed: 5,
   acceleration: 24,
   damping: 8,
-  sprintMultiplier: 1.4,
+  walkMultiplier: 0.6,
+  crouchMultiplier: 0.38,
 };
 
 export class TopDownControllerComponent extends Component {

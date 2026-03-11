@@ -3,7 +3,6 @@ import {
   PhysicsBodyComponent,
   SystemPhase,
   SystemTickMode,
-  TransformComponent,
   Vector2D,
   type EntityQuery,
   type System,
@@ -16,7 +15,6 @@ type ControlledEntity = {
   getComponent(constr: typeof MovementIntentComponent): MovementIntentComponent;
   getComponent(constr: typeof TopDownControllerComponent): TopDownControllerComponent;
   getComponent(constr: typeof PhysicsBodyComponent): PhysicsBodyComponent;
-  getComponent(constr: typeof TransformComponent): TransformComponent;
 };
 
 export type TopDownControllerSystemOptions = {
@@ -54,8 +52,7 @@ export class TopDownControllerSystem implements System {
       .query()
       .with(MovementIntentComponent)
       .with(TopDownControllerComponent)
-      .with(PhysicsBodyComponent)
-      .with(TransformComponent);
+      .with(PhysicsBodyComponent);
   }
 
   public update(deltaTime: number): void {
@@ -65,35 +62,19 @@ export class TopDownControllerSystem implements System {
       const intent = entity.getComponent(MovementIntentComponent);
       const controller = entity.getComponent(TopDownControllerComponent);
       const body = entity.getComponent(PhysicsBodyComponent);
-      const transform = entity.getComponent(TransformComponent);
-
-      const hasKeyboardIntent = intent.x !== 0 || intent.y !== 0;
-      const screenIntent = new Vector2D(intent.x, intent.y);
-      const worldFromScreen = isoToWorld(screenIntent, this.isoConfig);
-
-      let movementIntent = Vector2D.zero;
-      let sprint = false;
-
-      if (hasKeyboardIntent) {
-        movementIntent = worldFromScreen;
-        sprint = intent.sprint;
-      } else if (intent.targetX !== null && intent.targetY !== null) {
-        movementIntent = new Vector2D(
-          intent.targetX - transform.transform.position.x,
-          intent.targetY - transform.transform.position.y,
-        );
-
-        if (movementIntent.magnitude <= 0.15) {
-          intent.clearMoveTarget();
-          movementIntent = Vector2D.zero;
-        }
-      }
+      const movementIntent = isoToWorld(new Vector2D(intent.strafe, -intent.forward), this.isoConfig);
 
       const hasIntent = movementIntent.magnitude > 0;
       const normalizedIntent = hasIntent ? movementIntent.normalize() : Vector2D.zero;
 
-      const sprintMultiplier = sprint ? controller.config.sprintMultiplier : 1;
-      const targetSpeed = controller.config.maxSpeed * sprintMultiplier;
+      let speedMultiplier = 1;
+      if (intent.crouch) {
+        speedMultiplier = controller.config.crouchMultiplier;
+      } else if (intent.walk) {
+        speedMultiplier = controller.config.walkMultiplier;
+      }
+
+      const targetSpeed = controller.config.maxSpeed * speedMultiplier;
       const targetVelocity = normalizedIntent.multiply(targetSpeed);
       const currentVelocity = body.getVelocity();
 

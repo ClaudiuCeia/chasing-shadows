@@ -14,11 +14,11 @@ type Frame = {
 };
 
 export const getTitleOverlayButtons = (frame: Frame): TitleOverlayButtonLayout[] => {
-  const buttonWidth = 320;
-  const buttonHeight = 68;
-  const gap = 20;
+  const buttonWidth = 180;
+  const buttonHeight = 42;
+  const gap = 12;
   const x = Math.floor(frame.x + frame.width / 2 - buttonWidth / 2);
-  const startY = Math.floor(frame.y + frame.height * 0.56);
+  const startY = Math.floor(frame.y + frame.height * 0.54);
 
   return [
     {

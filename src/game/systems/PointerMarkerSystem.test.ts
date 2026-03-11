@@ -54,7 +54,7 @@ class PlayerNode extends Entity {
 }
 
 class StopperInput extends HudInputComponent<Node> {
-  protected override onClick(event: HudInputEvent): void {
+  protected override onPointerDown(event: HudInputEvent): void {
     event.stopPropagation();
   }
 }
@@ -64,7 +64,7 @@ beforeEach(() => {
 });
 
 describe("PointerMarkerSystem", () => {
-  test("skips world click handling when HUD captures pointer event", () => {
+  test("skips world pointer handling when HUD captures pointer down", () => {
     const runtime = new EcsRuntime();
     const handlers: HandlerMap = {};
     runtime.input.init(makeTarget(handlers));
@@ -92,32 +92,32 @@ describe("PointerMarkerSystem", () => {
       resolveHudLayout(runtime, { x: 0, y: 0, width: 100, height: 100 });
 
       const system = new PointerMarkerSystem(camera, canvas, marker, runtime);
-      system.awake?.();
-
       emit(handlers, "mousemove", { clientX: 50, clientY: 50, buttons: 0 });
-      emit(handlers, "click", {});
+      emit(handlers, "mousedown", { button: 0 });
 
-      HudInputRouter.routePointer(runtime, "click", new Vector2D(50, 50), new Vector2D(50, 50), {
+      HudInputRouter.routePointer(runtime, "pointerdown", new Vector2D(50, 50), new Vector2D(50, 50), {
         pointerType: "mouse",
       });
 
       system.update();
       expect(marker.point).toBeNull();
-      expect(player.intent.targetX).toBeNull();
-      expect(player.intent.targetY).toBeNull();
+      expect(player.intent.forward).toBe(0);
+      expect(player.intent.strafe).toBe(0);
 
       runtime.input.clearFrame();
+      emit(handlers, "mouseup", { button: 0 });
+      system.update();
       emit(handlers, "mousemove", { clientX: 50, clientY: 50, buttons: 0 });
-      emit(handlers, "click", {});
+      emit(handlers, "mousedown", { button: 0 });
 
       system.update();
       expect(marker.point).not.toBeNull();
-      expect(player.intent.targetX).not.toBeNull();
-      expect(player.intent.targetY).not.toBeNull();
+      expect(player.intent.forward).toBe(0);
+      expect(player.intent.strafe).toBe(0);
     });
   });
 
-  test("allows click interceptors to consume world clicks", () => {
+  test("allows pointer interceptors to consume world presses", () => {
     const runtime = new EcsRuntime();
     const handlers: HandlerMap = {};
     runtime.input.init(makeTarget(handlers));
@@ -137,17 +137,15 @@ describe("PointerMarkerSystem", () => {
       const player = new PlayerNode();
       player.awake();
 
-      const system = new PointerMarkerSystem(camera, canvas, marker, runtime, () => true);
-      system.awake?.();
-
+      const system = new PointerMarkerSystem(camera, canvas, marker, runtime, () => "interaction");
       emit(handlers, "mousemove", { clientX: 50, clientY: 50, buttons: 0 });
-      emit(handlers, "click", {});
+      emit(handlers, "mousedown", { button: 0 });
 
       system.update();
 
       expect(marker.point).toBeNull();
-      expect(player.intent.targetX).toBeNull();
-      expect(player.intent.targetY).toBeNull();
+      expect(player.intent.forward).toBe(0);
+      expect(player.intent.strafe).toBe(0);
     });
   });
 });

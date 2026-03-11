@@ -1,17 +1,69 @@
 import {
   PhysicsBodyComponent,
+  TransformComponent,
   Vector2D,
 } from "@claudiu-ceia/tick";
+import { PlayerAttackComponent } from "../components/PlayerAttackComponent.ts";
+import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
+import { TopDownControllerComponent } from "../components/TopDownControllerComponent.ts";
 import { IsometricRenderableComponent } from "../components/IsometricRenderableComponent.ts";
 import { GAME_CONFIG } from "../config/game-config.ts";
 import { worldToIso } from "../../shared/math/iso.ts";
+import {
+  FORWARD_ALIGNMENT_THRESHOLD,
+  getPlayerMovementProfile,
+  MOVE_THRESHOLD,
+} from "./player-animation-logic.ts";
 import { screenVectorToDirectionIndex } from "./player-sprite-math.ts";
+import Attack1Sheet from "../../../assets/player/Attack1.png";
+import CrouchIdleSheet from "../../../assets/player/CrouchIdle.png";
+import CrouchRunSheet from "../../../assets/player/CrouchRun.png";
 import IdleSheet from "../../../assets/player/Idle.png";
+import RunBackwardsSheet from "../../../assets/player/RunBackwards.png";
+import RunBackwardsAttackSheet from "../../../assets/player/RunBackwardsAttack.png";
+import RunAttackSheet from "../../../assets/player/RunAttack.png";
+import RunSheet from "../../../assets/player/Run.png";
+import StrafeLeftSheet from "../../../assets/player/StrafeLeft.png";
+import StrafeLeftAttackSheet from "../../../assets/player/StrafeLeftAttack.png";
+import StrafeRightSheet from "../../../assets/player/StrafeRight.png";
+import StrafeRightAttackSheet from "../../../assets/player/StrafeRightAttack.png";
 import WalkSheet from "../../../assets/player/Walk.png";
 
 type PlayerSheets = {
+  attack1: HTMLImageElement;
+  crouchIdle: HTMLImageElement;
+  crouchRun: HTMLImageElement;
   idle: HTMLImageElement;
+  run: HTMLImageElement;
+  runAttack: HTMLImageElement;
+  runBackwards: HTMLImageElement;
+  runBackwardsAttack: HTMLImageElement;
+  strafeLeft: HTMLImageElement;
+  strafeLeftAttack: HTMLImageElement;
+  strafeRight: HTMLImageElement;
+  strafeRightAttack: HTMLImageElement;
   walk: HTMLImageElement;
+};
+
+type AnimationClipName =
+  | "attack1"
+  | "crouchIdle"
+  | "crouchRun"
+  | "idle"
+  | "run"
+  | "runAttack"
+  | "runBackwards"
+  | "runBackwardsAttack"
+  | "strafeLeft"
+  | "strafeLeftAttack"
+  | "strafeRight"
+  | "strafeRightAttack"
+  | "walk";
+
+type AnimationSelection = {
+  clip: AnimationClipName;
+  playbackDirection: 1 | -1;
+  fps: number;
 };
 
 const FRAME_SIZE = 128;
@@ -21,12 +73,14 @@ const FOOT_ANCHOR_Y = 88;
 const SPRITE_SCALE = 3;
 const GROUND_CLEARANCE_PX = 7;
 
-const WALK_FPS_MIN = 12;
-const WALK_FPS_MAX = 24;
+const WALK_FPS_MIN = 9;
+const WALK_FPS_MAX = 15;
+const RUN_FPS_MIN = 14;
+const RUN_FPS_MAX = 24;
+const CROUCH_FPS_MIN = 8;
+const CROUCH_FPS_MAX = 13;
 const IDLE_FPS = 6;
-const MOVE_THRESHOLD = 0.06;
-
-const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
+const CROUCH_IDLE_FPS = 5;
 
 const loadImage = (src: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
@@ -40,11 +94,9 @@ export class PlayerRenderComponent extends IsometricRenderableComponent {
   private static sheetsPromise: Promise<PlayerSheets> | null = null;
 
   private sheets: PlayerSheets | null = null;
-  private frameIndex = 0;
-  private frameClock = 0;
+  private frameCursor = 0;
   private directionIndex = 0;
   private lastRenderTime = 0;
-  private lastMode: "idle" | "walk" = "idle";
 
   public constructor() {
     super();
@@ -56,9 +108,48 @@ export class PlayerRenderComponent extends IsometricRenderableComponent {
 
     if (!PlayerRenderComponent.sheetsPromise) {
       PlayerRenderComponent.sheetsPromise = Promise.all([
+        loadImage(CrouchIdleSheet),
+        loadImage(CrouchRunSheet),
         loadImage(IdleSheet),
+        loadImage(RunSheet),
+        loadImage(RunAttackSheet),
+        loadImage(RunBackwardsSheet),
+        loadImage(RunBackwardsAttackSheet),
+        loadImage(StrafeLeftSheet),
+        loadImage(StrafeLeftAttackSheet),
+        loadImage(StrafeRightSheet),
+        loadImage(StrafeRightAttackSheet),
         loadImage(WalkSheet),
-      ]).then(([idle, walk]) => ({ idle, walk }));
+        loadImage(Attack1Sheet),
+      ]).then(([
+        crouchIdle,
+        crouchRun,
+        idle,
+        run,
+        runAttack,
+        runBackwards,
+        runBackwardsAttack,
+        strafeLeft,
+        strafeLeftAttack,
+        strafeRight,
+        strafeRightAttack,
+        walk,
+        attack1,
+      ]) => ({
+        attack1,
+        crouchIdle,
+        crouchRun,
+        idle,
+        run,
+        runAttack,
+        runBackwards,
+        runBackwardsAttack,
+        strafeLeft,
+        strafeLeftAttack,
+        strafeRight,
+        strafeRightAttack,
+        walk,
+      }));
     }
 
     PlayerRenderComponent.sheetsPromise
@@ -87,57 +178,129 @@ export class PlayerRenderComponent extends IsometricRenderableComponent {
     this.lastRenderTime = now;
 
     const velocity = this.ent.getComponent(PhysicsBodyComponent).getVelocity();
+    const controller = this.ent.getComponent(TopDownControllerComponent);
+    const transform = this.ent.getComponent(TransformComponent);
+    const intent = this.ent.getComponent(MovementIntentComponent);
+    const attack = this.ent.getComponent(PlayerAttackComponent);
     const speed = velocity.magnitude;
-    const moving = speed > MOVE_THRESHOLD;
-    const mode: "idle" | "walk" = moving ? "walk" : "idle";
+    const facingVector = new Vector2D(
+      Math.cos(transform.transform.rotation),
+      Math.sin(transform.transform.rotation),
+    );
+    const isoFacing = worldToIso(facingVector, {
+      tileWidth: GAME_CONFIG.tileWidth,
+      tileHeight: GAME_CONFIG.tileHeight,
+    });
+    if (isoFacing.magnitude > 0.001) {
+      this.directionIndex = screenVectorToDirectionIndex(isoFacing);
+    }
 
-    if (moving) {
-      const isoVelocity = worldToIso(velocity, {
-        tileWidth: GAME_CONFIG.tileWidth,
-        tileHeight: GAME_CONFIG.tileHeight,
-      });
+    let sheet: HTMLImageElement;
+    let frameIndex: number;
+    let nextFrameIndex: number | null = null;
+    let frameBlendAlpha = 0;
+    let directionIndex = this.directionIndex;
 
-      if (isoVelocity.magnitude > 0.001) {
-        this.directionIndex = screenVectorToDirectionIndex(isoVelocity);
+    if (attack.active) {
+      sheet = this.sheets[attack.clip];
+      const blend = attack.getFrameBlend();
+      frameIndex = blend.currentFrame;
+      nextFrameIndex = blend.nextFrame;
+      frameBlendAlpha = blend.alpha;
+      directionIndex = attack.directionIndex;
+    } else {
+      const animation = this.selectAnimation(intent, controller, velocity, speed, facingVector);
+      this.frameCursor += deltaTime * animation.fps * animation.playbackDirection;
+      while (this.frameCursor < 0) {
+        this.frameCursor += FRAME_COLS;
       }
+      this.frameCursor %= FRAME_COLS;
+
+      sheet = this.sheets[animation.clip];
+      frameIndex = Math.floor(this.frameCursor) % FRAME_COLS;
     }
 
-    if (mode !== this.lastMode) {
-      this.lastMode = mode;
-      this.frameClock = 0;
-      this.frameIndex = 0;
-    }
-
-    const normalizedSpeed = clamp01(speed / (GAME_CONFIG.playerBaseSpeed * 1.45));
-    const walkFps = WALK_FPS_MIN + (WALK_FPS_MAX - WALK_FPS_MIN) * normalizedSpeed;
-    const fps = mode === "walk" ? walkFps : IDLE_FPS;
-    this.frameClock += deltaTime;
-    const frameDuration = 1 / fps;
-    while (this.frameClock >= frameDuration) {
-      this.frameClock -= frameDuration;
-      this.frameIndex = (this.frameIndex + 1) % FRAME_COLS;
-    }
-
-    const sheet = moving ? this.sheets.walk : this.sheets.idle;
-
-    const frameX = (this.frameIndex % FRAME_COLS) * FRAME_SIZE;
-    const frameY = (this.directionIndex % FRAME_ROWS) * FRAME_SIZE;
+    const frameX = frameIndex * FRAME_SIZE;
+    const frameY = (directionIndex % FRAME_ROWS) * FRAME_SIZE;
 
     const drawWidth = Math.floor(FRAME_SIZE * SPRITE_SCALE);
     const drawHeight = Math.floor(FRAME_SIZE * SPRITE_SCALE);
     const drawX = Math.floor(screen.x - drawWidth / 2);
     const drawY = Math.floor(screen.y - FOOT_ANCHOR_Y * SPRITE_SCALE - GROUND_CLEARANCE_PX);
 
-    ctx.drawImage(
-      sheet,
-      frameX,
-      frameY,
-      FRAME_SIZE,
-      FRAME_SIZE,
-      drawX,
-      drawY,
-      drawWidth,
-      drawHeight,
-    );
+    ctx.drawImage(sheet, frameX, frameY, FRAME_SIZE, FRAME_SIZE, drawX, drawY, drawWidth, drawHeight);
+
+    if (nextFrameIndex !== null && nextFrameIndex !== frameIndex && frameBlendAlpha > 0.001) {
+      ctx.save();
+      ctx.globalAlpha = frameBlendAlpha;
+      ctx.drawImage(
+        sheet,
+        nextFrameIndex * FRAME_SIZE,
+        frameY,
+        FRAME_SIZE,
+        FRAME_SIZE,
+        drawX,
+        drawY,
+        drawWidth,
+        drawHeight,
+      );
+      ctx.restore();
+    }
+  }
+
+  private selectAnimation(
+    intent: MovementIntentComponent,
+    controller: TopDownControllerComponent,
+    velocity: Vector2D,
+    speed: number,
+    facingVector: Vector2D,
+  ): AnimationSelection {
+    const crouched = intent.crouch;
+    const profile = getPlayerMovementProfile(intent, controller, velocity, facingVector);
+    if (!profile.moving && speed <= MOVE_THRESHOLD) {
+      return {
+        clip: crouched ? "crouchIdle" : "idle",
+        playbackDirection: 1,
+        fps: crouched ? CROUCH_IDLE_FPS : IDLE_FPS,
+      };
+    }
+
+    if (!profile.moving) {
+      return {
+        clip: crouched ? "crouchIdle" : "idle",
+        playbackDirection: 1,
+        fps: crouched ? CROUCH_IDLE_FPS : IDLE_FPS,
+      };
+    }
+
+    if (crouched) {
+      return {
+        clip: "crouchRun",
+        playbackDirection: profile.forwardAmount < 0 ? -1 : 1,
+        fps: CROUCH_FPS_MIN + (CROUCH_FPS_MAX - CROUCH_FPS_MIN) * profile.normalizedSpeed,
+      };
+    }
+
+    if (Math.abs(profile.forwardAmount) < FORWARD_ALIGNMENT_THRESHOLD) {
+      return {
+        clip: profile.strafeAmount >= 0 ? "strafeRight" : "strafeLeft",
+        playbackDirection: profile.forwardAmount < 0 ? -1 : 1,
+        fps: RUN_FPS_MIN + (RUN_FPS_MAX - RUN_FPS_MIN) * profile.normalizedSpeed,
+      };
+    }
+
+    if (intent.walk) {
+      return {
+        clip: "walk",
+        playbackDirection: profile.forwardAmount < 0 ? -1 : 1,
+        fps: WALK_FPS_MIN + (WALK_FPS_MAX - WALK_FPS_MIN) * profile.normalizedSpeed,
+      };
+    }
+
+    return {
+      clip: profile.forwardAmount < 0 ? "runBackwards" : "run",
+      playbackDirection: 1,
+      fps: RUN_FPS_MIN + (RUN_FPS_MAX - RUN_FPS_MIN) * profile.normalizedSpeed,
+    };
   }
 }

@@ -20,7 +20,6 @@ import { IsometricCameraEntity } from "../game/render/IsometricCameraEntity.ts";
 import { PlayerRenderComponent } from "../game/render/PlayerRenderComponent.ts";
 import { createTileAtlas } from "../game/render/TileAtlas.ts";
 import { TilemapRenderComponent } from "../game/render/TilemapRenderComponent.ts";
-import { WorldMarkerRenderComponent } from "../game/render/WorldMarkerRenderComponent.ts";
 import { InventoryState } from "../game/state/InventoryState.ts";
 import { LootUiState } from "../game/state/LootUiState.ts";
 import { MarkerState } from "../game/state/MarkerState.ts";
@@ -33,6 +32,8 @@ import { InputIntentSystem } from "../game/systems/InputIntentSystem.ts";
 import { LootBoxChunkSystem } from "../game/systems/LootBoxChunkSystem.ts";
 import { LootInteractSystem } from "../game/systems/LootInteractSystem.ts";
 import { NeedsDecaySystem } from "../game/systems/NeedsDecaySystem.ts";
+import { PlayerAttackSystem } from "../game/systems/PlayerAttackSystem.ts";
+import { PlayerPointerActionHandler } from "../game/systems/PlayerPointerActionHandler.ts";
 import { PlayerTilePositionSystem } from "../game/systems/PlayerTilePositionSystem.ts";
 import { PointerMarkerSystem } from "../game/systems/PointerMarkerSystem.ts";
 import { TerminatorSystem } from "../game/systems/TerminatorSystem.ts";
@@ -350,28 +351,6 @@ export const bootstrapGame = (): void => {
     };
   };
 
-  const onWorldClick = (worldPoint: Vector2D, _canvasPoint: Vector2D, elevation: number): boolean => {
-    const tileX = Math.round(worldPoint.x);
-    const tileY = Math.round(worldPoint.y);
-    const tileElevation = map.getElevationAt(tileX, tileY);
-    if (Math.abs(tileElevation - elevation) <= 0.6 && lootField.getBoxAt(tileX, tileY, map)) {
-      lootUi.open(tileX, tileY);
-      return true;
-    }
-
-    const hit = lootField.findNearestBox(worldPoint.x, worldPoint.y, GAME_CONFIG.lootBoxClickRange, map);
-    if (!hit) {
-      return false;
-    }
-
-    if (Math.abs(map.getElevationAt(hit.x, hit.y) - elevation) > 0.6) {
-      return false;
-    }
-
-    lootUi.open(hit.x, hit.y);
-    return true;
-  };
-
   let camera!: IsometricCameraEntity;
   let player!: PlayerEntity;
 
@@ -414,10 +393,6 @@ export const bootstrapGame = (): void => {
       ),
     );
     mapRenderBehindNode.awake();
-
-    const markerNode = new RenderNodeEntity();
-    markerNode.addComponent(new WorldMarkerRenderComponent(markerState));
-    markerNode.awake();
 
     createHud({
       getInfo: () => ({
@@ -465,9 +440,11 @@ export const bootstrapGame = (): void => {
 
   const titleCamera = new HudOnlyCamera();
   const titleRenderSystem = new RenderSystem(canvasState, titleCamera, titleRuntime, hudViewport);
+  const playerPointerActionHandler = new PlayerPointerActionHandler(map, lootField, lootUi, player);
 
-  world.addSystem(new InputIntentSystem(runtime));
+  world.addSystem(new InputIntentSystem(camera, canvas, runtime));
   world.addSystem(new LootBoxChunkSystem(map, lootField, player, GAME_CONFIG.chunkRadius));
+  world.addSystem(new PlayerAttackSystem(runtime));
   world.addSystem(new PlayerTilePositionSystem(map, player));
   world.addSystem(
     new LootInteractSystem(
@@ -487,7 +464,7 @@ export const bootstrapGame = (): void => {
       canvas,
       markerState,
       runtime,
-      onWorldClick,
+      playerPointerActionHandler.handleWorldAction.bind(playerPointerActionHandler),
       resolvePointerWorldPoint,
     ),
   );

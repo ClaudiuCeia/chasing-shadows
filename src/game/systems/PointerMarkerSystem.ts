@@ -4,11 +4,8 @@ import {
   SystemPhase,
   SystemTickMode,
   Vector2D,
-  type EntityQuery,
   type System,
 } from "@claudiu-ceia/tick";
-import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
-import { PlayerTagComponent } from "../components/PlayerTagComponent.ts";
 import { IsometricCameraEntity } from "../render/IsometricCameraEntity.ts";
 import { MarkerState } from "../state/MarkerState.ts";
 
@@ -29,41 +26,53 @@ type ResolvedPointerWorldPoint = {
   elevation: number;
 };
 
+export type PointerWorldActionPhase = "press" | "hold" | "release";
+export type PointerWorldActionResult = "interaction" | "attack" | null;
+
 export class PointerMarkerSystem implements System {
   public readonly phase = SystemPhase.Simulation;
   public readonly tickMode = SystemTickMode.Frame;
 
   private readonly runtime: EcsRuntime;
-  private query: EntityQuery | null = null;
+  private pointerMode: PointerWorldActionResult = null;
+  private wasMouseDown = false;
 
   public constructor(
     private readonly camera: IsometricCameraEntity,
     private readonly canvas: HTMLCanvasElement,
     private readonly marker: MarkerState,
     runtime: EcsRuntime = EcsRuntime.getCurrent(),
-    private readonly onWorldClick?: (
-      worldPoint: Vector2D,
-      canvasPoint: Vector2D,
-      elevation: number,
-    ) => boolean,
+    private readonly onWorldAction?: (
+      worldPoint: Vector2D | null,
+      canvasPoint: Vector2D | null,
+      elevation: number | null,
+      phase: PointerWorldActionPhase,
+    ) => PointerWorldActionResult,
     private readonly resolveWorldPoint?: (canvasPoint: Vector2D) => ResolvedPointerWorldPoint,
   ) {
     this.runtime = runtime;
   }
 
-  public awake(): void {
-    this.query = this.runtime.registry
-      .query()
-      .with(PlayerTagComponent)
-      .with(MovementIntentComponent);
-  }
-
   public update(): void {
-    if (!this.runtime.input.isMouseClick()) {
+    const mouseDown = this.runtime.input.isMouseDown(0);
+    if (!mouseDown) {
+      if (this.wasMouseDown && this.pointerMode === "attack") {
+        this.onWorldAction?.(null, null, null, "release");
+      }
+      this.pointerMode = null;
+      this.wasMouseDown = false;
       return;
     }
 
-    if (HudInputRouter.consumePointerCapture(this.runtime, "click")) {
+    const justPressed = !this.wasMouseDown;
+    this.wasMouseDown = true;
+
+    if (justPressed) {
+      if (HudInputRouter.consumePointerCapture(this.runtime, "pointerdown")) {
+        this.pointerMode = "interaction";
+        return;
+      }
+    } else if (this.pointerMode === "interaction") {
       return;
     }
 
@@ -78,19 +87,21 @@ export class PointerMarkerSystem implements System {
       elevation: 0,
     };
 
-    if (this.onWorldClick?.(resolved.world, canvasPoint, resolved.elevation)) {
+    const action = this.onWorldAction?.(
+      resolved.world,
+      canvasPoint,
+      resolved.elevation,
+      justPressed ? "press" : "hold",
+    ) ?? null;
+    if (justPressed) {
+      this.pointerMode = action;
+    }
+
+    if (action === "interaction") {
       return;
     }
 
     this.marker.point = resolved.world;
     this.marker.elevation = resolved.elevation;
-
-    if (!this.query) {
-      return;
-    }
-
-    for (const entity of this.query.run()) {
-      entity.getComponent(MovementIntentComponent).setMoveTarget(resolved.world.x, resolved.world.y);
-    }
   }
 }
