@@ -15,11 +15,13 @@ import { IsometricRenderNodeComponent } from "../components/IsometricRenderNodeC
 import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
 import { NeedsComponent } from "../components/NeedsComponent.ts";
 import { PlayerTagComponent } from "../components/PlayerTagComponent.ts";
+import { RaycastEmitterComponent } from "../components/RaycastEmitterComponent.ts";
 import { TemperatureComponent } from "../components/TemperatureComponent.ts";
 import { TilePositionComponent } from "../components/TilePositionComponent.ts";
 import { TopDownControllerComponent } from "../components/TopDownControllerComponent.ts";
 import { GAME_CONFIG } from "../config/game-config.ts";
 import { PlayerHitColliderEntity } from "./PlayerHitColliderEntity.ts";
+import type { TilemapStateComponent } from "../components/TilemapStateComponent.ts";
 
 const PLAYER_MOVEMENT_COLLISION_RADIUS = 0.25;
 
@@ -34,8 +36,10 @@ export class PlayerEntity extends Entity {
   public readonly health: HealthComponent;
   public readonly inventory: InventoryComponent;
   public readonly attack: PlayerAttackComponent;
+  public readonly rayEmitter: RaycastEmitterComponent;
   public readonly movementCollider: CollisionEntity;
   public readonly hitCollider: PlayerHitColliderEntity;
+  private tilemap: TilemapStateComponent | null = null;
 
   public constructor(spawn: Vector2D, baseSpeed: number, inventoryCapacity: number) {
     super();
@@ -56,6 +60,7 @@ export class PlayerEntity extends Entity {
     this.health = new HealthComponent();
     this.inventory = new InventoryComponent(inventoryCapacity);
     this.attack = new PlayerAttackComponent();
+    this.rayEmitter = new RaycastEmitterComponent({ maxDistance: 18, fovRadians: 0, rayCount: 1 });
     this.movementCollider = new CollisionEntity(
       new CircleCollisionShape(this.collisionRadius),
       "center",
@@ -80,6 +85,7 @@ export class PlayerEntity extends Entity {
     );
     this.addComponent(this.body);
     this.addComponent(this.attack);
+    this.addComponent(this.rayEmitter);
     this.addComponent(this.health);
     this.addComponent(this.inventory);
     this.addComponent(this.needs);
@@ -89,7 +95,20 @@ export class PlayerEntity extends Entity {
     this.addChild(this.hitCollider);
   }
 
+  public bindTilemap(tilemap: TilemapStateComponent): void {
+    this.tilemap = tilemap;
+    const position = this.transform.transform.position;
+    this.tilePosition.set(position.x, position.y, tilemap.getElevationAt(position.x, position.y));
+  }
+
   public override update(dt: number): void {
     super.update(dt);
+    if (!this.tilemap) {
+      return;
+    }
+
+    const position = this.transform.transform.position;
+    this.tilePosition.set(position.x, position.y, this.tilemap.getElevationAt(position.x, position.y));
+    this.rayEmitter.setOriginHeight(this.hitCollider.bodyHeight);
   }
 }

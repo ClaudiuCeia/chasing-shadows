@@ -28,9 +28,8 @@ import { LootInteractSystem } from "../../game/systems/LootInteractSystem.ts";
 import { NeedsDecaySystem } from "../../game/systems/NeedsDecaySystem.ts";
 import { ObstacleCollisionSystem } from "../../game/systems/ObstacleCollisionSystem.ts";
 import { PlayerAttackSystem } from "../../game/systems/PlayerAttackSystem.ts";
-import { PlayerTilePositionSystem } from "../../game/systems/PlayerTilePositionSystem.ts";
 import { PointerMarkerSystem } from "../../game/systems/PointerMarkerSystem.ts";
-import { RootEntityUpdateSystem } from "../../game/systems/RootEntityUpdateSystem.ts";
+import { RaycastSystem } from "../../game/systems/RaycastSystem.ts";
 import { TerminatorSystem } from "../../game/systems/TerminatorSystem.ts";
 import { TilemapCollisionSystem } from "../../game/systems/TilemapCollisionSystem.ts";
 import { TopDownControllerSystem } from "../../game/systems/TopDownControllerSystem.ts";
@@ -239,6 +238,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
         })();
 
     const player = new PlayerEntity(spawn, GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
+    player.bindTilemap(tilemapEntity.tilemap);
     player.addComponent(new PlayerRenderComponent());
     player.addComponent(new DebugRayRenderComponent(uiState.debugOverlay, tilemapEntity.tilemap.map));
 
@@ -307,16 +307,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
   });
 
   world.addSystem(new InputIntentSystem(camera, options.canvas, runtime));
-  world.addSystem(
-    new RootEntityUpdateSystem([
-      roots.uiState,
-      roots.worldState,
-      roots.terminatorEntity,
-      roots.tilemapEntity,
-      roots.player,
-    ]),
-  );
-  world.addSystem(new DebugOverlaySystem(roots.tilemapEntity.tilemap.map, roots.player, camera, options.canvas, runtime));
+  world.addSystem(new DebugOverlaySystem(runtime));
   world.addSystem(
     new ChunkPrewarmSystem(roots.tilemapEntity.tilemap.map, roots.player, {
       radius: GAME_CONFIG.chunkPrewarmRadius,
@@ -324,7 +315,6 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
   );
   world.addSystem(new LootBoxChunkSystem(roots.tilemapEntity.tilemap.map, roots.player, GAME_CONFIG.chunkRadius, runtime));
   world.addSystem(new PlayerAttackSystem(runtime));
-  world.addSystem(new PlayerTilePositionSystem(roots.tilemapEntity.tilemap.map, roots.player));
   world.addSystem(new LootInteractSystem(roots.tilemapEntity.tilemap.map, roots.player, { interactRange: GAME_CONFIG.lootBoxInteractRange }, runtime));
   world.addSystem(new PointerMarkerSystem(camera, options.canvas, roots.tilemapEntity.tilemap.map, GAME_CONFIG.maxTerrainElevation, runtime));
   world.addSystem(new WorldPointerActionSystem(roots.tilemapEntity.tilemap.map, runtime));
@@ -337,6 +327,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
   world.addSystem(new TerminatorSystem(runtime));
   world.addSystem(new NeedsDecaySystem(runtime));
   world.addSystem(new ExposureSystem(roots.terminatorEntity.terminator, runtime));
+  world.addSystem(new RaycastSystem(roots.tilemapEntity.tilemap.map, runtime));
   world.addSystem(
     new PhysicsSystem({
       gravity: Vector2D.zero,

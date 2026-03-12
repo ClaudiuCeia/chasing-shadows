@@ -105,82 +105,79 @@ export class DebugRayRenderComponent extends RenderComponent<PlayerEntity> {
   }
 
   private drawObstacleColliders(ctx: CanvasRenderingContext2D, camera: IsometricCameraEntity, canvasSize: Vector2D): void {
-    ctx.strokeStyle = "rgba(125, 204, 255, 0.42)";
-    ctx.lineWidth = 1;
-
     for (const obstacle of this.ent.runtime.registry.getEntitiesByType(ObstacleEntity)) {
-      const collider = obstacle.collider;
       const position = obstacle.transform.transform.position;
       const elevation = obstacle.hasComponent(TilePositionComponent)
         ? obstacle.getComponent(TilePositionComponent).z
         : this.map.getElevationAt(position.x, position.y);
-      this.drawColliderFootprint(ctx, camera, canvasSize, collider, elevation);
+
+      ctx.strokeStyle = "rgba(125, 204, 255, 0.42)";
+      ctx.lineWidth = 1;
+      this.drawColliderFootprint(ctx, camera, canvasSize, obstacle.movementCollider, elevation);
+
+      ctx.strokeStyle = "rgba(255, 196, 120, 0.65)";
+      ctx.fillStyle = "rgba(255, 196, 120, 0.08)";
+      ctx.lineWidth = 1;
+      this.drawColliderPrism(ctx, camera, canvasSize, obstacle.hitCollider, elevation, elevation + obstacle.hitCollider.bodyHeight);
     }
   }
 
   private drawPlayerColliders(ctx: CanvasRenderingContext2D, camera: IsometricCameraEntity, canvasSize: Vector2D): void {
+    const playerElevation = this.ent.tilePosition.z;
+    const headElevation = playerElevation + this.ent.hitCollider.bodyHeight;
+
     ctx.strokeStyle = "rgba(111, 225, 255, 0.95)";
     ctx.lineWidth = 1.5;
-    this.drawColliderFootprint(ctx, camera, canvasSize, this.ent.movementCollider, this.debug.playerElevation);
-
-    const box = this.ent.hitCollider.bbox();
-    const bottom = projectRect(camera, canvasSize, box.x, box.y, box.width, box.height, this.debug.playerElevation);
-    const top = projectRect(camera, canvasSize, box.x, box.y, box.width, box.height, this.debug.headElevation);
+    this.drawColliderFootprint(ctx, camera, canvasSize, this.ent.movementCollider, playerElevation);
 
     ctx.strokeStyle = "rgba(255, 247, 192, 0.82)";
     ctx.fillStyle = "rgba(255, 247, 192, 0.08)";
     ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(bottom[0]!.x, bottom[0]!.y);
-    for (let i = 1; i < bottom.length; i++) {
-      ctx.lineTo(bottom[i]!.x, bottom[i]!.y);
-    }
-    for (let i = top.length - 1; i >= 0; i--) {
-      ctx.lineTo(top[i]!.x, top[i]!.y);
-    }
-    ctx.closePath();
-    ctx.fill();
-
-    drawPolyline(ctx, bottom, true);
-    drawPolyline(ctx, top, true);
-    for (let i = 0; i < bottom.length; i++) {
-      drawPolyline(ctx, [bottom[i]!, top[i]!]);
-    }
+    this.drawColliderPrism(ctx, camera, canvasSize, this.ent.hitCollider, playerElevation, headElevation);
 
     const feet = this.ent.transform.transform.position;
-    const feetScreen = camera.toCanvasAt(feet, this.debug.playerElevation, canvasSize);
+    const feetScreen = camera.toCanvasAt(feet, playerElevation, canvasSize);
     drawMarker(ctx, feetScreen, "rgba(167, 234, 255, 0.95)", 3);
-    const headScreen = camera.toCanvasAt(feet, this.debug.headElevation, canvasSize);
+    const headScreen = camera.toCanvasAt(feet, headElevation, canvasSize);
     drawMarker(ctx, headScreen, "rgba(255, 222, 133, 0.98)", 3);
   }
 
   private drawRay(ctx: CanvasRenderingContext2D, camera: IsometricCameraEntity, canvasSize: Vector2D): void {
-    if (!this.debug.ray) {
+    if (this.ent.rayEmitter.rays.length === 0) {
       return;
     }
 
-    const { origin, end, hit } = this.debug.ray;
-    const originScreen = camera.toCanvasAt(new Vector2D(origin.x, origin.y), origin.z, canvasSize);
-    const endScreen = camera.toCanvasAt(new Vector2D(end.x, end.y), end.z, canvasSize);
+    this.ent.rayEmitter.rays.forEach((ray, index) => {
+      const originScreen = camera.toCanvasAt(new Vector2D(ray.origin.x, ray.origin.y), ray.origin.z, canvasSize);
+      const endScreen = camera.toCanvasAt(new Vector2D(ray.endPoint.x, ray.endPoint.y), ray.endPoint.z, canvasSize);
+      const primary = index === this.ent.rayEmitter.primaryRayIndex;
 
-    ctx.strokeStyle = hit ? "rgba(255, 146, 101, 0.95)" : "rgba(111, 225, 255, 0.95)";
-    ctx.lineWidth = 2;
-    drawPolyline(ctx, [originScreen, endScreen]);
+      ctx.strokeStyle =
+        ray.hit?.type === "collider"
+          ? "rgba(255, 196, 120, 0.95)"
+          : ray.hit?.type === "terrain"
+            ? "rgba(255, 146, 101, 0.95)"
+            : "rgba(111, 225, 255, 0.72)";
+      ctx.lineWidth = primary ? 2 : 1;
+      drawPolyline(ctx, [originScreen, endScreen]);
 
-    drawMarker(ctx, originScreen, "rgba(255, 247, 192, 0.98)", 4);
-    drawMarker(ctx, endScreen, hit ? "rgba(255, 121, 80, 0.98)" : "rgba(111, 225, 255, 0.98)", 3);
+      if (primary) {
+        drawMarker(ctx, originScreen, "rgba(255, 247, 192, 0.98)", 4);
+      }
+      drawMarker(ctx, endScreen, ray.hit ? "rgba(255, 121, 80, 0.98)" : "rgba(111, 225, 255, 0.9)", primary ? 3 : 2);
 
-    if (hit) {
-      const hitScreen = camera.toCanvasAt(new Vector2D(hit.x, hit.y), hit.z, canvasSize);
-      ctx.strokeStyle = "rgba(255, 121, 80, 0.98)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(hitScreen.x - 5, hitScreen.y - 5);
-      ctx.lineTo(hitScreen.x + 5, hitScreen.y + 5);
-      ctx.moveTo(hitScreen.x + 5, hitScreen.y - 5);
-      ctx.lineTo(hitScreen.x - 5, hitScreen.y + 5);
-      ctx.stroke();
-    }
+      if (ray.hit) {
+        const hitScreen = camera.toCanvasAt(new Vector2D(ray.hit.point.x, ray.hit.point.y), ray.hit.point.z, canvasSize);
+        ctx.strokeStyle = ray.hit.type === "collider" ? "rgba(255, 196, 120, 0.98)" : "rgba(255, 121, 80, 0.98)";
+        ctx.lineWidth = primary ? 2 : 1.5;
+        ctx.beginPath();
+        ctx.moveTo(hitScreen.x - 5, hitScreen.y - 5);
+        ctx.lineTo(hitScreen.x + 5, hitScreen.y + 5);
+        ctx.moveTo(hitScreen.x + 5, hitScreen.y - 5);
+        ctx.lineTo(hitScreen.x - 5, hitScreen.y + 5);
+        ctx.stroke();
+      }
+    });
   }
 
   private drawColliderFootprint(
@@ -200,6 +197,41 @@ export class DebugRayRenderComponent extends RenderComponent<PlayerEntity> {
     if (collider.shape instanceof RectangleCollisionShape) {
       const box = collider.bbox();
       drawPolyline(ctx, projectRect(camera, canvasSize, box.x, box.y, box.width, box.height, elevation), true);
+    }
+  }
+
+  private drawColliderPrism(
+    ctx: CanvasRenderingContext2D,
+    camera: IsometricCameraEntity,
+    canvasSize: Vector2D,
+    collider: CollisionEntity,
+    bottomElevation: number,
+    topElevation: number,
+  ): void {
+    if (!(collider.shape instanceof RectangleCollisionShape)) {
+      this.drawColliderFootprint(ctx, camera, canvasSize, collider, bottomElevation);
+      return;
+    }
+
+    const box = collider.bbox();
+    const bottom = projectRect(camera, canvasSize, box.x, box.y, box.width, box.height, bottomElevation);
+    const top = projectRect(camera, canvasSize, box.x, box.y, box.width, box.height, topElevation);
+
+    ctx.beginPath();
+    ctx.moveTo(bottom[0]!.x, bottom[0]!.y);
+    for (let i = 1; i < bottom.length; i++) {
+      ctx.lineTo(bottom[i]!.x, bottom[i]!.y);
+    }
+    for (let i = top.length - 1; i >= 0; i--) {
+      ctx.lineTo(top[i]!.x, top[i]!.y);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    drawPolyline(ctx, bottom, true);
+    drawPolyline(ctx, top, true);
+    for (let i = 0; i < bottom.length; i++) {
+      drawPolyline(ctx, [bottom[i]!, top[i]!]);
     }
   }
 }

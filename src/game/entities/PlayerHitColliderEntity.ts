@@ -1,6 +1,7 @@
-import { CollisionEntity, RectangleCollisionShape, TransformComponent, Vector2D } from "@claudiu-ceia/tick";
+import { RectangleCollisionShape, TransformComponent, Vector2D } from "@claudiu-ceia/tick";
 import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
 import { COLLISION_LAYER_PLAYER_HIT } from "../collision/collision-layers.ts";
+import { HitColliderEntity } from "./HitColliderEntity.ts";
 import { PlayerEntity } from "./PlayerEntity.ts";
 
 export type PlayerPosture = "standing" | "crouched";
@@ -18,15 +19,13 @@ const PLAYER_HIT_BOX_DIMENSIONS: Record<PlayerPosture, { width: number; depth: n
   },
 };
 
-export class PlayerHitColliderEntity extends CollisionEntity {
+export class PlayerHitColliderEntity extends HitColliderEntity {
   public static readonly standingHeight = PLAYER_HIT_BOX_DIMENSIONS.standing.height;
   public static readonly crouchedHeight = PLAYER_HIT_BOX_DIMENSIONS.crouched.height;
 
-  public bodyHeight = 0;
-
   public constructor() {
     const dimensions = PLAYER_HIT_BOX_DIMENSIONS.standing;
-    super(new RectangleCollisionShape(dimensions.width, dimensions.depth), "top-left", COLLISION_LAYER_PLAYER_HIT, 0);
+    super(new RectangleCollisionShape(dimensions.width, dimensions.depth), "top-left", COLLISION_LAYER_PLAYER_HIT, dimensions.height);
     this.sync("standing", Vector2D.zero);
   }
 

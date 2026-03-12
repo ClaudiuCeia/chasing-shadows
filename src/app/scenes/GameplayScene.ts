@@ -26,6 +26,14 @@ export class GameplayScene extends Scene {
     }
 
     this.options.world.step(dt);
+
+    for (const entity of this.options.runtime.registry.getAllEntities()) {
+      if (!entity.isAwake || entity.parent !== null) {
+        continue;
+      }
+
+      entity.update(dt);
+    }
   }
 
   public override render(_ctx: CanvasRenderingContext2D): void {

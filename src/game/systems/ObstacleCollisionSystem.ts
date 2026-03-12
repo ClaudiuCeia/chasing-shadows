@@ -12,6 +12,7 @@ import {
   type System,
 } from "@claudiu-ceia/tick";
 import { ObstacleComponent } from "../components/ObstacleComponent.ts";
+import { ObstacleEntity } from "../entities/ObstacleEntity.ts";
 import { PlayerEntity } from "../entities/PlayerEntity.ts";
 
 const EPSILON = 1e-8;
@@ -100,9 +101,8 @@ export class ObstacleCollisionSystem implements System {
         continue;
       }
 
-      const collider = entity.getChild(CollisionEntity);
-      if (collider) {
-        colliders.push(collider);
+      if (entity instanceof ObstacleEntity) {
+        colliders.push(entity.movementCollider);
       }
     }
 

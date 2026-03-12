@@ -26,17 +26,18 @@ export class HudDebugRenderComponent extends HudRenderComponent {
     }
 
     const position = this.player.transform.transform.position;
-    const hitDistance = this.debug.ray?.hitDistance;
+    const primaryRay = this.player.rayEmitter.getPrimaryRay();
     const posture = this.player.getComponent(MovementIntentComponent).crouch ? "crouched" : "standing";
+    const playerElevation = this.player.tilePosition.z;
+    const headElevation = playerElevation + this.player.hitCollider.bodyHeight;
     const lines = [
       `Posture: ${posture}`,
       `Player x: ${position.x.toFixed(2)}`,
       `Player y: ${position.y.toFixed(2)}`,
-      `Player z: ${this.debug.playerElevation.toFixed(2)}`,
-      `Head z: ${this.debug.headElevation.toFixed(2)}`,
-      hitDistance !== null && hitDistance !== undefined
-        ? `Ray hit: ${hitDistance.toFixed(2)}`
-        : "Ray hit: viewport",
+      `Player z: ${playerElevation.toFixed(2)}`,
+      `Head z: ${headElevation.toFixed(2)}`,
+      `Rays: ${this.player.rayEmitter.rayCount}`,
+      primaryRay?.hit ? `Hit: ${primaryRay.hit.type} @ ${primaryRay.hit.distance.toFixed(2)}` : `Range: ${primaryRay?.distance.toFixed(2) ?? "-"}`,
     ];
 
     ctx.save();

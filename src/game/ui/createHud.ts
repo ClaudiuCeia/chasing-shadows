@@ -47,7 +47,7 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
   debug.addComponent(
     new HudLayoutNodeComponent({
       width: 190,
-      height: 122,
+      height: 140,
       anchor: "top-left",
       offset: { x: 18, y: 104 },
       order: 20,
