@@ -1,4 +1,5 @@
 import {
+  areTileDataEqual,
   createTileData,
   createTileCornerHeights,
   getTileSurfaceElevation,
@@ -9,6 +10,7 @@ import {
   type TileSurfaceVariant,
 } from "./tile-types.ts";
 import { generateTerrainTile } from "./TerrainGenerator.ts";
+import { tileKey } from "../../shared/math/tile-key.ts";
 
 export type TileDelta = {
   x: number;
@@ -32,7 +34,6 @@ export type ChunkData = {
   tiles: TileData[];
 };
 
-const tileKey = (x: number, y: number): string => `${x}:${y}`;
 const chunkKey = (x: number, y: number): string => `${x}:${y}`;
 
 export class InfiniteTilemap {
@@ -73,15 +74,22 @@ export class InfiniteTilemap {
   }
 
   public setTile(worldX: number, worldY: number, kind: TileKind): void {
-    const dx = Math.floor(worldX);
-    const dy = Math.floor(worldY);
-    this.deltas.set(tileKey(dx, dy), createTileData(kind));
+    this.setTileData(worldX, worldY, createTileData(kind));
   }
 
   public setTileData(worldX: number, worldY: number, tile: TileData): void {
     const dx = Math.floor(worldX);
     const dy = Math.floor(worldY);
-    this.deltas.set(tileKey(dx, dy), normalizeTileData(tile));
+    const normalized = normalizeTileData(tile);
+    const key = tileKey(dx, dy);
+    const base = generateTerrainTile(dx, dy, this.seed);
+
+    if (areTileDataEqual(normalized, base)) {
+      this.deltas.delete(key);
+      return;
+    }
+
+    this.deltas.set(key, normalized);
   }
 
   public getElevationAt(worldX: number, worldY: number): number {

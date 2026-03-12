@@ -1,8 +1,6 @@
 import { Component } from "@claudiu-ceia/tick";
 
 export class TilePositionComponent extends Component {
-  public static type = "tile-position";
-
   public x: number;
   public y: number;
   public z: number;

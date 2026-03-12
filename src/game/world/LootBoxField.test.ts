@@ -78,4 +78,42 @@ describe("LootBoxField", () => {
     const field = new LootBoxField({ seed: 555, spawnChance: 1 });
     expect(field.getBoxAt(0, 0, map)).toBeNull();
   });
+
+  test("drops deltas when slots match generated loot again", () => {
+    const map = new InfiniteTilemap({ seed: 19, chunkSize: 16 });
+    const field = new LootBoxField({ seed: 555 });
+    const location = findAnyBox(field, map);
+    expect(location).not.toBeNull();
+    if (!location) {
+      return;
+    }
+
+    const box = field.getBoxAt(location.x, location.y, map);
+    expect(box).not.toBeNull();
+    if (!box) {
+      return;
+    }
+
+    field.setSlots(location.x, location.y, box.slots);
+    expect(field.serializeDeltas(map)).toEqual([]);
+  });
+
+  test("keeps removal deltas for emptied generated loot boxes", () => {
+    const map = new InfiniteTilemap({ seed: 19, chunkSize: 16 });
+    const field = new LootBoxField({ seed: 555 });
+    const location = findAnyBox(field, map);
+    expect(location).not.toBeNull();
+    if (!location) {
+      return;
+    }
+
+    field.setSlots(location.x, location.y, []);
+
+    const deltas = field.serializeDeltas(map);
+    expect(deltas).toContainEqual({ x: location.x, y: location.y, removed: true });
+
+    const restored = new LootBoxField({ seed: 555 });
+    restored.applyDeltas(deltas);
+    expect(restored.getBoxAt(location.x, location.y, map)).toBeNull();
+  });
 });

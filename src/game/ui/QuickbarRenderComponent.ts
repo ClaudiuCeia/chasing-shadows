@@ -4,8 +4,8 @@ import {
   Vector2D,
   type ICamera,
 } from "@claudiu-ceia/tick";
+import { InventoryComponent } from "../components/InventoryComponent.ts";
 import { getItemDefinition } from "../items/item-catalog.ts";
-import { InventoryState } from "../state/InventoryState.ts";
 import { drawItemSprite, getItemSheet } from "./item-sprites.ts";
 
 const SLOT_GAP = 6;
@@ -14,7 +14,7 @@ const SLOT_COUNT = 8;
 export class QuickbarRenderComponent extends HudRenderComponent {
   private itemSheet: HTMLImageElement | null = null;
 
-  public constructor(private readonly inventory: InventoryState) {
+  public constructor(private readonly inventory: InventoryComponent) {
     super();
 
     getItemSheet()

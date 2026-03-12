@@ -1,10 +1,10 @@
-import { SystemPhase, SystemTickMode, TransformComponent, type System } from "@claudiu-ceia/tick";
+import { EcsRuntime, SystemPhase, SystemTickMode, TransformComponent, type EntityQuery, type System } from "@claudiu-ceia/tick";
+import { LootFieldComponent } from "../components/LootFieldComponent.ts";
+import { getSingletonComponent } from "../ecs/singleton.ts";
 import { LootBoxEntity } from "../entities/LootBoxEntity.ts";
 import { PlayerEntity } from "../entities/PlayerEntity.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
-import { LootBoxField } from "../world/LootBoxField.ts";
-
-const tileKey = (x: number, y: number): string => `${x}:${y}`;
+import { tileKey } from "../../shared/math/tile-key.ts";
 
 export class LootBoxChunkSystem implements System {
   public readonly phase = SystemPhase.Simulation;
@@ -14,15 +14,28 @@ export class LootBoxChunkSystem implements System {
   private initialized = false;
   private lastChunkX = 0;
   private lastChunkY = 0;
+  private readonly runtime: EcsRuntime;
+  private worldQuery: EntityQuery | null = null;
 
   public constructor(
     private readonly map: InfiniteTilemap,
-    private readonly lootField: LootBoxField,
     private readonly player: PlayerEntity,
     private readonly chunkRadius: number,
-  ) {}
+    runtime: EcsRuntime = EcsRuntime.getCurrent(),
+  ) {
+    this.runtime = runtime;
+  }
+
+  public awake(): void {
+    this.worldQuery = this.runtime.registry.query().with(LootFieldComponent);
+  }
 
   public update(): void {
+    const lootField = this.worldQuery ? getSingletonComponent(this.worldQuery, LootFieldComponent) : null;
+    if (!lootField) {
+      return;
+    }
+
     const chunkSize = this.map.getChunkSize();
     const position = this.player.getComponent(TransformComponent).transform.position;
     const chunkX = Math.floor(position.x / chunkSize);
@@ -33,14 +46,14 @@ export class LootBoxChunkSystem implements System {
       this.initialized = true;
       this.lastChunkX = chunkX;
       this.lastChunkY = chunkY;
-      this.refreshActiveWindow(chunkX, chunkY);
+      this.refreshActiveWindow(chunkX, chunkY, lootField);
       return;
     }
 
     for (const [key, entity] of this.active.entries()) {
       const tile = entity.tile;
       entity.tile.z = this.map.getElevationAt(tile.x, tile.y);
-      const box = this.lootField.getBoxAt(tile.x, tile.y, this.map);
+      const box = lootField.getBoxAt(tile.x, tile.y, this.map);
       if (!box) {
         entity.destroy();
         this.active.delete(key);
@@ -60,7 +73,11 @@ export class LootBoxChunkSystem implements System {
     this.active.clear();
   }
 
-  private refreshActiveWindow(centerChunkX: number, centerChunkY: number): void {
+  private refreshActiveWindow(
+    centerChunkX: number,
+    centerChunkY: number,
+    lootField: LootFieldComponent,
+  ): void {
     const chunkSize = this.map.getChunkSize();
     const desired = new Set<string>();
 
@@ -72,7 +89,7 @@ export class LootBoxChunkSystem implements System {
           for (let localX = 0; localX < chunkSize; localX++) {
             const worldX = cx * chunkSize + localX;
             const worldY = cy * chunkSize + localY;
-            const box = this.lootField.getBoxAt(worldX, worldY, this.map);
+            const box = lootField.getBoxAt(worldX, worldY, this.map);
             if (!box) {
               continue;
             }

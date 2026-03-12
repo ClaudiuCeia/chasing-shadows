@@ -1,26 +1,29 @@
 import { Entity, HudLayoutNodeComponent } from "@claudiu-ceia/tick";
 import { FpsCounterRenderComponent, type FpsSnapshot } from "./FpsCounterRenderComponent.ts";
-import { HudInfoRenderComponent, type HudInfoSnapshot } from "./HudInfoRenderComponent.ts";
-import { HudTemperatureRenderComponent, type HudTemperatureSnapshot } from "./HudTemperatureRenderComponent.ts";
+import { HudInfoRenderComponent } from "./HudInfoRenderComponent.ts";
+import { HudTemperatureRenderComponent } from "./HudTemperatureRenderComponent.ts";
 import { LootWindowInputComponent } from "./LootWindowInputComponent.ts";
-import { LootWindowRenderComponent, type LootWindowSnapshot } from "./LootWindowRenderComponent.ts";
+import { LootWindowRenderComponent } from "./LootWindowRenderComponent.ts";
 import { QuickbarRenderComponent } from "./QuickbarRenderComponent.ts";
-import type { InventoryState } from "../state/InventoryState.ts";
-import type { LootUiState } from "../state/LootUiState.ts";
+import { InventoryComponent } from "../components/InventoryComponent.ts";
+import { LootFieldComponent } from "../components/LootFieldComponent.ts";
+import { LootUiComponent } from "../components/LootUiComponent.ts";
+import type { TerminatorComponent } from "../components/TerminatorComponent.ts";
+import { PlayerEntity } from "../entities/PlayerEntity.ts";
+import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
 
 class HudNodeEntity extends Entity {
   public override update(_dt: number): void {}
 }
 
 export type CreateHudOptions = {
-  getInfo: () => HudInfoSnapshot;
-  getTemperature: () => HudTemperatureSnapshot;
   getFps: () => FpsSnapshot;
-  inventory: InventoryState;
-  lootUi: LootUiState;
-  getLootWindow: () => LootWindowSnapshot | null;
-  onLootSlotClick: (slot: number) => void;
-  onLootClose: () => void;
+  player: PlayerEntity;
+  terminator: TerminatorComponent;
+  inventory: InventoryComponent;
+  lootUi: LootUiComponent;
+  lootField: LootFieldComponent;
+  map: InfiniteTilemap;
 };
 
 export const createHud = (options: CreateHudOptions): Entity[] => {
@@ -33,7 +36,7 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
       offset: { x: 18, y: 18 },
     }),
   );
-  info.addComponent(new HudInfoRenderComponent(options.getInfo));
+  info.addComponent(new HudInfoRenderComponent(options.player, options.terminator));
 
   const temperature = new HudNodeEntity();
   temperature.addComponent(
@@ -44,7 +47,7 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
       offset: { x: -18, y: 18 },
     }),
   );
-  temperature.addComponent(new HudTemperatureRenderComponent(options.getTemperature));
+  temperature.addComponent(new HudTemperatureRenderComponent(options.player, options.terminator));
 
   const quickbar = new HudNodeEntity();
   quickbar.addComponent(
@@ -79,15 +82,8 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
       order: 90,
     }),
   );
-  lootWindow.addComponent(new LootWindowRenderComponent(options.getLootWindow, options.lootUi));
-  lootWindow.addComponent(
-    new LootWindowInputComponent(
-      options.lootUi,
-      () => options.getLootWindow() !== null,
-      options.onLootSlotClick,
-      options.onLootClose,
-    ),
-  );
+  lootWindow.addComponent(new LootWindowRenderComponent(options.map, options.lootField, options.lootUi));
+  lootWindow.addComponent(new LootWindowInputComponent(options.lootUi));
 
   info.awake();
   temperature.awake();

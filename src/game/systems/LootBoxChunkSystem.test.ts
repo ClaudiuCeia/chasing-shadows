@@ -3,7 +3,8 @@ import { EcsRuntime, Vector2D, World } from "@claudiu-ceia/tick";
 import { LootBoxSpriteComponent } from "../render/LootBoxSpriteComponent.ts";
 import { TilePositionComponent } from "../components/TilePositionComponent.ts";
 import { PlayerEntity } from "../entities/PlayerEntity.ts";
-import { LOOT_BOX_SLOT_COUNT, LootBoxField } from "../world/LootBoxField.ts";
+import { WorldStateEntity } from "../entities/WorldStateEntity.ts";
+import { LOOT_BOX_SLOT_COUNT } from "../world/LootBoxField.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
 import { LootBoxChunkSystem } from "./LootBoxChunkSystem.ts";
 
@@ -19,7 +20,9 @@ describe("LootBoxChunkSystem", () => {
       const map = new InfiniteTilemap({ seed: 12, chunkSize: 16 });
       map.setTile(0, 0, "regolith");
 
-      const field = new LootBoxField({ seed: 12, spawnChance: 0 });
+      const worldState = new WorldStateEntity({ seed: 12, spawnChance: 0 });
+      worldState.awake();
+      const field = worldState.lootField;
       field.setSlots(
         0,
         0,
@@ -28,11 +31,11 @@ describe("LootBoxChunkSystem", () => {
         ),
       );
 
-      const player = new PlayerEntity(new Vector2D(0, 0), 4);
+      const player = new PlayerEntity(new Vector2D(0, 0), 4, 8);
       player.awake();
 
       const world = new World({ runtime, fixedDeltaTime: 1 / 60 });
-      world.addSystem(new LootBoxChunkSystem(map, field, player, 0));
+      world.addSystem(new LootBoxChunkSystem(map, player, 0, runtime));
       world.step(1 / 60);
 
       const query = runtime.registry.query().with(TilePositionComponent).with(LootBoxSpriteComponent);

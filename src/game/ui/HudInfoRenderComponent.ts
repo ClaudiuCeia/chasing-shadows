@@ -4,15 +4,10 @@ import {
   Vector2D,
   type ICamera,
 } from "@claudiu-ceia/tick";
-
-export type HudInfoSnapshot = {
-  hunger: number;
-  thirst: number;
-  hp: number;
-  ambientCelsius: number;
-};
-
-const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
+import { PlayerEntity } from "../entities/PlayerEntity.ts";
+import { getAmbientTemperature } from "./environment-temperature.ts";
+import type { TerminatorComponent } from "../components/TerminatorComponent.ts";
+import { clamp01 } from "../../shared/math/clamp.ts";
 const AMBIENT_MIN_C = -150;
 const AMBIENT_MAX_C = 400;
 
@@ -85,7 +80,10 @@ const drawAmbientMeter = (
 };
 
 export class HudInfoRenderComponent extends HudRenderComponent {
-  public constructor(private readonly getInfo: () => HudInfoSnapshot) {
+  public constructor(
+    private readonly player: PlayerEntity,
+    private readonly terminator: TerminatorComponent,
+  ) {
     super();
   }
 
@@ -97,7 +95,12 @@ export class HudInfoRenderComponent extends HudRenderComponent {
     const frame = this.ent.getComponent(HudLayoutNodeComponent).getFrame();
     if (!frame) return;
 
-    const info = this.getInfo();
+    const info = {
+      hp: this.player.health.hp,
+      hunger: this.player.needs.hunger,
+      thirst: this.player.needs.thirst,
+      ambientCelsius: getAmbientTemperature(this.terminator, this.player.transform.transform.position).celsius,
+    };
     const labelWidth = 68;
 
     const meterX = frame.x;

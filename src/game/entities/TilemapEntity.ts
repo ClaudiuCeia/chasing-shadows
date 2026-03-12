@@ -1,6 +1,7 @@
 import { EcsRuntime, Entity } from "@claudiu-ceia/tick";
-import type { TerminatorModel } from "../world/TerminatorModel.ts";
-import type { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
+import { TilemapStateComponent } from "../components/TilemapStateComponent.ts";
+import type { TerminatorComponent } from "../components/TerminatorComponent.ts";
+import type { InfiniteTilemapOptions } from "../world/InfiniteTilemap.ts";
 import { createTileAtlas } from "../render/TileAtlas.ts";
 import { TilemapRenderComponent, type TilemapRenderOptions } from "../render/TilemapRenderComponent.ts";
 
@@ -12,16 +13,20 @@ export type TilemapEntityOptions = {
 };
 
 export class TilemapEntity extends Entity {
+  public readonly tilemap: TilemapStateComponent;
+
   public constructor(
-    map: InfiniteTilemap,
-    terminator: TerminatorModel,
-    options: TilemapEntityOptions,
+    state: InfiniteTilemapOptions,
   ) {
     super();
+    this.tilemap = new TilemapStateComponent(state);
+    this.addComponent(this.tilemap);
+  }
 
+  public configureRender(terminator: TerminatorComponent, options: TilemapEntityOptions): void {
     this.addComponent(
       new TilemapRenderComponent(
-        map,
+        this.tilemap,
         terminator,
         createTileAtlas(options.tileWidth, options.tileHeight),
         options.tileWidth,

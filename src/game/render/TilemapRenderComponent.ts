@@ -8,12 +8,14 @@ import {
 } from "@claudiu-ceia/tick";
 import { IsometricRenderNodeComponent } from "../components/IsometricRenderNodeComponent.ts";
 import { IsometricRenderableComponent } from "../components/IsometricRenderableComponent.ts";
+import { TilemapStateComponent } from "../components/TilemapStateComponent.ts";
+import type { TerminatorComponent } from "../components/TerminatorComponent.ts";
 import { TilePositionComponent } from "../components/TilePositionComponent.ts";
-import type { TerminatorModel } from "../world/TerminatorModel.ts";
-import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
 import { isTileFlat, type TileData, type TileKind } from "../world/tile-types.ts";
 import type { TileAtlas, TileLighting } from "./TileAtlas.ts";
 import { IsometricCameraEntity } from "./IsometricCameraEntity.ts";
+import { parseHexColor, rgbToHex, type Rgb } from "../../shared/math/color.ts";
+import { tileKey } from "../../shared/math/tile-key.ts";
 
 export type TilemapRenderOptions = {
   isSelectedAt?: (x: number, y: number, z: number) => boolean;
@@ -73,8 +75,6 @@ type EntityCommand = {
 
 type OverlayCommand = FaceCommand | EntityCommand;
 
-type Rgb = { r: number; g: number; b: number };
-
 type TileColorCache = Record<
   TileKind,
   {
@@ -106,26 +106,6 @@ const ENTITY_DEPTH_EPSILON = 0.001;
 const DEFAULT_MAX_TERRAIN_ELEVATION = 6;
 const DEFAULT_SOUTH_CULLING_PADDING = 5;
 
-const parseHexColor = (hex: string): Rgb => {
-  const value = hex.replace("#", "");
-  if (value.length !== 6) {
-    throw new Error(`Expected 6-char hex color, got '${hex}'`);
-  }
-
-  return {
-    r: Number.parseInt(value.slice(0, 2), 16),
-    g: Number.parseInt(value.slice(2, 4), 16),
-    b: Number.parseInt(value.slice(4, 6), 16),
-  };
-};
-
-const clampChannel = (value: number): number => Math.max(0, Math.min(255, Math.round(value)));
-
-const rgbToHex = ({ r, g, b }: Rgb): string => {
-  const toHex = (channel: number): string => clampChannel(channel).toString(16).padStart(2, "0");
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-};
-
 const blendColor = (baseHex: string, tintHex: string, amount: number): string => {
   const t = Math.max(0, Math.min(1, amount));
   const base = parseHexColor(baseHex);
@@ -136,8 +116,6 @@ const blendColor = (baseHex: string, tintHex: string, amount: number): string =>
     b: base.b + (tint.b - base.b) * t,
   });
 };
-
-const tileKey = (x: number, y: number): string => `${x}:${y}`;
 
 const snapScreenPoint = (point: ScreenPoint): ScreenPoint => ({
   x: Math.floor(point.x),
@@ -210,8 +188,8 @@ export class TilemapRenderComponent extends RenderComponent {
   private renderNodeQuery: EntityQuery | null = null;
 
   public constructor(
-    private readonly map: InfiniteTilemap,
-    private readonly terminator: TerminatorModel,
+    private readonly map: TilemapStateComponent,
+    private readonly terminator: TerminatorComponent,
     private readonly atlas: TileAtlas,
     tileWidth: number,
     tileHeight: number,

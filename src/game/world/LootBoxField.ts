@@ -1,8 +1,10 @@
 import type { ItemStack } from "../items/item-catalog.ts";
 import { ITEM_DEFINITIONS } from "../items/item-catalog.ts";
+import { areItemSlotArraysEqual, cloneItemStack, normalizeItemSlots } from "../items/item-stack.ts";
 import { hash2 } from "../../shared/math/hash.ts";
 import { InfiniteTilemap } from "./InfiniteTilemap.ts";
 import { isTileFlat } from "./tile-types.ts";
+import { tileKey } from "../../shared/math/tile-key.ts";
 
 export const LOOT_BOX_SLOT_COUNT = 16;
 
@@ -33,7 +35,7 @@ type LootBoxOverride =
       slots: Array<ItemStack | null>;
     };
 
-type LootBoxFieldOptions = {
+export type LootBoxFieldOptions = {
   seed: number;
   spawnChance?: number;
 };
@@ -50,24 +52,6 @@ const STACK_COUNT_SEED = 0x9b06d4b7;
 const ITEM_SEED = 0x109f3e35;
 const ITEM_COUNT_SEED = 0x4f2bc7ad;
 const BOX_VARIANT_COUNT = 13;
-
-const tileKey = (x: number, y: number): string => `${x}:${y}`;
-
-const cloneStack = (stack: ItemStack | null): ItemStack | null =>
-  stack
-    ? {
-        itemId: stack.itemId,
-        count: Math.max(1, Math.floor(stack.count)),
-      }
-    : null;
-
-const cloneSlots = (slots: readonly (ItemStack | null)[]): Array<ItemStack | null> => {
-  const next = Array.from({ length: LOOT_BOX_SLOT_COUNT }, (_unused, index) =>
-    cloneStack(slots[index] ?? null),
-  );
-
-  return next;
-};
 
 const hasAnyItems = (slots: readonly (ItemStack | null)[]): boolean =>
   slots.some((slot) => slot !== null && slot.count > 0);
@@ -112,7 +96,7 @@ export class LootBoxField {
     const x = Math.floor(tileX);
     const y = Math.floor(tileY);
     const key = tileKey(x, y);
-    const normalized = cloneSlots(slots);
+    const normalized = normalizeItemSlots(slots, LOOT_BOX_SLOT_COUNT);
 
     if (!hasAnyItems(normalized)) {
       this.overrides.set(key, { removed: true });
@@ -161,12 +145,27 @@ export class LootBoxField {
     return best;
   }
 
-  public serializeDeltas(): LootBoxDelta[] {
+  public serializeDeltas(map?: InfiniteTilemap): LootBoxDelta[] {
     const deltas: LootBoxDelta[] = [];
+    const staleKeys: string[] = [];
+
     for (const [key, override] of this.overrides.entries()) {
       const [xRaw, yRaw] = key.split(":");
       const x = Number(xRaw);
       const y = Number(yRaw);
+
+      if (map) {
+        const base = this.createGeneratedBox(x, y, map);
+        if (isRemovedOverride(override)) {
+          if (!base) {
+            staleKeys.push(key);
+            continue;
+          }
+        } else if (base && areItemSlotArraysEqual(override.slots, base.slots, LOOT_BOX_SLOT_COUNT)) {
+          staleKeys.push(key);
+          continue;
+        }
+      }
 
       if (isRemovedOverride(override)) {
         deltas.push({ x, y, removed: true });
@@ -174,9 +173,14 @@ export class LootBoxField {
         deltas.push({
           x,
           y,
-          slots: cloneSlots(override.slots),
+          slots: normalizeItemSlots(override.slots, LOOT_BOX_SLOT_COUNT),
         });
       }
+    }
+
+    for (const key of staleKeys) {
+      this.overrides.delete(key);
+      this.cache.delete(key);
     }
 
     return deltas;
@@ -192,7 +196,7 @@ export class LootBoxField {
         continue;
       }
 
-      this.overrides.set(key, { slots: cloneSlots(delta.slots) });
+      this.overrides.set(key, { slots: normalizeItemSlots(delta.slots, LOOT_BOX_SLOT_COUNT) });
       this.cache.delete(key);
     }
   }
@@ -239,7 +243,7 @@ export class LootBoxField {
       if (slotIndex >= LOOT_BOX_SLOT_COUNT) {
         break;
       }
-      slots[slotIndex] = cloneStack(stack);
+      slots[slotIndex] = cloneItemStack(stack);
       slotIndex += 1;
     }
 
@@ -281,7 +285,7 @@ export class LootBoxField {
       x,
       y,
       spriteIndex,
-      slots: cloneSlots(override.slots),
+      slots: normalizeItemSlots(override.slots, LOOT_BOX_SLOT_COUNT),
     };
   }
 }

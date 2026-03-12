@@ -4,8 +4,10 @@ import {
   Vector2D,
   type ICamera,
 } from "@claudiu-ceia/tick";
+import { LootFieldComponent } from "../components/LootFieldComponent.ts";
+import { LootUiComponent } from "../components/LootUiComponent.ts";
 import { getItemDefinition, type ItemStack } from "../items/item-catalog.ts";
-import { LootUiState } from "../state/LootUiState.ts";
+import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
 import {
   LOOT_WINDOW_COLUMNS,
   LOOT_WINDOW_GRID,
@@ -24,8 +26,9 @@ export class LootWindowRenderComponent extends HudRenderComponent {
   private itemSheet: HTMLImageElement | null = null;
 
   public constructor(
-    private readonly getLoot: () => LootWindowSnapshot | null,
-    private readonly state: LootUiState,
+    private readonly map: InfiniteTilemap,
+    private readonly lootField: LootFieldComponent,
+    private readonly state: LootUiComponent,
   ) {
     super();
 
@@ -113,5 +116,24 @@ export class LootWindowRenderComponent extends HudRenderComponent {
     ctx.textBaseline = "top";
     ctx.fillText(`Stacks: ${occupied}/${LOOT_WINDOW_SLOT_COUNT}`, frame.x + 24, frame.y + frame.height - 42);
     ctx.fillText(`Total items: ${totalItems}`, frame.x + 24, frame.y + frame.height - 22);
+  }
+
+  private getLoot(): LootWindowSnapshot | null {
+    const open = this.state.openBox;
+    if (!open) {
+      return null;
+    }
+
+    const box = this.lootField.getBoxAt(open.x, open.y, this.map);
+    if (!box) {
+      this.state.close();
+      return null;
+    }
+
+    return {
+      x: open.x,
+      y: open.y,
+      slots: box.slots,
+    };
   }
 }

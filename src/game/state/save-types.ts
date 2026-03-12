@@ -1,29 +1,57 @@
-import type { TileDelta } from "../world/InfiniteTilemap.ts";
-import type { LootBoxDelta } from "../world/LootBoxField.ts";
+import type { PlayerFireMode } from "../render/player-animation-logic.ts";
 import type { ItemStack } from "../items/item-catalog.ts";
+import type { LootBoxDelta } from "../world/LootBoxField.ts";
+import type { TileDelta } from "../world/InfiniteTilemap.ts";
 
-export type NeedsSnapshot = {
+export type SaveVector = {
+  x: number;
+  y: number;
+};
+
+export type SaveNeeds = {
   hunger: number;
   thirst: number;
   sickness: number;
+};
+
+export type SaveTemperature = {
+  thermalBalance: number;
   heat: number;
   cold: number;
 };
 
+export type SaveTerminator = {
+  safeBandHalfWidth: number;
+  travelSpeed: number;
+  travelDistance: number;
+  direction: SaveVector;
+};
+
+export type SaveWorld = {
+  seed: number;
+  chunkSize: number;
+  lootSpawnChance: number;
+  elapsedSeconds: number;
+  terminator: SaveTerminator;
+  tileDeltas: TileDelta[];
+  lootDeltas: LootBoxDelta[];
+};
+
+export type SavePlayer = {
+  position: SaveVector;
+  rotation: number;
+  velocity: SaveVector;
+  health: number;
+  needs: SaveNeeds;
+  temperature: SaveTemperature;
+  inventory: Array<ItemStack | null>;
+  fireMode: PlayerFireMode;
+};
+
 export type SaveGameV1 = {
   version: 1;
-  seed: number;
-  elapsedSeconds: number;
-  terminatorTravelDistance: number;
-  hp: number;
-  player: {
-    x: number;
-    y: number;
-    vx: number;
-    vy: number;
-  };
-  needs: NeedsSnapshot;
-  mapDeltas: TileDelta[];
-  inventory?: Array<ItemStack | null>;
-  lootBoxDeltas?: LootBoxDelta[];
+  world: SaveWorld;
+  player: SavePlayer;
 };
+
+export type SaveGame = SaveGameV1;

@@ -1,10 +1,10 @@
 import { Scene, type EcsRuntime, type World } from "@claudiu-ceia/tick";
-import { LootUiState } from "../../game/state/LootUiState.ts";
+import { LootUiComponent } from "../../game/components/LootUiComponent.ts";
 
 export type GameplaySceneOptions = {
   runtime: EcsRuntime;
   world: World;
-  lootUi: LootUiState;
+  lootUi: LootUiComponent;
   onOpenTitle: () => void;
   renderFrame: () => void;
 };

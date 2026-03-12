@@ -3,6 +3,7 @@ import { MovementIntentComponent } from "../components/MovementIntentComponent.t
 import { TopDownControllerComponent } from "../components/TopDownControllerComponent.ts";
 import { GAME_CONFIG } from "../config/game-config.ts";
 import { isoToWorld } from "../../shared/math/iso.ts";
+import { clamp01 } from "../../shared/math/clamp.ts";
 
 export type PlayerAttackClipName =
   | "attack1"
@@ -17,6 +18,7 @@ export type PlayerAttackSelection = {
 };
 
 export type PlayerFireMode = "auto" | "semi";
+export const PLAYER_FIRE_MODE_VALUES = ["auto", "semi"] as const;
 
 export type PlayerMovementProfile = {
   forwardAmount: number;
@@ -29,13 +31,9 @@ export const MOVE_THRESHOLD = 0.06;
 export const FORWARD_ALIGNMENT_THRESHOLD = 0.966;
 export const ATTACK_FPS = 14;
 export const ATTACK_FRAME_COUNT = 14;
-export const ATTACK_AUTO_LOOP_START_FRAME = 1;
-export const ATTACK_SEMI_START_FRAME = 0;
 export const ATTACK_SEMI_END_FRAME = 4;
-export const ATTACK_SEMI_TIME_SCALE = 3;
-export const ATTACK_REFIRE_SECONDS = ((ATTACK_SEMI_END_FRAME - ATTACK_SEMI_START_FRAME + 1) / ATTACK_FPS) * ATTACK_SEMI_TIME_SCALE;
-
-const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
+export const ATTACK_SEMI_FRAME_COUNT = ATTACK_SEMI_END_FRAME + 1;
+export const ATTACK_REFIRE_SECONDS = ATTACK_SEMI_FRAME_COUNT / ATTACK_FPS;
 
 export const getPlayerMovementProfile = (
   intent: MovementIntentComponent,

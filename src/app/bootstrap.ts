@@ -2,48 +2,17 @@ import {
   EcsRuntime,
   EntityProfiler,
   HudViewport,
-  PhysicsSystem,
   RenderSystem,
   SceneManager,
-  TransformComponent,
   Vector2D,
-  World,
 } from "@claudiu-ceia/tick";
+import { createGameplaySession, type GameplaySession } from "./gameplay/createGameplaySession.ts";
 import { GameplayScene } from "./scenes/GameplayScene.ts";
 import { TitleScene } from "./scenes/TitleScene.ts";
 import { GAME_CONFIG } from "../game/config/game-config.ts";
 import { HudOnlyCamera } from "../game/entities/HudOnlyCamera.ts";
-import { PlayerEntity } from "../game/entities/PlayerEntity.ts";
-import { TilemapEntity } from "../game/entities/TilemapEntity.ts";
-import { IsometricCameraEntity } from "../game/render/IsometricCameraEntity.ts";
-import { PlayerRenderComponent } from "../game/render/PlayerRenderComponent.ts";
-import { InventoryState } from "../game/state/InventoryState.ts";
-import { LootUiState } from "../game/state/LootUiState.ts";
-import { MarkerState } from "../game/state/MarkerState.ts";
 import { SaveGameManager } from "../game/state/SaveGameManager.ts";
-import type { SaveGameV1 } from "../game/state/save-types.ts";
-import { AutosaveSystem } from "../game/systems/AutosaveSystem.ts";
-import { CameraFollowSystem } from "../game/systems/CameraFollowSystem.ts";
-import { ExposureSystem } from "../game/systems/ExposureSystem.ts";
-import { InputIntentSystem } from "../game/systems/InputIntentSystem.ts";
-import { LootBoxChunkSystem } from "../game/systems/LootBoxChunkSystem.ts";
-import { LootInteractSystem } from "../game/systems/LootInteractSystem.ts";
-import { NeedsDecaySystem } from "../game/systems/NeedsDecaySystem.ts";
-import { PlayerAttackSystem } from "../game/systems/PlayerAttackSystem.ts";
-import { PlayerPointerActionHandler } from "../game/systems/PlayerPointerActionHandler.ts";
-import { PlayerTilePositionSystem } from "../game/systems/PlayerTilePositionSystem.ts";
-import { PointerMarkerSystem } from "../game/systems/PointerMarkerSystem.ts";
-import { TerminatorSystem } from "../game/systems/TerminatorSystem.ts";
-import { TilemapCollisionSystem } from "../game/systems/TilemapCollisionSystem.ts";
-import { TopDownControllerSystem } from "../game/systems/TopDownControllerSystem.ts";
-import { createHud } from "../game/ui/createHud.ts";
-import { getAmbientTemperature } from "../game/ui/environment-temperature.ts";
-import { InfiniteTilemap } from "../game/world/InfiniteTilemap.ts";
-import { LootBoxField } from "../game/world/LootBoxField.ts";
-import { TerminatorModel } from "../game/world/TerminatorModel.ts";
-import { getTileSlopeRange, isTileFlat } from "../game/world/tile-types.ts";
 import { randomSeed } from "../shared/math/hash.ts";
-import { isoToWorld } from "../shared/math/iso.ts";
 
 const createCanvas = (): HTMLCanvasElement => {
   const canvas = document.createElement("canvas");
@@ -61,90 +30,6 @@ const resizeCanvas = (canvas: HTMLCanvasElement): Vector2D => {
   return new Vector2D(canvas.width, canvas.height);
 };
 
-const restorePlayerFromAutosave = (autosave: SaveGameV1 | null, player: PlayerEntity): void => {
-  if (!autosave) return;
-
-  player.transform.setPosition(autosave.player.x, autosave.player.y);
-  player.body.setVelocity(new Vector2D(autosave.player.vx, autosave.player.vy));
-  player.needs.hunger = autosave.needs.hunger;
-  player.needs.thirst = autosave.needs.thirst;
-  player.needs.sickness = autosave.needs.sickness;
-  player.temperature.thermalBalance = autosave.needs.heat - autosave.needs.cold;
-  player.temperature.heat = Math.max(0, player.temperature.thermalBalance);
-  player.temperature.cold = Math.max(0, -player.temperature.thermalBalance);
-  player.health.hp = autosave.hp;
-};
-
-const syncPlayerToTerrain = (map: InfiniteTilemap, player: PlayerEntity): void => {
-  const position = player.transform.transform.position;
-  const elevation = map.getElevationAt(position.x, position.y);
-  player.tilePosition.set(position.x, position.y, elevation);
-};
-
-const restoreInventoryFromAutosave = (
-  autosave: SaveGameV1 | null,
-  inventory: InventoryState,
-): void => {
-  if (!autosave?.inventory) {
-    return;
-  }
-
-  inventory.hydrate(autosave.inventory);
-};
-
-const findInitialPlayerSpawn = (map: InfiniteTilemap): Vector2D => {
-  let best = new Vector2D(0, 0);
-  let bestScore = -Infinity;
-
-  const isSpawnSafe = (x: number, y: number): boolean => {
-    const center = map.getTile(x, y);
-    if (!isTileFlat(center)) {
-      return false;
-    }
-
-    for (let oy = -1; oy <= 1; oy++) {
-      for (let ox = -1; ox <= 1; ox++) {
-        const neighbor = map.getTile(x + ox, y + oy);
-        if (!isTileFlat(neighbor) || neighbor.elevation !== center.elevation) {
-          return false;
-        }
-      }
-    }
-
-    return true;
-  };
-
-  for (let radius = 0; radius <= 28; radius++) {
-    for (let y = -radius; y <= radius; y++) {
-      for (let x = -radius; x <= radius; x++) {
-        if (Math.max(Math.abs(x), Math.abs(y)) !== radius) {
-          continue;
-        }
-
-        const tile = map.getTile(x, y);
-        if (!isSpawnSafe(x, y)) {
-          continue;
-        }
-
-        const slopePenalty = getTileSlopeRange(tile) * 20;
-        const distancePenalty = Math.abs(x) + Math.abs(y);
-        const score = 140 + tile.elevation * 16 - slopePenalty - distancePenalty;
-
-        if (score > bestScore) {
-          bestScore = score;
-          best = new Vector2D(x, y);
-        }
-      }
-    }
-
-    if (bestScore >= 100) {
-      return best;
-    }
-  }
-
-  throw new Error("Failed to find a safe initial spawn tile within search radius");
-};
-
 export const bootstrapGame = (): void => {
   document.body.style.margin = "0";
   document.body.style.overflow = "hidden";
@@ -156,345 +41,57 @@ export const bootstrapGame = (): void => {
   if (!context) {
     throw new Error("Unable to acquire 2D rendering context");
   }
-  const gameContext = context;
-  gameContext.imageSmoothingEnabled = false;
 
-  const saveManager = new SaveGameManager();
-  const autosave = saveManager.loadAutosave();
-  const seed = autosave?.seed ?? randomSeed();
+  context.imageSmoothingEnabled = false;
 
-  const map = new InfiniteTilemap({ seed, chunkSize: GAME_CONFIG.chunkSize });
-  if (autosave) {
-    map.applyDeltas(autosave.mapDeltas);
-  }
-
-  const lootField = new LootBoxField({
-    seed,
-    spawnChance: GAME_CONFIG.lootBoxSpawnChance,
-  });
-  if (autosave?.lootBoxDeltas) {
-    lootField.applyDeltas(autosave.lootBoxDeltas);
-  }
-
-  const inventory = new InventoryState(GAME_CONFIG.inventorySlots);
-  restoreInventoryFromAutosave(autosave, inventory);
-  const lootUi = new LootUiState();
-
-  const runtime = new EcsRuntime();
-  const world = new World({
-    runtime,
-    fixedDeltaTime: GAME_CONFIG.fixedDeltaTime,
-    maxSubSteps: GAME_CONFIG.maxSubSteps,
-    maxFrameDelta: GAME_CONFIG.maxFrameDelta,
-  });
-
-  const terminator = new TerminatorModel({
-    safeBandHalfWidth: 6,
-    travelSpeed: 0.4,
-    travelDistance: autosave?.terminatorTravelDistance ?? 0,
-    direction: isoToWorld(
-      new Vector2D(1, -1),
-      { tileWidth: GAME_CONFIG.tileWidth, tileHeight: GAME_CONFIG.tileHeight },
-    ).normalize(),
-  });
-  
-  const terminatorSystem = new TerminatorSystem(terminator);
-  if (autosave) {
-    terminatorSystem.setElapsedSeconds(autosave.elapsedSeconds);
-  }
-
-  const markerState = new MarkerState();
   const canvasState = {
     context,
     size: resizeCanvas(canvas),
   };
+
+  const saveManager = new SaveGameManager();
+  const autosave = saveManager.loadAutosave();
+  const seed = randomSeed();
+
   let allowAutosave = true;
   let fps = 0;
   let frameTimeMs = 0;
   let fpsFrames = 0;
   let fpsAccumulator = 0;
 
-  const createSnapshot = (): SaveGameV1 => {
-    const position = player.getComponent(TransformComponent).transform.position;
-    const velocity = player.body.getVelocity();
-
-    return {
-      version: 1,
-      seed,
-      elapsedSeconds: terminatorSystem.getElapsedSeconds(),
-      terminatorTravelDistance: terminator.getTravelDistance(),
-      player: {
-        x: position.x,
-        y: position.y,
-        vx: velocity.x,
-        vy: velocity.y,
-      },
-      needs: {
-        hunger: player.needs.hunger,
-        thirst: player.needs.thirst,
-        sickness: player.needs.sickness,
-        heat: player.temperature.heat,
-        cold: player.temperature.cold,
-      },
-      hp: player.health.hp,
-      mapDeltas: map.serializeDeltas(),
-      inventory: inventory.toSnapshot(),
-      lootBoxDeltas: lootField.serializeDeltas(),
-    };
-  };
-
+  let session!: GameplaySession;
   const saveNow = (): void => {
     if (!allowAutosave) {
       return;
     }
-    saveManager.saveAutosave(createSnapshot());
+
+    saveManager.saveAutosave(session.createAutosaveData());
   };
+
+  session = createGameplaySession({
+    canvas,
+    canvasState,
+    autosave,
+    seed,
+    getFps: () => ({ fps, frameTimeMs }),
+    onAutosave: saveNow,
+  });
 
   const onBeforeUnload = (): void => {
     saveNow();
   };
-
-  const getLootWindow = () => {
-    const open = lootUi.openBox;
-    if (!open) {
-      return null;
-    }
-
-    const box = lootField.getBoxAt(open.x, open.y, map);
-    if (!box) {
-      lootUi.close();
-      return null;
-    }
-
-    return {
-      x: open.x,
-      y: open.y,
-      slots: box.slots,
-    };
-  };
-
-  const onLootSlotClick = (slot: number): void => {
-    const open = lootUi.openBox;
-    if (!open) {
-      return;
-    }
-
-    const box = lootField.getBoxAt(open.x, open.y, map);
-    if (!box) {
-      lootUi.close();
-      return;
-    }
-
-    const stack = box.slots[slot] ?? null;
-    if (!stack) {
-      return;
-    }
-
-    const leftover = inventory.addItem(stack.itemId, stack.count);
-    if (leftover >= stack.count) {
-      return;
-    }
-
-    const updatedSlots = [...box.slots];
-    updatedSlots[slot] =
-      leftover > 0
-        ? {
-            itemId: stack.itemId,
-            count: leftover,
-          }
-        : null;
-    lootField.setSlots(open.x, open.y, updatedSlots);
-
-    if (!lootField.getBoxAt(open.x, open.y, map)) {
-      lootUi.close();
-    }
-  };
-
-  const resolvePointerWorldPoint = (canvasPoint: Vector2D): { world: Vector2D; elevation: number } => {
-    const canvasSize = new Vector2D(canvas.width, canvas.height);
-    let bestMatch: { world: Vector2D; elevation: number; distanceSq: number } | null = null;
-
-    for (let elevation = GAME_CONFIG.maxTerrainElevation; elevation >= 0; elevation--) {
-      const candidateWorld = camera.canvasToWorldAt(canvasPoint, elevation, canvasSize);
-      const surfaceElevation = map.getElevationAt(candidateWorld.x, candidateWorld.y);
-      const projected = camera.toCanvasAt(candidateWorld, surfaceElevation, canvasSize);
-      const dx = projected.x - canvasPoint.x;
-      const dy = projected.y - canvasPoint.y;
-      const distanceSq = dx * dx + dy * dy;
-
-      if (!bestMatch || distanceSq < bestMatch.distanceSq) {
-        bestMatch = {
-          world: candidateWorld,
-          elevation: surfaceElevation,
-          distanceSq,
-        };
-      }
-    }
-
-    if (bestMatch) {
-      return {
-        world: bestMatch.world,
-        elevation: bestMatch.elevation,
-      };
-    }
-
-    const fallbackWorld = camera.canvasToWorld(canvasPoint, canvasSize);
-    const fallbackElevation = map.getElevationAt(fallbackWorld.x, fallbackWorld.y);
-    return {
-      world: fallbackWorld,
-      elevation: fallbackElevation,
-    };
-  };
-
-  let camera!: IsometricCameraEntity;
-  let player!: PlayerEntity;
-
-  EcsRuntime.runWith(runtime, () => {
-    camera = new IsometricCameraEntity({
-      tileWidth: GAME_CONFIG.tileWidth,
-      tileHeight: GAME_CONFIG.tileHeight,
-    }, GAME_CONFIG.elevationStepPixels);
-    camera.awake();
-
-    const playerSpawn = autosave ? new Vector2D(0, 0) : findInitialPlayerSpawn(map);
-    player = new PlayerEntity(playerSpawn, GAME_CONFIG.playerBaseSpeed);
-    player.addComponent(new PlayerRenderComponent());
-    restorePlayerFromAutosave(autosave, player);
-    syncPlayerToTerrain(map, player);
-    player.awake();
-
-    const tilemap = new TilemapEntity(map, terminator, {
-      tileWidth: GAME_CONFIG.tileWidth,
-      tileHeight: GAME_CONFIG.tileHeight,
-      render: {
-        isSelectedAt: (x, y, z) => {
-          const open = lootUi.openBox;
-          if (!open || open.x !== x || open.y !== y) {
-            return false;
-          }
-
-          return Math.abs(map.getElevationAt(open.x, open.y) - z) <= 0.6;
-        },
-        maxTerrainElevation: GAME_CONFIG.maxTerrainElevation,
-        southCullingPadding: 6,
-      },
-      runtime,
-    });
-    tilemap.awake();
-
-    createHud({
-      getInfo: () => ({
-        hp: player.health.hp,
-        hunger: player.needs.hunger,
-        thirst: player.needs.thirst,
-        ambientCelsius: getAmbientTemperature(terminator, player.transform.transform.position).celsius,
-      }),
-      getTemperature: () => {
-        const position = player.transform.transform.position;
-        const ambient = getAmbientTemperature(terminator, position);
-        return {
-          ambientCelsius: ambient.celsius,
-        };
-      },
-      getFps: () => ({ fps, frameTimeMs }),
-      inventory,
-      lootUi,
-      getLootWindow,
-      onLootSlotClick,
-      onLootClose: () => lootUi.close(),
-    });
-  });
 
   const hudViewport = new HudViewport(
     new Vector2D(GAME_CONFIG.hudReferenceWidth, GAME_CONFIG.hudReferenceHeight),
     "contain",
     true,
   );
-  const renderSystem = new RenderSystem(canvasState, camera, runtime, hudViewport);
   const titleRuntime = new EcsRuntime();
-  let pendingScene: "title" | "gameplay" | null = null;
-
   const titleCamera = new HudOnlyCamera();
   const titleRenderSystem = new RenderSystem(canvasState, titleCamera, titleRuntime, hudViewport);
-  const playerPointerActionHandler = new PlayerPointerActionHandler(map, lootField, lootUi, player);
+  const sceneManager = new SceneManager();
 
-  world.addSystem(new InputIntentSystem(camera, canvas, runtime));
-  world.addSystem(new LootBoxChunkSystem(map, lootField, player, GAME_CONFIG.chunkRadius));
-  world.addSystem(new PlayerAttackSystem(runtime));
-  world.addSystem(new PlayerTilePositionSystem(map, player));
-  world.addSystem(
-    new LootInteractSystem(
-      map,
-      lootField,
-      player,
-      lootUi,
-      {
-        interactRange: GAME_CONFIG.lootBoxInteractRange,
-      },
-      runtime,
-    ),
-  );
-  world.addSystem(
-    new PointerMarkerSystem(
-      camera,
-      canvas,
-      markerState,
-      runtime,
-      playerPointerActionHandler.handleWorldAction.bind(playerPointerActionHandler),
-      resolvePointerWorldPoint,
-    ),
-  );
-  world.addSystem(
-    new TopDownControllerSystem(
-      {
-        isoConfig: {
-          tileWidth: GAME_CONFIG.tileWidth,
-          tileHeight: GAME_CONFIG.tileHeight,
-        },
-      },
-      runtime,
-    ),
-  );
-  world.addSystem(terminatorSystem);
-  world.addSystem(new NeedsDecaySystem(runtime));
-  world.addSystem(new ExposureSystem(terminator, runtime));
-  world.addSystem(
-    new PhysicsSystem({
-      gravity: Vector2D.zero,
-      velocityIterations: 6,
-      positionIterations: 2,
-      broadphaseCellSize: 2,
-    }),
-  );
-  world.addSystem(
-    new TilemapCollisionSystem(map, player, {
-      playerRadius: player.collisionRadius,
-      iterations: 5,
-      maxStepUp: GAME_CONFIG.maxStepUpHeight,
-      maxStepDown: GAME_CONFIG.maxStepDownHeight,
-      isBlockedAt: (x, y) => lootField.getBoxAt(x, y, map) !== null,
-    }),
-  );
-  world.addSystem(
-    new CameraFollowSystem(
-      camera,
-      player,
-      {
-        followStrength: 9,
-      },
-    ),
-  );
-  world.addSystem(
-    new AutosaveSystem({
-      intervalSeconds: GAME_CONFIG.autosaveIntervalSeconds,
-      save: saveNow,
-    }),
-  );
-
-  window.addEventListener("beforeunload", onBeforeUnload);
-  window.addEventListener("resize", () => {
-    canvasState.size = resizeCanvas(canvas);
-  });
+  let pendingScene: "title" | "gameplay" | null = null;
 
   const restartGame = (): void => {
     allowAutosave = false;
@@ -504,7 +101,7 @@ export const bootstrapGame = (): void => {
   };
 
   const clearSceneInput = (): void => {
-    runtime.input.clearFrame();
+    session.runtime.input.clearFrame();
     titleRuntime.input.clearFrame();
   };
 
@@ -524,19 +121,20 @@ export const bootstrapGame = (): void => {
     const nextScene = pendingScene;
     pendingScene = null;
     clearSceneInput();
+
     sceneManager.changeScene(
       nextScene === "gameplay"
         ? new GameplayScene({
-            runtime,
-            world,
-            lootUi,
+            runtime: session.runtime,
+            world: session.world,
+            lootUi: session.lootUi,
             onOpenTitle: requestTitleScene,
             renderFrame: () => {
-              gameContext.imageSmoothingEnabled = false;
-              gameContext.setTransform(1, 0, 0, 1, 0, 0);
-              gameContext.fillStyle = "#18110d";
-              gameContext.fillRect(0, 0, canvas.width, canvas.height);
-              renderSystem.render();
+              context.imageSmoothingEnabled = false;
+              context.setTransform(1, 0, 0, 1, 0, 0);
+              context.fillStyle = "#18110d";
+              context.fillRect(0, 0, canvas.width, canvas.height);
+              session.renderSystem.render();
             },
           })
         : new TitleScene({
@@ -547,8 +145,6 @@ export const bootstrapGame = (): void => {
           }),
     );
   };
-
-  const sceneManager = new SceneManager();
 
   const globalWindow = window as Window & typeof globalThis & {
     __tickProfiler?: {
@@ -572,11 +168,16 @@ export const bootstrapGame = (): void => {
       EntityProfiler.printTopSlow("render", topN);
     },
     scanOffscreenColliders: () => {
-      EcsRuntime.runWith(runtime, () => {
-        EntityProfiler.scanOffscreenCollision(camera);
+      EcsRuntime.runWith(session.runtime, () => {
+        EntityProfiler.scanOffscreenCollision(session.camera);
       });
     },
   };
+
+  window.addEventListener("beforeunload", onBeforeUnload);
+  window.addEventListener("resize", () => {
+    canvasState.size = resizeCanvas(canvas);
+  });
 
   requestTitleScene();
 
@@ -584,6 +185,7 @@ export const bootstrapGame = (): void => {
   const frame = (now: number): void => {
     const deltaTime = (now - lastTime) / 1000;
     lastTime = now;
+
     frameTimeMs = deltaTime * 1000;
     fpsFrames += 1;
     fpsAccumulator += deltaTime;
@@ -595,8 +197,8 @@ export const bootstrapGame = (): void => {
 
     flushSceneChange();
     sceneManager.update(deltaTime);
-    sceneManager.render(gameContext);
-    runtime.input.clearFrame();
+    sceneManager.render(context);
+    session.runtime.input.clearFrame();
     titleRuntime.input.clearFrame();
 
     window.requestAnimationFrame(frame);

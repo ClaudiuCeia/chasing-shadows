@@ -4,62 +4,53 @@ import {
   SystemPhase,
   SystemTickMode,
   Vector2D,
+  type EntityQuery,
   type System,
 } from "@claudiu-ceia/tick";
+import { PointerWorldComponent } from "../components/PointerWorldComponent.ts";
+import { getSingletonComponent } from "../ecs/singleton.ts";
 import { IsometricCameraEntity } from "../render/IsometricCameraEntity.ts";
-import { MarkerState } from "../state/MarkerState.ts";
-
-const clientToCanvas = (point: Vector2D, canvas: HTMLCanvasElement): Vector2D => {
-  const rect = canvas.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) {
-    return Vector2D.zero;
-  }
-
-  return new Vector2D(
-    ((point.x - rect.left) / rect.width) * canvas.width,
-    ((point.y - rect.top) / rect.height) * canvas.height,
-  );
-};
+import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
+import { clientToCanvas } from "../../shared/canvas-utils.ts";
 
 type ResolvedPointerWorldPoint = {
   world: Vector2D;
   elevation: number;
 };
 
-export type PointerWorldActionPhase = "press" | "hold" | "release";
-export type PointerWorldActionResult = "interaction" | "attack" | null;
-
 export class PointerMarkerSystem implements System {
   public readonly phase = SystemPhase.Simulation;
   public readonly tickMode = SystemTickMode.Frame;
 
   private readonly runtime: EcsRuntime;
-  private pointerMode: PointerWorldActionResult = null;
   private wasMouseDown = false;
+  private query: EntityQuery | null = null;
 
   public constructor(
     private readonly camera: IsometricCameraEntity,
     private readonly canvas: HTMLCanvasElement,
-    private readonly marker: MarkerState,
+    private readonly map: InfiniteTilemap,
+    private readonly maxTerrainElevation: number,
     runtime: EcsRuntime = EcsRuntime.getCurrent(),
-    private readonly onWorldAction?: (
-      worldPoint: Vector2D | null,
-      canvasPoint: Vector2D | null,
-      elevation: number | null,
-      phase: PointerWorldActionPhase,
-    ) => PointerWorldActionResult,
-    private readonly resolveWorldPoint?: (canvasPoint: Vector2D) => ResolvedPointerWorldPoint,
   ) {
     this.runtime = runtime;
   }
 
+  public awake(): void {
+    this.query = this.runtime.registry.query().with(PointerWorldComponent);
+  }
+
   public update(): void {
+    const pointer = this.query ? getSingletonComponent(this.query, PointerWorldComponent) : null;
+    if (!pointer) {
+      return;
+    }
     const mouseDown = this.runtime.input.isMouseDown(0);
     if (!mouseDown) {
-      if (this.wasMouseDown && this.pointerMode === "attack") {
-        this.onWorldAction?.(null, null, null, "release");
+      if (this.wasMouseDown) {
+        pointer.phase = "release";
       }
-      this.pointerMode = null;
+      pointer.clearResolved();
       this.wasMouseDown = false;
       return;
     }
@@ -69,39 +60,57 @@ export class PointerMarkerSystem implements System {
 
     if (justPressed) {
       if (HudInputRouter.consumePointerCapture(this.runtime, "pointerdown")) {
-        this.pointerMode = "interaction";
+        pointer.blockedByHud = true;
+        pointer.mode = "interaction";
+        pointer.phase = "press";
+        pointer.clearResolved();
         return;
       }
-    } else if (this.pointerMode === "interaction") {
+    } else if (pointer.blockedByHud) {
+      pointer.phase = "hold";
       return;
     }
 
     const mouse = this.runtime.input.getMousePos();
     const canvasPoint = clientToCanvas(mouse, this.canvas);
-    const world = this.camera.canvasToWorld(
-      canvasPoint,
-      new Vector2D(this.canvas.width, this.canvas.height),
-    );
-    const resolved = this.resolveWorldPoint?.(canvasPoint) ?? {
-      world,
-      elevation: 0,
+    const resolved = this.resolveWorldPoint(canvasPoint);
+    pointer.blockedByHud = false;
+    pointer.setResolved(resolved.world, canvasPoint, resolved.elevation);
+    pointer.phase = justPressed ? "press" : "hold";
+  }
+
+  private resolveWorldPoint(canvasPoint: Vector2D): ResolvedPointerWorldPoint {
+    const canvasSize = new Vector2D(this.canvas.width, this.canvas.height);
+    let bestMatch: { world: Vector2D; elevation: number; distanceSq: number } | null = null;
+
+    for (let elevation = this.maxTerrainElevation; elevation >= 0; elevation--) {
+      const candidateWorld = this.camera.canvasToWorldAt(canvasPoint, elevation, canvasSize);
+      const surfaceElevation = this.map.getElevationAt(candidateWorld.x, candidateWorld.y);
+      const projected = this.camera.toCanvasAt(candidateWorld, surfaceElevation, canvasSize);
+      const dx = projected.x - canvasPoint.x;
+      const dy = projected.y - canvasPoint.y;
+      const distanceSq = dx * dx + dy * dy;
+
+      if (!bestMatch || distanceSq < bestMatch.distanceSq) {
+        bestMatch = {
+          world: candidateWorld,
+          elevation: surfaceElevation,
+          distanceSq,
+        };
+      }
+    }
+
+    if (bestMatch) {
+      return {
+        world: bestMatch.world,
+        elevation: bestMatch.elevation,
+      };
+    }
+
+    const fallbackWorld = this.camera.canvasToWorld(canvasPoint, canvasSize);
+    return {
+      world: fallbackWorld,
+      elevation: this.map.getElevationAt(fallbackWorld.x, fallbackWorld.y),
     };
-
-    const action = this.onWorldAction?.(
-      resolved.world,
-      canvasPoint,
-      resolved.elevation,
-      justPressed ? "press" : "hold",
-    ) ?? null;
-    if (justPressed) {
-      this.pointerMode = action;
-    }
-
-    if (action === "interaction") {
-      return;
-    }
-
-    this.marker.point = resolved.world;
-    this.marker.elevation = resolved.elevation;
   }
 }

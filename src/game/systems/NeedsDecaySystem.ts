@@ -7,13 +7,13 @@ import {
 } from "@claudiu-ceia/tick";
 import { HealthComponent } from "../components/HealthComponent.ts";
 import { NeedsComponent } from "../components/NeedsComponent.ts";
+import { clamp } from "../../shared/math/clamp.ts";
+import { GAME_CONFIG } from "../config/game-config.ts";
 
 type NeedsEntity = {
   getComponent(constr: typeof NeedsComponent): NeedsComponent;
   getComponent(constr: typeof HealthComponent): HealthComponent;
 };
-
-const clamp01 = (value: number): number => Math.max(0, Math.min(100, value));
 
 export class NeedsDecaySystem implements System {
   public readonly phase = SystemPhase.Simulation;
@@ -37,16 +37,16 @@ export class NeedsDecaySystem implements System {
       const needs = entity.getComponent(NeedsComponent);
       const health = entity.getComponent(HealthComponent);
 
-      needs.hunger = clamp01(needs.hunger - 0.95 * deltaTime);
-      needs.thirst = clamp01(needs.thirst - 1.35 * deltaTime);
-      needs.sickness = clamp01(needs.sickness + 0.02 * deltaTime);
+      needs.hunger = clamp(needs.hunger - GAME_CONFIG.hungerDecayRate * deltaTime, 0, 100);
+      needs.thirst = clamp(needs.thirst - GAME_CONFIG.thirstDecayRate * deltaTime, 0, 100);
+      needs.sickness = clamp(needs.sickness + GAME_CONFIG.sicknessRate * deltaTime, 0, 100);
 
       if (needs.hunger <= 0) {
-        health.hp = Math.max(0, health.hp - 1.3 * deltaTime);
+        health.hp = Math.max(0, health.hp - GAME_CONFIG.hungerDamageRate * deltaTime);
       }
 
       if (needs.thirst <= 0) {
-        health.hp = Math.max(0, health.hp - 2.1 * deltaTime);
+        health.hp = Math.max(0, health.hp - GAME_CONFIG.thirstDamageRate * deltaTime);
       }
     }
   }

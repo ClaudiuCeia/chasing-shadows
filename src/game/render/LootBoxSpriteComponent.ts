@@ -12,7 +12,6 @@ const POINTER_SRC_WIDTH = 20;
 const POINTER_SCALE = 2.5;
 
 export class LootBoxSpriteComponent extends IsometricRenderableComponent {
-  public static override type = "loot-box-sprite";
   private static spritesPromise: Promise<BoxSprites> | null = null;
 
   private sprites: BoxSprites | null = null;

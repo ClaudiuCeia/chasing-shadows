@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { EcsRuntime, Vector2D } from "@claudiu-ceia/tick";
 import { PlayerEntity } from "../entities/PlayerEntity.ts";
-import { LootUiState } from "../state/LootUiState.ts";
+import { UiStateEntity } from "../entities/UiStateEntity.ts";
+import { WorldStateEntity } from "../entities/WorldStateEntity.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
-import { LOOT_BOX_SLOT_COUNT, LootBoxField } from "../world/LootBoxField.ts";
+import { LOOT_BOX_SLOT_COUNT } from "../world/LootBoxField.ts";
 import { LootInteractSystem } from "./LootInteractSystem.ts";
 
 type HandlerMap = Record<string, Array<(event: any) => void>>;
@@ -42,7 +43,9 @@ describe("LootInteractSystem", () => {
 
     EcsRuntime.runWith(runtime, () => {
       const map = new InfiniteTilemap({ seed: 1, chunkSize: 16 });
-      const lootField = new LootBoxField({ seed: 2 });
+      const worldState = new WorldStateEntity({ seed: 2 });
+      worldState.awake();
+      const lootField = worldState.lootField;
       lootField.setSlots(
         0,
         0,
@@ -51,15 +54,17 @@ describe("LootInteractSystem", () => {
         ),
       );
 
-      const player = new PlayerEntity(new Vector2D(0.2, 0.1), 4);
+      const player = new PlayerEntity(new Vector2D(0.2, 0.1), 4, 8);
       player.awake();
-      const ui = new LootUiState();
-      const system = new LootInteractSystem(map, lootField, player, ui, { interactRange: 1.3 }, runtime);
+      const uiState = new UiStateEntity();
+      uiState.awake();
+      const system = new LootInteractSystem(map, player, { interactRange: 1.3 }, runtime);
+      system.awake();
 
       emit(handlers, "keydown", { key: "e" });
       system.update();
 
-      expect(ui.openBox).toEqual({ x: 0, y: 0 });
+      expect(uiState.lootUi.openBox).toEqual({ x: 0, y: 0 });
     });
   });
 
@@ -70,7 +75,9 @@ describe("LootInteractSystem", () => {
 
     EcsRuntime.runWith(runtime, () => {
       const map = new InfiniteTilemap({ seed: 1, chunkSize: 16 });
-      const lootField = new LootBoxField({ seed: 2 });
+      const worldState = new WorldStateEntity({ seed: 2 });
+      worldState.awake();
+      const lootField = worldState.lootField;
       lootField.setSlots(
         0,
         0,
@@ -79,15 +86,17 @@ describe("LootInteractSystem", () => {
         ),
       );
 
-      const player = new PlayerEntity(new Vector2D(4, 4), 4);
+      const player = new PlayerEntity(new Vector2D(4, 4), 4, 8);
       player.awake();
-      const ui = new LootUiState();
-      const system = new LootInteractSystem(map, lootField, player, ui, { interactRange: 1.3 }, runtime);
+      const uiState = new UiStateEntity();
+      uiState.awake();
+      const system = new LootInteractSystem(map, player, { interactRange: 1.3 }, runtime);
+      system.awake();
 
       emit(handlers, "keydown", { key: "e" });
       system.update();
 
-      expect(ui.openBox).toBeNull();
+      expect(uiState.lootUi.openBox).toBeNull();
     });
   });
 });

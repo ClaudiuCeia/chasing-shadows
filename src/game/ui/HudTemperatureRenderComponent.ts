@@ -4,13 +4,15 @@ import {
   Vector2D,
   type ICamera,
 } from "@claudiu-ceia/tick";
-
-export type HudTemperatureSnapshot = {
-  ambientCelsius: number;
-};
+import type { TerminatorComponent } from "../components/TerminatorComponent.ts";
+import { PlayerEntity } from "../entities/PlayerEntity.ts";
+import { getAmbientTemperature } from "./environment-temperature.ts";
 
 export class HudTemperatureRenderComponent extends HudRenderComponent {
-  public constructor(private readonly getSnapshot: () => HudTemperatureSnapshot) {
+  public constructor(
+    private readonly player: PlayerEntity,
+    private readonly terminator: TerminatorComponent,
+  ) {
     super();
   }
 
@@ -22,13 +24,16 @@ export class HudTemperatureRenderComponent extends HudRenderComponent {
     const frame = this.ent.getComponent(HudLayoutNodeComponent).getFrame();
     if (!frame) return;
 
-    const snapshot = this.getSnapshot();
-    const fill = snapshot.ambientCelsius >= 0 ? "rgba(255, 208, 162, 0.95)" : "rgba(188, 224, 255, 0.95)";
+    const ambientCelsius = getAmbientTemperature(
+      this.terminator,
+      this.player.transform.transform.position,
+    ).celsius;
+    const fill = ambientCelsius >= 0 ? "rgba(255, 208, 162, 0.95)" : "rgba(188, 224, 255, 0.95)";
 
     ctx.fillStyle = fill;
     ctx.textAlign = "right";
     ctx.textBaseline = "top";
     ctx.font = "600 26px Georgia";
-    ctx.fillText(`${Math.round(snapshot.ambientCelsius)}C`, frame.x + frame.width, frame.y);
+    ctx.fillText(`${Math.round(ambientCelsius)}C`, frame.x + frame.width, frame.y);
   }
 }

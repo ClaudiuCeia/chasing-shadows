@@ -11,23 +11,13 @@ import { PlayerAttackComponent } from "../components/PlayerAttackComponent.ts";
 import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
 import { PlayerTagComponent } from "../components/PlayerTagComponent.ts";
 import { IsometricCameraEntity } from "../render/IsometricCameraEntity.ts";
+import { PlayerAttackSystem } from "./PlayerAttackSystem.ts";
+import { clientToCanvas } from "../../shared/canvas-utils.ts";
 
 type IntentEntity = {
   getComponent(constr: typeof PlayerAttackComponent): PlayerAttackComponent;
   getComponent(constr: typeof MovementIntentComponent): MovementIntentComponent;
   getComponent(constr: typeof TransformComponent): TransformComponent;
-};
-
-const clientToCanvas = (point: Vector2D, canvas: HTMLCanvasElement): Vector2D => {
-  const rect = canvas.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) {
-    return Vector2D.zero;
-  }
-
-  return new Vector2D(
-    ((point.x - rect.left) / rect.width) * canvas.width,
-    ((point.y - rect.top) / rect.height) * canvas.height,
-  );
 };
 
 export class InputIntentSystem implements System {
@@ -89,7 +79,7 @@ export class InputIntentSystem implements System {
       const intent = entity.getComponent(MovementIntentComponent);
       const transform = entity.getComponent(TransformComponent);
       if (toggleFireMode) {
-        attack.toggleFireMode();
+        PlayerAttackSystem.toggleFireMode(attack);
       }
       intent.setIntent(strafe, forward, this.walkToggled, this.crouchToggled);
 

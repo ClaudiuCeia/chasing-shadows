@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { EcsRuntime, Entity, TransformComponent, Vector2D, World } from "@claudiu-ceia/tick";
 import { HealthComponent } from "../components/HealthComponent.ts";
+import { TerminatorComponent } from "../components/TerminatorComponent.ts";
 import { TemperatureComponent } from "../components/TemperatureComponent.ts";
 import { ExposureSystem } from "./ExposureSystem.ts";
-import { TerminatorModel } from "../world/TerminatorModel.ts";
 
 class ExposedEntity extends Entity {
   public readonly transform: TransformComponent;
@@ -37,7 +37,7 @@ beforeEach(() => {
 describe("ExposureSystem", () => {
   test("keeps thermal load in one direction at a time", () => {
     const world = new World({ fixedDeltaTime: 1 / 60 });
-    const terminator = new TerminatorModel({ safeBandHalfWidth: 0.5, travelSpeed: 0 });
+    const terminator = new TerminatorComponent({ safeBandHalfWidth: 0.5, travelSpeed: 0 });
     world.addSystem(new ExposureSystem(terminator));
 
     const entity = new ExposedEntity(new Vector2D(5, 0));

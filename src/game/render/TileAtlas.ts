@@ -1,4 +1,5 @@
 import type { TileKind } from "../world/tile-types.ts";
+import { type Rgb, clampChannel, parseHexColor, rgbToHex } from "../../shared/math/color.ts";
 
 export type TileLighting = "neutral" | "sun" | "dark";
 
@@ -21,32 +22,11 @@ export type TileAtlas = {
   palettes: Record<TileKind, TilePalette>;
 };
 
-type Rgb = { r: number; g: number; b: number };
-
 const createCanvas = (width: number, height: number): HTMLCanvasElement => {
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.floor(width));
   canvas.height = Math.max(1, Math.floor(height));
   return canvas;
-};
-
-const clampChannel = (value: number): number => Math.max(0, Math.min(255, Math.round(value)));
-
-const parseHexColor = (hex: string): Rgb => {
-  const value = hex.replace("#", "");
-  if (value.length !== 6) {
-    throw new Error(`Expected 6-char hex color, got '${hex}'`);
-  }
-
-  const r = Number.parseInt(value.slice(0, 2), 16);
-  const g = Number.parseInt(value.slice(2, 4), 16);
-  const b = Number.parseInt(value.slice(4, 6), 16);
-  return { r, g, b };
-};
-
-const rgbToHex = ({ r, g, b }: Rgb): string => {
-  const toHex = (channel: number): string => clampChannel(channel).toString(16).padStart(2, "0");
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 };
 
 const blend = (baseHex: string, tintHex: string, amount: number): string => {

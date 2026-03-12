@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { InfiniteTilemap } from "./InfiniteTilemap.ts";
+import { generateTerrainTile } from "./TerrainGenerator.ts";
 import { createTileCornerHeights, createTileData } from "./tile-types.ts";
 
 describe("InfiniteTilemap", () => {
@@ -57,5 +58,14 @@ describe("InfiniteTilemap", () => {
 
     expect(map.getElevationAt(-0.45, 0)).toBeCloseTo(1.05, 2);
     expect(map.getElevationAt(0.45, 0)).toBeCloseTo(1.95, 2);
+  });
+
+  test("drops deltas when a tile matches generated terrain again", () => {
+    const map = new InfiniteTilemap({ seed: 5, chunkSize: 16 });
+    map.setTileData(2, 3, createTileData("shelter"));
+    expect(map.serializeDeltas().length).toBe(1);
+
+    map.setTileData(2, 3, generateTerrainTile(2, 3, 5));
+    expect(map.serializeDeltas()).toEqual([]);
   });
 });

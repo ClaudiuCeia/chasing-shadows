@@ -17,8 +17,6 @@ const defaultConfig: TopDownControllerConfig = {
 };
 
 export class TopDownControllerComponent extends Component {
-  public static type = "topdown-controller";
-
   public readonly config: TopDownControllerConfig;
 
   public constructor(config: Partial<TopDownControllerConfig> = {}) {

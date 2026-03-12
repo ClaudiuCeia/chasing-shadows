@@ -1,4 +1,9 @@
+import { clamp01 } from "../../shared/math/clamp.ts";
+
+export const TILE_KIND_VALUES = ["regolith", "rock", "scrap", "shelter"] as const;
 export type TileKind = "regolith" | "rock" | "scrap" | "shelter";
+
+export const TILE_SURFACE_VARIANT_VALUES = ["neutral", "sun", "dark"] as const;
 export type TileSurfaceVariant = "neutral" | "sun" | "dark";
 
 export type TileCornerHeights = {
@@ -16,8 +21,6 @@ export type TileData = {
   corners: TileCornerHeights;
   surfaceVariant: TileSurfaceVariant;
 };
-
-const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
 
 export const createTileCornerHeights = (
   value: number | Partial<TileCornerHeights>,
@@ -41,12 +44,10 @@ export const createTileCornerHeights = (
   };
 };
 
-export const getTileCornerHeights = (tile: TileData): TileCornerHeights => tile.corners;
-
-export const getTileMaxElevation = (tile: TileData): number =>
+const getTileMaxElevation = (tile: TileData): number =>
   Math.max(tile.corners.northWest, tile.corners.northEast, tile.corners.southEast, tile.corners.southWest);
 
-export const getTileMinElevation = (tile: TileData): number =>
+const getTileMinElevation = (tile: TileData): number =>
   Math.min(tile.corners.northWest, tile.corners.northEast, tile.corners.southEast, tile.corners.southWest);
 
 export const getTileSlopeRange = (tile: TileData): number => getTileMaxElevation(tile) - getTileMinElevation(tile);
@@ -61,7 +62,16 @@ export const getTileSurfaceElevation = (tile: TileData, localX: number, localY: 
   return north * (1 - y) + south * y;
 };
 
-export const isTileBlocking = (tile: TileData): boolean => tile.blocking;
+export const areTileDataEqual = (a: TileData, b: TileData): boolean =>
+  a.kind === b.kind &&
+  a.blocking === b.blocking &&
+  a.elevation === b.elevation &&
+  a.occluder === b.occluder &&
+  a.surfaceVariant === b.surfaceVariant &&
+  a.corners.northWest === b.corners.northWest &&
+  a.corners.northEast === b.corners.northEast &&
+  a.corners.southEast === b.corners.southEast &&
+  a.corners.southWest === b.corners.southWest;
 
 export const normalizeTileData = (tile: {
   kind: TileKind;

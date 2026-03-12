@@ -1,8 +1,6 @@
 import { Component } from "@claudiu-ceia/tick";
 
 export class MovementIntentComponent extends Component {
-  public static type = "movement-intent";
-
   public strafe = 0;
   public forward = 0;
   public walk = false;

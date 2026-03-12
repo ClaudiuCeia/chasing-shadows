@@ -9,10 +9,9 @@ import {
   Vector2D,
   resolveHudLayout,
 } from "@claudiu-ceia/tick";
-import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
-import { PlayerTagComponent } from "../components/PlayerTagComponent.ts";
+import { UiStateEntity } from "../entities/UiStateEntity.ts";
 import { IsometricCameraEntity } from "../render/IsometricCameraEntity.ts";
-import { MarkerState } from "../state/MarkerState.ts";
+import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
 import { PointerMarkerSystem } from "./PointerMarkerSystem.ts";
 
 type HandlerMap = Record<string, Array<(event: any) => void>>;
@@ -41,18 +40,6 @@ class Node extends Entity {
   public override update(_dt: number): void {}
 }
 
-class PlayerNode extends Entity {
-  public readonly intent = new MovementIntentComponent();
-
-  public constructor() {
-    super();
-    this.addComponent(new PlayerTagComponent());
-    this.addComponent(this.intent);
-  }
-
-  public override update(_dt: number): void {}
-}
-
 class StopperInput extends HudInputComponent<Node> {
   protected override onPointerDown(event: HudInputEvent): void {
     event.stopPropagation();
@@ -64,7 +51,7 @@ beforeEach(() => {
 });
 
 describe("PointerMarkerSystem", () => {
-  test("skips world pointer handling when HUD captures pointer down", () => {
+  test("blocks world pointer state when HUD captures pointer down", () => {
     const runtime = new EcsRuntime();
     const handlers: HandlerMap = {};
     runtime.input.init(makeTarget(handlers));
@@ -75,14 +62,13 @@ describe("PointerMarkerSystem", () => {
       getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }),
     } as unknown as HTMLCanvasElement;
 
-    const marker = new MarkerState();
-
     EcsRuntime.runWith(runtime, () => {
+      const map = new InfiniteTilemap({ seed: 1, chunkSize: 16 });
+      const uiState = new UiStateEntity();
+      uiState.awake();
+
       const camera = new IsometricCameraEntity({ tileWidth: 64, tileHeight: 32 });
       camera.awake();
-
-      const player = new PlayerNode();
-      player.awake();
 
       const hudNode = new Node();
       hudNode.addComponent(new HudLayoutNodeComponent({ width: 100, height: 100 }));
@@ -91,33 +77,23 @@ describe("PointerMarkerSystem", () => {
 
       resolveHudLayout(runtime, { x: 0, y: 0, width: 100, height: 100 });
 
-      const system = new PointerMarkerSystem(camera, canvas, marker, runtime);
+      const system = new PointerMarkerSystem(camera, canvas, map, 6, runtime);
+      system.awake();
+
       emit(handlers, "mousemove", { clientX: 50, clientY: 50, buttons: 0 });
       emit(handlers, "mousedown", { button: 0 });
-
       HudInputRouter.routePointer(runtime, "pointerdown", new Vector2D(50, 50), new Vector2D(50, 50), {
         pointerType: "mouse",
       });
 
       system.update();
-      expect(marker.point).toBeNull();
-      expect(player.intent.forward).toBe(0);
-      expect(player.intent.strafe).toBe(0);
-
-      runtime.input.clearFrame();
-      emit(handlers, "mouseup", { button: 0 });
-      system.update();
-      emit(handlers, "mousemove", { clientX: 50, clientY: 50, buttons: 0 });
-      emit(handlers, "mousedown", { button: 0 });
-
-      system.update();
-      expect(marker.point).not.toBeNull();
-      expect(player.intent.forward).toBe(0);
-      expect(player.intent.strafe).toBe(0);
+      expect(uiState.pointerWorld.worldPoint).toBeNull();
+      expect(uiState.pointerWorld.blockedByHud).toBeTrue();
+      expect(uiState.pointerWorld.mode).toBe("interaction");
     });
   });
 
-  test("allows pointer interceptors to consume world presses", () => {
+  test("resolves world point and emits release phase", () => {
     const runtime = new EcsRuntime();
     const handlers: HandlerMap = {};
     runtime.input.init(makeTarget(handlers));
@@ -128,24 +104,27 @@ describe("PointerMarkerSystem", () => {
       getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }),
     } as unknown as HTMLCanvasElement;
 
-    const marker = new MarkerState();
-
     EcsRuntime.runWith(runtime, () => {
+      const map = new InfiniteTilemap({ seed: 1, chunkSize: 16 });
+      const uiState = new UiStateEntity();
+      uiState.awake();
+
       const camera = new IsometricCameraEntity({ tileWidth: 64, tileHeight: 32 });
       camera.awake();
 
-      const player = new PlayerNode();
-      player.awake();
+      const system = new PointerMarkerSystem(camera, canvas, map, 6, runtime);
+      system.awake();
 
-      const system = new PointerMarkerSystem(camera, canvas, marker, runtime, () => "interaction");
       emit(handlers, "mousemove", { clientX: 50, clientY: 50, buttons: 0 });
       emit(handlers, "mousedown", { button: 0 });
-
       system.update();
 
-      expect(marker.point).toBeNull();
-      expect(player.intent.forward).toBe(0);
-      expect(player.intent.strafe).toBe(0);
+      expect(uiState.pointerWorld.worldPoint).not.toBeNull();
+      expect(uiState.pointerWorld.phase).toBe("press");
+
+      emit(handlers, "mouseup", { button: 0 });
+      system.update();
+      expect(uiState.pointerWorld.phase).toBe("release");
     });
   });
 });

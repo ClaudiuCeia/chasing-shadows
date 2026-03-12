@@ -8,6 +8,7 @@ import {
   Vector2D,
 } from "@claudiu-ceia/tick";
 import { HealthComponent } from "../components/HealthComponent.ts";
+import { InventoryComponent } from "../components/InventoryComponent.ts";
 import { PlayerAttackComponent } from "../components/PlayerAttackComponent.ts";
 import { IsometricRenderNodeComponent } from "../components/IsometricRenderNodeComponent.ts";
 import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
@@ -16,7 +17,10 @@ import { PlayerTagComponent } from "../components/PlayerTagComponent.ts";
 import { TemperatureComponent } from "../components/TemperatureComponent.ts";
 import { TilePositionComponent } from "../components/TilePositionComponent.ts";
 import { TopDownControllerComponent } from "../components/TopDownControllerComponent.ts";
-import { COLLISION_LAYER_OBSTACLE, COLLISION_LAYER_PLAYER } from "../physics/collision-layers.ts";
+import { GAME_CONFIG } from "../config/game-config.ts";
+
+const COLLISION_LAYER_PLAYER = 0b0001;
+const COLLISION_LAYER_OBSTACLE = 0b0010;
 
 export class PlayerEntity extends Entity {
   public readonly collisionRadius = 0.2;
@@ -27,9 +31,10 @@ export class PlayerEntity extends Entity {
   public readonly needs: NeedsComponent;
   public readonly temperature: TemperatureComponent;
   public readonly health: HealthComponent;
+  public readonly inventory: InventoryComponent;
   public readonly attack: PlayerAttackComponent;
 
-  public constructor(spawn: Vector2D, baseSpeed: number) {
+  public constructor(spawn: Vector2D, baseSpeed: number, inventoryCapacity: number) {
     super();
 
     this.transform = new TransformComponent({ position: spawn, rotation: 0, scale: 1 });
@@ -46,6 +51,7 @@ export class PlayerEntity extends Entity {
     this.needs = new NeedsComponent();
     this.temperature = new TemperatureComponent();
     this.health = new HealthComponent();
+    this.inventory = new InventoryComponent(inventoryCapacity);
     this.attack = new PlayerAttackComponent();
 
     this.addComponent(this.transform);
@@ -56,15 +62,16 @@ export class PlayerEntity extends Entity {
     this.addComponent(
       new TopDownControllerComponent({
         maxSpeed: baseSpeed,
-        acceleration: baseSpeed * 12,
-        damping: 18,
-        walkMultiplier: 0.62,
-        crouchMultiplier: 0.38,
+        acceleration: baseSpeed * GAME_CONFIG.playerAccelerationScale,
+        damping: GAME_CONFIG.playerDamping,
+        walkMultiplier: GAME_CONFIG.playerWalkMultiplier,
+        crouchMultiplier: GAME_CONFIG.playerCrouchMultiplier,
       }),
     );
     this.addComponent(this.body);
     this.addComponent(this.attack);
     this.addComponent(this.health);
+    this.addComponent(this.inventory);
     this.addComponent(this.needs);
     this.addComponent(this.temperature);
 

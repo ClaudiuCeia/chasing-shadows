@@ -115,16 +115,11 @@ export class PlayerRenderComponent extends IsometricRenderableComponent {
 
     let sheet: HTMLImageElement;
     let frameIndex: number;
-    let nextFrameIndex: number | null = null;
-    let frameBlendAlpha = 0;
     let directionIndex = this.directionIndex;
 
     if (attack.active) {
       sheet = this.sheets[attack.clip];
-      const blend = attack.getFrameBlend();
-      frameIndex = blend.currentFrame;
-      nextFrameIndex = blend.nextFrame;
-      frameBlendAlpha = blend.alpha;
+      frameIndex = attack.getFrameIndex();
       directionIndex = attack.directionIndex;
     } else {
       const animation = this.selectAnimation(intent, controller, velocity, speed, facingVector);
@@ -147,23 +142,6 @@ export class PlayerRenderComponent extends IsometricRenderableComponent {
     const drawY = Math.floor(screen.y - FOOT_ANCHOR_Y * SPRITE_SCALE - GROUND_CLEARANCE_PX);
 
     ctx.drawImage(sheet, frameX, frameY, FRAME_SIZE, FRAME_SIZE, drawX, drawY, drawWidth, drawHeight);
-
-    if (nextFrameIndex !== null && nextFrameIndex !== frameIndex && frameBlendAlpha > 0.001) {
-      ctx.save();
-      ctx.globalAlpha = frameBlendAlpha;
-      ctx.drawImage(
-        sheet,
-        nextFrameIndex * FRAME_SIZE,
-        frameY,
-        FRAME_SIZE,
-        FRAME_SIZE,
-        drawX,
-        drawY,
-        drawWidth,
-        drawHeight,
-      );
-      ctx.restore();
-    }
   }
 
   private selectAnimation(

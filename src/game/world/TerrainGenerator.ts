@@ -1,16 +1,9 @@
 import { hash2 } from "../../shared/math/hash.ts";
+import { clamp } from "../../shared/math/clamp.ts";
+import { lerp, smoothstep } from "../../shared/math/lerp.ts";
 import { createTileCornerHeights, type TileData } from "./tile-types.ts";
 
 export const MAX_TERRAIN_ELEVATION = 6;
-
-const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
-
-const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
-
-const smoothstep = (edge0: number, edge1: number, x: number): number => {
-  const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
-  return t * t * (3 - 2 * t);
-};
 
 const valueNoise = (x: number, y: number, seed: number, scale: number): number => {
   const fx = x / scale;

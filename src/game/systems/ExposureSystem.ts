@@ -7,8 +7,10 @@ import {
   type System,
 } from "@claudiu-ceia/tick";
 import { HealthComponent } from "../components/HealthComponent.ts";
+import type { TerminatorComponent } from "../components/TerminatorComponent.ts";
 import { TemperatureComponent } from "../components/TemperatureComponent.ts";
-import type { TerminatorModel } from "../world/TerminatorModel.ts";
+import { clamp } from "../../shared/math/clamp.ts";
+import { GAME_CONFIG } from "../config/game-config.ts";
 
 type ExposedEntity = {
   getComponent(constr: typeof TransformComponent): TransformComponent;
@@ -16,19 +18,16 @@ type ExposedEntity = {
   getComponent(constr: typeof HealthComponent): HealthComponent;
 };
 
-const clamp = (value: number): number => Math.max(0, Math.min(100, value));
-const clampBalance = (value: number): number => Math.max(-100, Math.min(100, value));
-
 export class ExposureSystem implements System {
   public readonly phase = SystemPhase.Simulation;
   public readonly tickMode = SystemTickMode.Fixed;
 
   private readonly runtime: EcsRuntime;
-  private readonly terminator: TerminatorModel;
+  private readonly terminator: TerminatorComponent;
   private query: EntityQuery | null = null;
 
   public constructor(
-    terminator: TerminatorModel,
+    terminator: TerminatorComponent,
     runtime: EcsRuntime = EcsRuntime.getCurrent(),
   ) {
     this.runtime = runtime;
@@ -55,30 +54,30 @@ export class ExposureSystem implements System {
       const outsideBand = this.terminator.distanceOutsideSafeBand(point);
 
       if (outsideBand <= 0) {
-        const recovery = 5.5 * deltaTime;
+        const recovery = GAME_CONFIG.thermalRecoveryRate * deltaTime;
         if (temperature.thermalBalance > 0) {
           temperature.thermalBalance = Math.max(0, temperature.thermalBalance - recovery);
         } else if (temperature.thermalBalance < 0) {
           temperature.thermalBalance = Math.min(0, temperature.thermalBalance + recovery);
         }
       } else {
-        const growth = (2.2 + outsideBand * 0.9) * deltaTime;
+        const growth = (GAME_CONFIG.thermalGrowthBase + outsideBand * GAME_CONFIG.thermalGrowthScale) * deltaTime;
         if (this.terminator.getSide(point) === "sun") {
-          temperature.thermalBalance = clampBalance(temperature.thermalBalance + growth);
+          temperature.thermalBalance = clamp(temperature.thermalBalance + growth, -100, 100);
         } else {
-          temperature.thermalBalance = clampBalance(temperature.thermalBalance - growth);
+          temperature.thermalBalance = clamp(temperature.thermalBalance - growth, -100, 100);
         }
       }
 
-      temperature.heat = clamp(Math.max(0, temperature.thermalBalance));
-      temperature.cold = clamp(Math.max(0, -temperature.thermalBalance));
+      temperature.heat = clamp(Math.max(0, temperature.thermalBalance), 0, 100);
+      temperature.cold = clamp(Math.max(0, -temperature.thermalBalance), 0, 100);
 
-      if (temperature.heat > 80) {
-        health.hp = Math.max(0, health.hp - (temperature.heat - 80) * 0.05 * deltaTime);
+      if (temperature.heat > GAME_CONFIG.thermalDamageThreshold) {
+        health.hp = Math.max(0, health.hp - (temperature.heat - GAME_CONFIG.thermalDamageThreshold) * GAME_CONFIG.thermalDamageRate * deltaTime);
       }
 
-      if (temperature.cold > 80) {
-        health.hp = Math.max(0, health.hp - (temperature.cold - 80) * 0.05 * deltaTime);
+      if (temperature.cold > GAME_CONFIG.thermalDamageThreshold) {
+        health.hp = Math.max(0, health.hp - (temperature.cold - GAME_CONFIG.thermalDamageThreshold) * GAME_CONFIG.thermalDamageRate * deltaTime);
       }
     }
   }

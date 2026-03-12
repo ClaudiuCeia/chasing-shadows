@@ -1,13 +1,10 @@
 import { HudInputComponent, HudLayoutNodeComponent, type HudInputEvent } from "@claudiu-ceia/tick";
-import { LootUiState } from "../state/LootUiState.ts";
+import { LootUiComponent } from "../components/LootUiComponent.ts";
 import { getLootSlotAtHudPoint } from "./loot-window-layout.ts";
 
 export class LootWindowInputComponent extends HudInputComponent {
   public constructor(
-    private readonly state: LootUiState,
-    private readonly isOpen: () => boolean,
-    private readonly onLootSlotClick: (slot: number) => void,
-    private readonly onClose: () => void,
+    private readonly state: LootUiComponent,
   ) {
     super();
     this.focusable = true;
@@ -19,7 +16,7 @@ export class LootWindowInputComponent extends HudInputComponent {
       return;
     }
 
-    this.state.setHoveredSlot(null);
+    this.state.hoveredSlot = null;
   }
 
   protected override onPointerMove(event: HudInputEvent): void {
@@ -29,12 +26,12 @@ export class LootWindowInputComponent extends HudInputComponent {
 
     const frame = this.ent.getComponent(HudLayoutNodeComponent).getFrame();
     if (!frame || !event.hudPoint) {
-      this.state.setHoveredSlot(null);
+      this.state.hoveredSlot = null;
       return;
     }
 
     const slot = getLootSlotAtHudPoint(frame, event.hudPoint.x, event.hudPoint.y);
-    this.state.setHoveredSlot(slot);
+    this.state.hoveredSlot = slot;
   }
 
   protected override onClick(event: HudInputEvent): void {
@@ -51,7 +48,7 @@ export class LootWindowInputComponent extends HudInputComponent {
 
     const slot = getLootSlotAtHudPoint(frame, event.hudPoint.x, event.hudPoint.y);
     if (slot !== null) {
-      this.onLootSlotClick(slot);
+      this.state.pendingSlotClick = slot;
     }
   }
 
@@ -62,7 +59,11 @@ export class LootWindowInputComponent extends HudInputComponent {
 
     if (event.key === "Escape") {
       event.stopPropagation();
-      this.onClose();
+      this.state.close();
     }
+  }
+
+  private isOpen(): boolean {
+    return this.state.openBox !== null;
   }
 }

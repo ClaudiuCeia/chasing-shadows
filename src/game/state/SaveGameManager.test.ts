@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { LOOT_BOX_SLOT_COUNT } from "../world/LootBoxField.ts";
 import { SaveGameManager, type StorageLike } from "./SaveGameManager.ts";
 import type { SaveGameV1 } from "./save-types.ts";
 
@@ -19,38 +18,110 @@ class MemoryStorage implements StorageLike {
   }
 }
 
-const snapshot: SaveGameV1 = {
+const autosave: SaveGameV1 = {
   version: 1,
-  seed: 77,
-  elapsedSeconds: 13,
-  terminatorTravelDistance: 21,
-  hp: 96,
-  player: { x: 1, y: 2, vx: 3, vy: 4 },
-  needs: { hunger: 1, thirst: 2, sickness: 3, heat: 4, cold: 5 },
-  mapDeltas: [{ x: 1, y: -2, kind: "shelter" }],
-  inventory: [{ itemId: "wire", count: 3 }, null],
-  lootBoxDeltas: [
-    {
-      x: 4,
-      y: 2,
-      slots: Array.from({ length: LOOT_BOX_SLOT_COUNT }, (_unused, index) =>
-        index === 0 ? { itemId: "ore", count: 2 } : null,
-      ),
+  world: {
+    seed: 42,
+    chunkSize: 16,
+    lootSpawnChance: 0.0025,
+    elapsedSeconds: 12.5,
+    terminator: {
+      safeBandHalfWidth: 6,
+      travelSpeed: 0.4,
+      travelDistance: 3.25,
+      direction: { x: 0.5, y: -0.5 },
     },
-  ],
+    tileDeltas: [
+      { x: 1, y: 2, kind: "scrap", elevation: 2, occluder: true, corners: { northWest: 2 } },
+    ],
+    lootDeltas: [
+      {
+        x: 3,
+        y: 4,
+        slots: [
+          { itemId: "wire", count: 2 },
+          ...Array.from({ length: 15 }, () => null),
+        ],
+      },
+      { x: -1, y: 0, removed: true },
+    ],
+  },
+  player: {
+    position: { x: 3, y: -2 },
+    rotation: 1.5,
+    velocity: { x: 0.25, y: -0.75 },
+    health: 87,
+    needs: {
+      hunger: 71,
+      thirst: 62,
+      sickness: 5,
+    },
+    temperature: {
+      thermalBalance: -12,
+      heat: 0,
+      cold: 18,
+    },
+    inventory: [
+      { itemId: "wire", count: 3 },
+      null,
+      { itemId: "water", count: 1 },
+      null,
+      null,
+      null,
+      null,
+      null,
+    ],
+    fireMode: "semi",
+  },
 };
 
 describe("SaveGameManager", () => {
   test("saves and loads autosave payload", () => {
     const manager = new SaveGameManager(new MemoryStorage());
-    manager.saveAutosave(snapshot);
+    manager.saveAutosave(autosave);
 
-    expect(manager.loadAutosave()).toEqual(snapshot);
+    expect(manager.loadAutosave()).toEqual(autosave);
   });
 
   test("returns null for invalid payloads", () => {
     const storage = new MemoryStorage();
-    storage.setItem("mercury.autosave.v1", "{bad json");
+    storage.setItem("chasing-shadow.autosave.v1", "{bad json");
+
+    const manager = new SaveGameManager(storage);
+    expect(manager.loadAutosave()).toBeNull();
+  });
+
+  test("returns null for legacy snapshot payloads", () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      "chasing-shadow.autosave.v1",
+      JSON.stringify({
+        version: 1,
+        ecsSnapshot: {
+          version: 1,
+          rootSid: "world",
+          entities: [],
+          atoms: {},
+        },
+      }),
+    );
+
+    const manager = new SaveGameManager(storage);
+    expect(manager.loadAutosave()).toBeNull();
+  });
+
+  test("returns null for payloads that violate domain constraints", () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      "chasing-shadow.autosave.v1",
+      JSON.stringify({
+        ...autosave,
+        world: {
+          ...autosave.world,
+          chunkSize: 0,
+        },
+      }),
+    );
 
     const manager = new SaveGameManager(storage);
     expect(manager.loadAutosave()).toBeNull();
@@ -58,7 +129,7 @@ describe("SaveGameManager", () => {
 
   test("clears autosave", () => {
     const manager = new SaveGameManager(new MemoryStorage());
-    manager.saveAutosave(snapshot);
+    manager.saveAutosave(autosave);
     manager.clearAutosave();
 
     expect(manager.loadAutosave()).toBeNull();

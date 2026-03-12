@@ -1,7 +1,13 @@
 import { Component } from "@claudiu-ceia/tick";
 
 export class HealthComponent extends Component {
-  public static type = "health";
+  private hpValue = 100;
 
-  public hp = 100;
+  public get hp(): number {
+    return this.hpValue;
+  }
+
+  public set hp(value: number) {
+    this.hpValue = value;
+  }
 }
