@@ -18,6 +18,15 @@ describe("InfiniteTilemap", () => {
     expect(tile.kind).toBeString();
   });
 
+  test("tracks cached chunks", () => {
+    const map = new InfiniteTilemap({ seed: 123, chunkSize: 16 });
+    expect(map.hasChunk(0, 0)).toBeFalse();
+
+    map.getChunk(0, 0);
+
+    expect(map.hasChunk(0, 0)).toBeTrue();
+  });
+
   test("applies and serializes tile deltas", () => {
     const map = new InfiniteTilemap({ seed: 5, chunkSize: 16 });
     map.setTileData(0, 0, {
@@ -37,7 +46,6 @@ describe("InfiniteTilemap", () => {
       blocking: shelter.blocking,
       occluder: true,
       corners: { northWest: 1, northEast: 2, southEast: 2, southWest: 1 },
-      surfaceVariant: shelter.surfaceVariant,
     });
 
     const restored = new InfiniteTilemap({ seed: 5, chunkSize: 16 });

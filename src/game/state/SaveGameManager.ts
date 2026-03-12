@@ -2,7 +2,7 @@ import { GAME_CONFIG, STORAGE_KEYS } from "../config/game-config.ts";
 import { ITEM_IDS } from "../items/item-catalog.ts";
 import { LOOT_BOX_SLOT_COUNT } from "../world/LootBoxField.ts";
 import { PLAYER_FIRE_MODE_VALUES } from "../render/player-animation-logic.ts";
-import { TILE_KIND_VALUES, TILE_SURFACE_VARIANT_VALUES } from "../world/tile-types.ts";
+import { TILE_KIND_VALUES } from "../world/tile-types.ts";
 import type { SaveGame } from "./save-types.ts";
 
 export interface StorageLike {
@@ -15,7 +15,6 @@ type Validator<T = unknown> = (value: unknown) => boolean;
 
 const ITEM_ID_SET = new Set<string>(ITEM_IDS);
 const TILE_KIND_SET = new Set<string>(TILE_KIND_VALUES);
-const TILE_SURFACE_VARIANT_SET = new Set<string>(TILE_SURFACE_VARIANT_VALUES);
 const FIRE_MODE_SET = new Set<string>(PLAYER_FIRE_MODE_VALUES);
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -88,7 +87,6 @@ const isTileDelta = (value: unknown): boolean =>
   optional(value, "elevation", int({ min: 0 })) &&
   optional(value, "blocking", (entry): entry is boolean => typeof entry === "boolean") &&
   optional(value, "occluder", (entry): entry is boolean => typeof entry === "boolean") &&
-  optional(value, "surfaceVariant", literal(TILE_SURFACE_VARIANT_SET)) &&
   optional(value, "corners", isTileCorners);
 
 const isLootDelta = (value: unknown): boolean => {

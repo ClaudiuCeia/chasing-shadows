@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { MAX_TERRAIN_ELEVATION, generateTerrainTile } from "./TerrainGenerator.ts";
+import { MAX_TERRAIN_ELEVATION, generateTerrainChunk, generateTerrainTile } from "./TerrainGenerator.ts";
 
 describe("TerrainGenerator", () => {
   test("is deterministic for a given seed and coordinate", () => {
@@ -31,15 +31,34 @@ describe("TerrainGenerator", () => {
     expect(generateTerrainTile(15, 16, seed)).toEqual(edgeC);
   });
 
-  test("heavily favors single-step terrain transitions", () => {
+  test("chunk generation matches per-tile sampling", () => {
+    const seed = 412;
+    const chunkSize = 8;
+    const chunkX = -2;
+    const chunkY = 3;
+    const tiles = generateTerrainChunk(chunkX, chunkY, chunkSize, seed);
+
+    for (let y = 0; y < chunkSize; y++) {
+      for (let x = 0; x < chunkSize; x++) {
+        const worldX = chunkX * chunkSize + x;
+        const worldY = chunkY * chunkSize + y;
+        expect(tiles[y * chunkSize + x]).toEqual(generateTerrainTile(worldX, worldY, seed));
+      }
+    }
+  });
+
+  test("builds varied terrain without cliff edges", () => {
     let singleStepEdges = 0;
+    let flatEdges = 0;
     let steepEdges = 0;
     let slopedTiles = 0;
+    const elevations = new Set<number>();
 
-    for (let y = -24; y <= 24; y++) {
-      for (let x = -24; x <= 24; x++) {
+    for (let y = -20; y <= 20; y++) {
+      for (let x = -20; x <= 20; x++) {
         const tile = generateTerrainTile(x, y, 321);
         const elevation = tile.elevation;
+        elevations.add(elevation);
         const eastDelta = Math.abs(generateTerrainTile(x + 1, y, 321).elevation - elevation);
         const southDelta = Math.abs(generateTerrainTile(x, y + 1, 321).elevation - elevation);
 
@@ -52,13 +71,17 @@ describe("TerrainGenerator", () => {
           slopedTiles++;
         }
 
-        if (eastDelta === 1) {
+        if (eastDelta === 0) {
+          flatEdges++;
+        } else if (eastDelta === 1) {
           singleStepEdges++;
         } else if (eastDelta > 1) {
           steepEdges++;
         }
 
-        if (southDelta === 1) {
+        if (southDelta === 0) {
+          flatEdges++;
+        } else if (southDelta === 1) {
           singleStepEdges++;
         } else if (southDelta > 1) {
           steepEdges++;
@@ -66,7 +89,10 @@ describe("TerrainGenerator", () => {
       }
     }
 
-    expect(singleStepEdges).toBeGreaterThan(steepEdges * 3);
+    expect(steepEdges).toBe(0);
+    expect(singleStepEdges).toBeGreaterThan(150);
+    expect(flatEdges).toBeGreaterThan(300);
     expect(slopedTiles).toBeGreaterThan(100);
+    expect(elevations.size).toBeGreaterThan(3);
   });
 });

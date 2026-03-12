@@ -10,6 +10,7 @@ export const GAME_CONFIG = {
   maxTerrainElevation: 6,
   chunkSize: 16,
   chunkRadius: 2,
+  chunkPrewarmRadius: 3,
   playerBaseSpeed: 4.2,
   autosaveIntervalSeconds: 10,
   inventorySlots: 8,

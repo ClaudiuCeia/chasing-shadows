@@ -3,9 +3,6 @@ import { clamp01 } from "../../shared/math/clamp.ts";
 export const TILE_KIND_VALUES = ["regolith", "rock", "scrap", "shelter"] as const;
 export type TileKind = "regolith" | "rock" | "scrap" | "shelter";
 
-export const TILE_SURFACE_VARIANT_VALUES = ["neutral", "sun", "dark"] as const;
-export type TileSurfaceVariant = "neutral" | "sun" | "dark";
-
 export type TileCornerHeights = {
   northWest: number;
   northEast: number;
@@ -19,7 +16,6 @@ export type TileData = {
   elevation: number;
   occluder: boolean;
   corners: TileCornerHeights;
-  surfaceVariant: TileSurfaceVariant;
 };
 
 export const createTileCornerHeights = (
@@ -67,7 +63,6 @@ export const areTileDataEqual = (a: TileData, b: TileData): boolean =>
   a.blocking === b.blocking &&
   a.elevation === b.elevation &&
   a.occluder === b.occluder &&
-  a.surfaceVariant === b.surfaceVariant &&
   a.corners.northWest === b.corners.northWest &&
   a.corners.northEast === b.corners.northEast &&
   a.corners.southEast === b.corners.southEast &&
@@ -79,7 +74,6 @@ export const normalizeTileData = (tile: {
   elevation?: number;
   occluder?: boolean;
   corners: number | Partial<TileCornerHeights>;
-  surfaceVariant?: TileSurfaceVariant;
 }): TileData => {
   const corners = createTileCornerHeights(tile.corners, tile.elevation ?? 0);
   const elevation = Math.max(corners.northWest, corners.northEast, corners.southEast, corners.southWest);
@@ -89,7 +83,6 @@ export const normalizeTileData = (tile: {
     elevation,
     occluder: tile.occluder ?? elevation > 0,
     corners,
-    surfaceVariant: tile.surfaceVariant ?? "neutral",
   };
 };
 

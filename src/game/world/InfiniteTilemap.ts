@@ -7,9 +7,8 @@ import {
   type TileData,
   type TileCornerHeights,
   type TileKind,
-  type TileSurfaceVariant,
 } from "./tile-types.ts";
-import { generateTerrainTile } from "./TerrainGenerator.ts";
+import { generateTerrainChunk, generateTerrainTile } from "./TerrainGenerator.ts";
 import { tileKey } from "../../shared/math/tile-key.ts";
 
 export type TileDelta = {
@@ -20,7 +19,6 @@ export type TileDelta = {
   blocking?: boolean;
   occluder?: boolean;
   corners?: Partial<TileCornerHeights>;
-  surfaceVariant?: TileSurfaceVariant;
 };
 
 export type InfiniteTilemapOptions = {
@@ -53,6 +51,10 @@ export class InfiniteTilemap {
 
   public getChunkSize(): number {
     return this.chunkSize;
+  }
+
+  public hasChunk(chunkX: number, chunkY: number): boolean {
+    return this.chunkCache.has(chunkKey(chunkX, chunkY));
   }
 
   public getTile(worldX: number, worldY: number): TileData {
@@ -108,14 +110,7 @@ export class InfiniteTilemap {
       return existing;
     }
 
-    const tiles: TileData[] = [];
-    for (let y = 0; y < this.chunkSize; y++) {
-      for (let x = 0; x < this.chunkSize; x++) {
-        const worldX = chunkX * this.chunkSize + x;
-        const worldY = chunkY * this.chunkSize + y;
-        tiles.push(generateTerrainTile(worldX, worldY, this.seed));
-      }
-    }
+    const tiles = generateTerrainChunk(chunkX, chunkY, this.chunkSize, this.seed);
 
     const chunk: ChunkData = { chunkX, chunkY, tiles };
     this.chunkCache.set(key, chunk);
@@ -134,7 +129,6 @@ export class InfiniteTilemap {
         blocking: tile.blocking,
         occluder: tile.occluder,
         corners: createTileCornerHeights(tile.corners, tile.elevation),
-        surfaceVariant: tile.surfaceVariant,
       });
     }
     return result;
@@ -149,7 +143,6 @@ export class InfiniteTilemap {
         elevation: delta.elevation ?? base.elevation,
         occluder: delta.occluder ?? base.occluder,
         corners: createTileCornerHeights(delta.corners ?? base.corners, delta.elevation ?? base.elevation),
-        surfaceVariant: delta.surfaceVariant ?? base.surfaceVariant,
       });
     }
   }

@@ -18,6 +18,7 @@ import { PlayerRenderComponent } from "../../game/render/PlayerRenderComponent.t
 import type { SaveGameV1 } from "../../game/state/save-types.ts";
 import { AutosaveSystem } from "../../game/systems/AutosaveSystem.ts";
 import { CameraFollowSystem } from "../../game/systems/CameraFollowSystem.ts";
+import { ChunkPrewarmSystem } from "../../game/systems/ChunkPrewarmSystem.ts";
 import { ExposureSystem } from "../../game/systems/ExposureSystem.ts";
 import { InputIntentSystem } from "../../game/systems/InputIntentSystem.ts";
 import { LootBoxChunkSystem } from "../../game/systems/LootBoxChunkSystem.ts";
@@ -301,6 +302,11 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
   });
 
   world.addSystem(new InputIntentSystem(camera, options.canvas, runtime));
+  world.addSystem(
+    new ChunkPrewarmSystem(roots.tilemapEntity.tilemap.map, roots.player, {
+      radius: GAME_CONFIG.chunkPrewarmRadius,
+    }),
+  );
   world.addSystem(new LootBoxChunkSystem(roots.tilemapEntity.tilemap.map, roots.player, GAME_CONFIG.chunkRadius, runtime));
   world.addSystem(new PlayerAttackSystem(runtime));
   world.addSystem(new PlayerTilePositionSystem(roots.tilemapEntity.tilemap.map, roots.player));
