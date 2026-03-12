@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { EcsRuntime, PhysicsSystem, Vector2D, World } from "@claudiu-ceia/tick";
+import { CollisionEntity, EcsRuntime, PhysicsSystem, Vector2D, World } from "@claudiu-ceia/tick";
 import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
+import { LootBoxEntity } from "../entities/LootBoxEntity.ts";
 import { PlayerEntity } from "../entities/PlayerEntity.ts";
+import { ObstacleCollisionSystem } from "./ObstacleCollisionSystem.ts";
 import { TopDownControllerSystem } from "./TopDownControllerSystem.ts";
 import { TilemapCollisionSystem } from "./TilemapCollisionSystem.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
@@ -225,5 +227,59 @@ describe("TilemapCollisionSystem", () => {
 
     stepN(world, 220, 1 / 60);
     expect(player.transform.transform.position.x).toBeLessThanOrEqual(0.31);
+  });
+
+  test("blocks movement against generic obstacle entities", () => {
+    const map = new InfiniteTilemap({ seed: 64, chunkSize: 16 });
+
+    const world = new World({ fixedDeltaTime: 1 / 60 });
+    world.addSystem(new TopDownControllerSystem({ isoConfig: { tileWidth: 128, tileHeight: 64 } }));
+    world.addSystem(new PhysicsSystem({ gravity: Vector2D.zero }));
+
+    const player = new PlayerEntity(new Vector2D(0, 0), 7, 8);
+    player.awake();
+    player.transform.transform.rotation = 0;
+    player.getComponent(MovementIntentComponent).setIntent(0, 1, false, false);
+
+    const obstacle = new LootBoxEntity(1, 0, 0, 0);
+    obstacle.awake();
+
+    world.addSystem(new ObstacleCollisionSystem(player));
+    world.addSystem(
+      new TilemapCollisionSystem(map, player, {
+        playerRadius: player.collisionRadius,
+      }),
+    );
+
+    stepN(world, 220, 1 / 60);
+    expect(player.transform.transform.position.x).toBeLessThanOrEqual(0.31);
+  });
+
+  test("resolves obstacle overlap in a single fixed update", () => {
+    const map = new InfiniteTilemap({ seed: 65, chunkSize: 16 });
+
+    const world = new World({ fixedDeltaTime: 1 / 60 });
+    world.addSystem(new PhysicsSystem({ gravity: Vector2D.zero }));
+
+    const player = new PlayerEntity(new Vector2D(0.9, 0), 7, 8);
+    player.awake();
+
+    const obstacle = new LootBoxEntity(1, 0, 0, 0);
+    obstacle.awake();
+
+    world.addSystem(new ObstacleCollisionSystem(player, { iterations: 6 }));
+    world.addSystem(
+      new TilemapCollisionSystem(map, player, {
+        playerRadius: player.collisionRadius,
+      }),
+    );
+
+    world.step(1 / 60);
+
+    const playerCollider = player.getChild(CollisionEntity);
+    const obstacleCollider = obstacle.getChild(CollisionEntity);
+    expect(playerCollider).not.toBeNull();
+    expect(obstacleCollider).not.toBeNull();
+    expect(playerCollider?.isColliding(obstacleCollider!)).toBeFalse();
   });
 });

@@ -1,0 +1,2 @@
+export const COLLISION_LAYER_PLAYER = 0b0001;
+export const COLLISION_LAYER_OBSTACLE = 0b0010;

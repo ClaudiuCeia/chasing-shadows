@@ -23,6 +23,7 @@ import { InputIntentSystem } from "../../game/systems/InputIntentSystem.ts";
 import { LootBoxChunkSystem } from "../../game/systems/LootBoxChunkSystem.ts";
 import { LootInteractSystem } from "../../game/systems/LootInteractSystem.ts";
 import { NeedsDecaySystem } from "../../game/systems/NeedsDecaySystem.ts";
+import { ObstacleCollisionSystem } from "../../game/systems/ObstacleCollisionSystem.ts";
 import { PlayerAttackSystem } from "../../game/systems/PlayerAttackSystem.ts";
 import { PlayerTilePositionSystem } from "../../game/systems/PlayerTilePositionSystem.ts";
 import { PointerMarkerSystem } from "../../game/systems/PointerMarkerSystem.ts";
@@ -323,6 +324,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
       broadphaseCellSize: 2,
     }),
   );
+  world.addSystem(new ObstacleCollisionSystem(roots.player, { iterations: 5 }, runtime));
   world.addSystem(
     new TilemapCollisionSystem(
       roots.tilemapEntity.tilemap.map,
@@ -333,7 +335,6 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
         maxStepUp: GAME_CONFIG.maxStepUpHeight,
         maxStepDown: GAME_CONFIG.maxStepDownHeight,
       },
-      runtime,
     ),
   );
   world.addSystem(new CameraFollowSystem(camera, roots.player, { followStrength: GAME_CONFIG.cameraFollowStrength }));

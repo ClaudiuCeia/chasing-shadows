@@ -1,15 +1,11 @@
 import {
-  EcsRuntime,
   PhysicsBodyComponent,
   SystemPhase,
   SystemTickMode,
   TransformComponent,
   Vector2D,
-  type EntityQuery,
   type System,
 } from "@claudiu-ceia/tick";
-import { LootFieldComponent } from "../components/LootFieldComponent.ts";
-import { getSingletonComponent } from "../ecs/singleton.ts";
 import { PlayerEntity } from "../entities/PlayerEntity.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
 import { clamp } from "../../shared/math/clamp.ts";
@@ -35,14 +31,11 @@ export class TilemapCollisionSystem implements System {
   private readonly maxStepUp: number;
   private readonly maxStepDown: number;
   private readonly isBlockedAt?: (tileX: number, tileY: number) => boolean;
-  private readonly runtime: EcsRuntime;
-  private worldQuery: EntityQuery | null = null;
 
   public constructor(
     private readonly map: InfiniteTilemap,
     private readonly player: PlayerEntity,
     options: TilemapCollisionSystemOptions,
-    runtime: EcsRuntime = EcsRuntime.getCurrent(),
   ) {
     this.playerRadius = Math.max(0.05, options.playerRadius);
     this.tileHalfExtent = Math.max(0.1, options.tileHalfExtent ?? 0.5);
@@ -50,11 +43,6 @@ export class TilemapCollisionSystem implements System {
     this.maxStepUp = Math.max(0, options.maxStepUp ?? 0.75);
     this.maxStepDown = Math.max(0, options.maxStepDown ?? 2);
     this.isBlockedAt = options.isBlockedAt;
-    this.runtime = runtime;
-  }
-
-  public awake(): void {
-    this.worldQuery = this.runtime.registry.query().with(LootFieldComponent);
   }
 
   public update(): void {
@@ -98,7 +86,6 @@ export class TilemapCollisionSystem implements System {
   }
 
   private resolvePass(position: Vector2D): Vector2D {
-    const lootField = this.worldQuery ? getSingletonComponent(this.worldQuery, LootFieldComponent) : null;
     const currentElevation = this.map.getElevationAt(position.x, position.y);
     const minX = Math.floor(position.x - this.playerRadius - this.tileHalfExtent);
     const maxX = Math.floor(position.x + this.playerRadius + this.tileHalfExtent);
@@ -110,8 +97,7 @@ export class TilemapCollisionSystem implements System {
     for (let y = minY; y <= maxY; y++) {
       for (let x = minX; x <= maxX; x++) {
         const tile = this.map.getTile(x, y);
-        const blockedByDynamicObstacle =
-          (this.isBlockedAt?.(x, y) ?? false) || (lootField?.getBoxAt(x, y, this.map) !== null);
+        const blockedByDynamicObstacle = this.isBlockedAt?.(x, y) ?? false;
 
         const correction = this.circleVsTileCorrection(position, x, y);
         if (!correction) {

@@ -7,6 +7,7 @@ import {
   TransformComponent,
   Vector2D,
 } from "@claudiu-ceia/tick";
+import { COLLISION_LAYER_OBSTACLE, COLLISION_LAYER_PLAYER } from "../collision/collision-layers.ts";
 import { HealthComponent } from "../components/HealthComponent.ts";
 import { InventoryComponent } from "../components/InventoryComponent.ts";
 import { PlayerAttackComponent } from "../components/PlayerAttackComponent.ts";
@@ -18,9 +19,6 @@ import { TemperatureComponent } from "../components/TemperatureComponent.ts";
 import { TilePositionComponent } from "../components/TilePositionComponent.ts";
 import { TopDownControllerComponent } from "../components/TopDownControllerComponent.ts";
 import { GAME_CONFIG } from "../config/game-config.ts";
-
-const COLLISION_LAYER_PLAYER = 0b0001;
-const COLLISION_LAYER_OBSTACLE = 0b0010;
 
 export class PlayerEntity extends Entity {
   public readonly collisionRadius = 0.2;
