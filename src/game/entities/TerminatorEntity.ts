@@ -10,5 +10,7 @@ export class TerminatorEntity extends Entity {
     this.addComponent(this.terminator);
   }
 
-  public override update(_dt: number): void {}
+  public override update(dt: number): void {
+    super.update(dt);
+  }
 }

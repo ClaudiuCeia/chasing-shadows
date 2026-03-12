@@ -19,7 +19,9 @@ export class IsometricCameraEntity extends Entity implements ICamera {
     this.addComponent(this.transform);
   }
 
-  public override update(_deltaTime: number): void {}
+  public override update(deltaTime: number): void {
+    super.update(deltaTime);
+  }
 
   public toCanvas(worldPos: Vector2D, canvasSize: Vector2D): Vector2D {
     return this.toCanvasAt(worldPos, 0, canvasSize);

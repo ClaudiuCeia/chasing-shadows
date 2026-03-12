@@ -41,6 +41,24 @@ const FOOT_ANCHOR_Y = 88;
 const SPRITE_SCALE = 3;
 const GROUND_CLEARANCE_PX = 7;
 
+export type PlayerSpriteScreenBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export const getPlayerSpriteScreenBounds = (screen: Vector2D): PlayerSpriteScreenBounds => {
+  const width = Math.floor(FRAME_SIZE * SPRITE_SCALE);
+  const height = Math.floor(FRAME_SIZE * SPRITE_SCALE);
+  return {
+    x: Math.floor(screen.x - width / 2),
+    y: Math.floor(screen.y - FOOT_ANCHOR_Y * SPRITE_SCALE - GROUND_CLEARANCE_PX),
+    width,
+    height,
+  };
+};
+
 const WALK_FPS_MIN = 9;
 const WALK_FPS_MAX = 15;
 const RUN_FPS_MIN = 14;
@@ -136,12 +154,8 @@ export class PlayerRenderComponent extends IsometricRenderableComponent {
     const frameX = frameIndex * FRAME_SIZE;
     const frameY = (directionIndex % FRAME_ROWS) * FRAME_SIZE;
 
-    const drawWidth = Math.floor(FRAME_SIZE * SPRITE_SCALE);
-    const drawHeight = Math.floor(FRAME_SIZE * SPRITE_SCALE);
-    const drawX = Math.floor(screen.x - drawWidth / 2);
-    const drawY = Math.floor(screen.y - FOOT_ANCHOR_Y * SPRITE_SCALE - GROUND_CLEARANCE_PX);
-
-    ctx.drawImage(sheet, frameX, frameY, FRAME_SIZE, FRAME_SIZE, drawX, drawY, drawWidth, drawHeight);
+    const bounds = getPlayerSpriteScreenBounds(screen);
+    ctx.drawImage(sheet, frameX, frameY, FRAME_SIZE, FRAME_SIZE, bounds.x, bounds.y, bounds.width, bounds.height);
   }
 
   private selectAnimation(

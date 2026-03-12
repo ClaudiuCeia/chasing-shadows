@@ -52,10 +52,7 @@ export class ObstacleCollisionSystem implements System {
 
     const transform = this.player.getComponent(TransformComponent);
     const body = this.player.getComponent(PhysicsBodyComponent);
-    const playerCollider = this.player.getChild(CollisionEntity);
-    if (!playerCollider) {
-      return;
-    }
+    const playerCollider = this.player.movementCollider;
 
     const obstacleColliders = this.collectBlockingColliders();
     if (obstacleColliders.length === 0) {

@@ -14,5 +14,7 @@ export class WorldStateEntity extends Entity {
     this.addComponent(this.session);
   }
 
-  public override update(_dt: number): void {}
+  public override update(dt: number): void {
+    super.update(dt);
+  }
 }

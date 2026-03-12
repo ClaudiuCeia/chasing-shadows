@@ -1,5 +1,7 @@
+import { DebugOverlayComponent } from "../components/DebugOverlayComponent.ts";
 import { Entity, HudLayoutNodeComponent } from "@claudiu-ceia/tick";
 import { FpsCounterRenderComponent, type FpsSnapshot } from "./FpsCounterRenderComponent.ts";
+import { HudDebugRenderComponent } from "./HudDebugRenderComponent.ts";
 import { HudInfoRenderComponent } from "./HudInfoRenderComponent.ts";
 import { HudTemperatureRenderComponent } from "./HudTemperatureRenderComponent.ts";
 import { LootWindowInputComponent } from "./LootWindowInputComponent.ts";
@@ -13,12 +15,15 @@ import { PlayerEntity } from "../entities/PlayerEntity.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
 
 class HudNodeEntity extends Entity {
-  public override update(_dt: number): void {}
+  public override update(dt: number): void {
+    super.update(dt);
+  }
 }
 
 export type CreateHudOptions = {
   getFps: () => FpsSnapshot;
   player: PlayerEntity;
+  debug: DebugOverlayComponent;
   terminator: TerminatorComponent;
   inventory: InventoryComponent;
   lootUi: LootUiComponent;
@@ -37,6 +42,18 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
     }),
   );
   info.addComponent(new HudInfoRenderComponent(options.player, options.terminator));
+
+  const debug = new HudNodeEntity();
+  debug.addComponent(
+    new HudLayoutNodeComponent({
+      width: 190,
+      height: 122,
+      anchor: "top-left",
+      offset: { x: 18, y: 104 },
+      order: 20,
+    }),
+  );
+  debug.addComponent(new HudDebugRenderComponent(options.debug, options.player));
 
   const temperature = new HudNodeEntity();
   temperature.addComponent(
@@ -86,9 +103,10 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
   lootWindow.addComponent(new LootWindowInputComponent(options.lootUi));
 
   info.awake();
+  debug.awake();
   temperature.awake();
   quickbar.awake();
   fpsCounter.awake();
   lootWindow.awake();
-  return [info, temperature, quickbar, fpsCounter, lootWindow];
+  return [info, debug, temperature, quickbar, fpsCounter, lootWindow];
 };

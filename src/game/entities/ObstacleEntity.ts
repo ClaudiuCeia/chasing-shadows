@@ -38,5 +38,7 @@ export class ObstacleEntity extends Entity {
     this.addChild(this.collider);
   }
 
-  public override update(_dt: number): void {}
+  public override update(dt: number): void {
+    super.update(dt);
+  }
 }

@@ -1,6 +1,6 @@
 import {
-  CollisionEntity,
   CircleCollisionShape,
+  CollisionEntity,
   Entity,
   PhysicsBodyComponent,
   PhysicsBodyType,
@@ -19,9 +19,12 @@ import { TemperatureComponent } from "../components/TemperatureComponent.ts";
 import { TilePositionComponent } from "../components/TilePositionComponent.ts";
 import { TopDownControllerComponent } from "../components/TopDownControllerComponent.ts";
 import { GAME_CONFIG } from "../config/game-config.ts";
+import { PlayerHitColliderEntity } from "./PlayerHitColliderEntity.ts";
+
+const PLAYER_MOVEMENT_COLLISION_RADIUS = 0.25;
 
 export class PlayerEntity extends Entity {
-  public readonly collisionRadius = 0.2;
+  public readonly collisionRadius = PLAYER_MOVEMENT_COLLISION_RADIUS;
 
   public readonly transform: TransformComponent;
   public readonly tilePosition: TilePositionComponent;
@@ -31,6 +34,8 @@ export class PlayerEntity extends Entity {
   public readonly health: HealthComponent;
   public readonly inventory: InventoryComponent;
   public readonly attack: PlayerAttackComponent;
+  public readonly movementCollider: CollisionEntity;
+  public readonly hitCollider: PlayerHitColliderEntity;
 
   public constructor(spawn: Vector2D, baseSpeed: number, inventoryCapacity: number) {
     super();
@@ -51,6 +56,13 @@ export class PlayerEntity extends Entity {
     this.health = new HealthComponent();
     this.inventory = new InventoryComponent(inventoryCapacity);
     this.attack = new PlayerAttackComponent();
+    this.movementCollider = new CollisionEntity(
+      new CircleCollisionShape(this.collisionRadius),
+      "center",
+      COLLISION_LAYER_PLAYER,
+      COLLISION_LAYER_OBSTACLE,
+    );
+    this.hitCollider = new PlayerHitColliderEntity();
 
     this.addComponent(this.transform);
     this.addComponent(new IsometricRenderNodeComponent());
@@ -73,15 +85,11 @@ export class PlayerEntity extends Entity {
     this.addComponent(this.needs);
     this.addComponent(this.temperature);
 
-    this.addChild(
-      new CollisionEntity(
-        new CircleCollisionShape(this.collisionRadius),
-        "center",
-        COLLISION_LAYER_PLAYER,
-        COLLISION_LAYER_OBSTACLE,
-      ),
-    );
+    this.addChild(this.movementCollider);
+    this.addChild(this.hitCollider);
   }
 
-  public override update(_dt: number): void {}
+  public override update(dt: number): void {
+    super.update(dt);
+  }
 }

@@ -276,10 +276,9 @@ describe("TilemapCollisionSystem", () => {
 
     world.step(1 / 60);
 
-    const playerCollider = player.getChild(CollisionEntity);
+    const playerCollider = player.movementCollider;
     const obstacleCollider = obstacle.getChild(CollisionEntity);
-    expect(playerCollider).not.toBeNull();
     expect(obstacleCollider).not.toBeNull();
-    expect(playerCollider?.isColliding(obstacleCollider!)).toBeFalse();
+    expect(playerCollider.isColliding(obstacleCollider!)).toBeFalse();
   });
 });

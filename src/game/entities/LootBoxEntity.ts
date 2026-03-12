@@ -23,5 +23,7 @@ export class LootBoxEntity extends ObstacleEntity {
     this.addComponent(this.sprite);
   }
 
-  public override update(_dt: number): void {}
+  public override update(dt: number): void {
+    super.update(dt);
+  }
 }

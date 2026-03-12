@@ -13,12 +13,14 @@ import { TerminatorEntity } from "../../game/entities/TerminatorEntity.ts";
 import { TilemapEntity } from "../../game/entities/TilemapEntity.ts";
 import { UiStateEntity } from "../../game/entities/UiStateEntity.ts";
 import { WorldStateEntity } from "../../game/entities/WorldStateEntity.ts";
+import { DebugRayRenderComponent } from "../../game/render/DebugRayRenderComponent.ts";
 import { IsometricCameraEntity } from "../../game/render/IsometricCameraEntity.ts";
 import { PlayerRenderComponent } from "../../game/render/PlayerRenderComponent.ts";
 import type { SaveGameV1 } from "../../game/state/save-types.ts";
 import { AutosaveSystem } from "../../game/systems/AutosaveSystem.ts";
 import { CameraFollowSystem } from "../../game/systems/CameraFollowSystem.ts";
 import { ChunkPrewarmSystem } from "../../game/systems/ChunkPrewarmSystem.ts";
+import { DebugOverlaySystem } from "../../game/systems/DebugOverlaySystem.ts";
 import { ExposureSystem } from "../../game/systems/ExposureSystem.ts";
 import { InputIntentSystem } from "../../game/systems/InputIntentSystem.ts";
 import { LootBoxChunkSystem } from "../../game/systems/LootBoxChunkSystem.ts";
@@ -28,6 +30,7 @@ import { ObstacleCollisionSystem } from "../../game/systems/ObstacleCollisionSys
 import { PlayerAttackSystem } from "../../game/systems/PlayerAttackSystem.ts";
 import { PlayerTilePositionSystem } from "../../game/systems/PlayerTilePositionSystem.ts";
 import { PointerMarkerSystem } from "../../game/systems/PointerMarkerSystem.ts";
+import { RootEntityUpdateSystem } from "../../game/systems/RootEntityUpdateSystem.ts";
 import { TerminatorSystem } from "../../game/systems/TerminatorSystem.ts";
 import { TilemapCollisionSystem } from "../../game/systems/TilemapCollisionSystem.ts";
 import { TopDownControllerSystem } from "../../game/systems/TopDownControllerSystem.ts";
@@ -237,6 +240,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
 
     const player = new PlayerEntity(spawn, GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
     player.addComponent(new PlayerRenderComponent());
+    player.addComponent(new DebugRayRenderComponent(uiState.debugOverlay, tilemapEntity.tilemap.map));
 
     if (autosave) {
       applySavedPlayerState(player, tilemapEntity.tilemap, autosave);
@@ -292,6 +296,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
   EcsRuntime.runWith(runtime, () => {
     createHud({
       getFps: options.getFps,
+      debug: roots.uiState.debugOverlay,
       player: roots.player,
       terminator: roots.terminatorEntity.terminator,
       inventory: roots.player.inventory,
@@ -302,6 +307,16 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
   });
 
   world.addSystem(new InputIntentSystem(camera, options.canvas, runtime));
+  world.addSystem(
+    new RootEntityUpdateSystem([
+      roots.uiState,
+      roots.worldState,
+      roots.terminatorEntity,
+      roots.tilemapEntity,
+      roots.player,
+    ]),
+  );
+  world.addSystem(new DebugOverlaySystem(roots.tilemapEntity.tilemap.map, roots.player, camera, options.canvas, runtime));
   world.addSystem(
     new ChunkPrewarmSystem(roots.tilemapEntity.tilemap.map, roots.player, {
       radius: GAME_CONFIG.chunkPrewarmRadius,
