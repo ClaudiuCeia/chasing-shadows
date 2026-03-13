@@ -97,7 +97,7 @@ export class WorldPointerActionSystem implements System {
       const lootTarget = this.getLootInteractionCandidate(player, lootField, pointer);
       if (lootTarget) {
         lootUi.openTileBox(lootTarget.x, lootTarget.y);
-        modalState.open("loot");
+        modalState.open("inventory");
         pointer.mode = null;
         pointer.phase = null;
         return;

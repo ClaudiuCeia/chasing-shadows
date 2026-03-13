@@ -93,7 +93,7 @@ describe("PointerMarkerSystem", () => {
     });
   });
 
-  test("resolves world point and emits release phase", () => {
+  test("resolves world point and emits click phase on mouseup", () => {
     const runtime = new EcsRuntime();
     const handlers: HandlerMap = {};
     runtime.input.init(makeTarget(handlers));
@@ -124,7 +124,7 @@ describe("PointerMarkerSystem", () => {
 
       emit(handlers, "mouseup", { button: 0 });
       system.update();
-      expect(uiState.pointerWorld.phase).toBe("release");
+      expect(uiState.pointerWorld.phase).toBe("click");
     });
   });
 });

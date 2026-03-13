@@ -101,7 +101,7 @@ describe("WorldPointerActionSystem", () => {
       const worldState = new WorldStateEntity({ seed: 1, spawnChance: 0 });
       const player = new PlayerEntity(new Vector2D(0, 0), GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
 
-      worldState.lootField.setSlots(8, 0, [{ itemId: "wire", count: 1 }, ...Array.from({ length: 15 }, () => null)]);
+      worldState.lootField.setSlots(8, 0, [{ itemId: "body-armor", count: 1 }, ...Array.from({ length: 15 }, () => null)]);
 
       uiState.awake();
       worldState.awake();
@@ -128,7 +128,7 @@ describe("WorldPointerActionSystem", () => {
       const worldState = new WorldStateEntity({ seed: 1, spawnChance: 0 });
       const player = new PlayerEntity(new Vector2D(0, 0), GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
 
-      worldState.lootField.setSlots(1, 0, [{ itemId: "wire", count: 1 }, ...Array.from({ length: 15 }, () => null)]);
+      worldState.lootField.setSlots(1, 0, [{ itemId: "body-armor", count: 1 }, ...Array.from({ length: 15 }, () => null)]);
 
       uiState.awake();
       worldState.awake();
@@ -145,7 +145,7 @@ describe("WorldPointerActionSystem", () => {
       uiState.pointerWorld.phase = "click";
       system.update();
       expect(uiState.lootUi.openSource).toEqual({ kind: "tile-box", x: 1, y: 0 });
-      expect(uiState.modalState.activeModal).toBe("loot");
+      expect(uiState.modalState.activeModal).toBe("inventory");
       expect(uiState.pointerWorld.mode).toBeNull();
     });
   });
@@ -159,8 +159,8 @@ describe("WorldPointerActionSystem", () => {
       const worldState = new WorldStateEntity({ seed: 1, spawnChance: 0 });
       const player = new PlayerEntity(new Vector2D(0, 0), GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
 
-      worldState.lootField.setSlots(1, 0, [{ itemId: "wire", count: 1 }, ...Array.from({ length: 15 }, () => null)]);
-      worldState.lootField.setSlots(0, 1, [{ itemId: "battery", count: 1 }, ...Array.from({ length: 15 }, () => null)]);
+      worldState.lootField.setSlots(1, 0, [{ itemId: "body-armor", count: 1 }, ...Array.from({ length: 15 }, () => null)]);
+      worldState.lootField.setSlots(0, 1, [{ itemId: "helmet", count: 1 }, ...Array.from({ length: 15 }, () => null)]);
 
       uiState.awake();
       worldState.awake();
@@ -170,14 +170,14 @@ describe("WorldPointerActionSystem", () => {
       system.awake();
 
       uiState.lootUi.openTileBox(1, 0);
-      uiState.modalState.open("loot");
+      uiState.modalState.open("inventory");
 
       uiState.pointerWorld.setResolved(new Vector2D(0, 1), new Vector2D(0, 0), map.getElevationAt(0, 1));
       uiState.pointerWorld.phase = "click";
       system.update();
 
       expect(uiState.lootUi.openSource).toEqual({ kind: "tile-box", x: 1, y: 0 });
-      expect(uiState.modalState.activeModal).toBe("loot");
+      expect(uiState.modalState.activeModal).toBe("inventory");
       expect(uiState.pointerWorld.mode).toBeNull();
     });
   });

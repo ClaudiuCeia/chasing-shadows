@@ -69,7 +69,22 @@ const isItemStack = (value: unknown): boolean =>
 
 const isNullableItemStack = (value: unknown): boolean => value === null || isItemStack(value);
 
-const isInventory = arrayOf(isNullableItemStack, { length: GAME_CONFIG.inventorySlots });
+const isInventory = (value: unknown): boolean =>
+  isObject(value) &&
+  required(value, "equipment", (entry): entry is Record<string, unknown> =>
+    isObject(entry) &&
+    isNullableItemStack(entry.mainWeapon) &&
+    isNullableItemStack(entry.secondaryWeapon) &&
+    isNullableItemStack(entry.helmet) &&
+    isNullableItemStack(entry.bodyArmor),
+  ) &&
+  required(value, "weaponAmmo", (entry): entry is Record<string, unknown> =>
+    isObject(entry) &&
+    isNullableItemStack(entry.mainWeaponAmmo) &&
+    isNullableItemStack(entry.secondaryWeaponAmmo),
+  ) &&
+  required(value, "quickSlots", arrayOf(isNullableItemStack, { length: GAME_CONFIG.inventoryQuickSlots })) &&
+  required(value, "backpackSlots", arrayOf(isNullableItemStack, { length: GAME_CONFIG.inventorySlots }));
 const isLootSlots = arrayOf(isNullableItemStack, { length: LOOT_BOX_SLOT_COUNT });
 
 const isTileCorners = (value: unknown): boolean =>

@@ -8,7 +8,9 @@ import { HudTemperatureRenderComponent } from "./HudTemperatureRenderComponent.t
 import { LootWindowInputComponent } from "./LootWindowInputComponent.ts";
 import { LootWindowRenderComponent } from "./LootWindowRenderComponent.ts";
 import { HudButtonEntity } from "./HudButtonEntity.ts";
+import { INVENTORY_MODAL_HEIGHT, INVENTORY_MODAL_WIDTH } from "./inventory-layout.ts";
 import { QuickbarRenderComponent } from "./QuickbarRenderComponent.ts";
+import { restoreDraggedInventoryItem } from "./inventory-slots.ts";
 import { InventoryComponent } from "../components/InventoryComponent.ts";
 import { LootFieldComponent } from "../components/LootFieldComponent.ts";
 import { LootUiComponent } from "../components/LootUiComponent.ts";
@@ -72,7 +74,7 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
   const quickbar = new HudNodeEntity();
   quickbar.addComponent(
     new HudLayoutNodeComponent({
-      width: 620,
+      width: 330,
       height: 82,
       anchor: "bottom-center",
       offset: { x: 0, y: -18 },
@@ -95,8 +97,8 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
   const lootWindow = new HudNodeEntity();
   lootWindow.addComponent(
     new HudLayoutNodeComponent({
-      width: 372,
-      height: 474,
+      width: INVENTORY_MODAL_WIDTH.inventoryOnly,
+      height: INVENTORY_MODAL_HEIGHT,
       anchor: "center",
       offset: { x: 0, y: 18 },
       order: 90,
@@ -108,19 +110,31 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
     width: 76,
     height: 30,
     anchor: "bottom-right",
-    offset: { x: -38, y: -22 },
+    offset: { x: -34, y: -20 },
     order: 2,
     onClick: () => {
+      restoreDraggedInventoryItem(options.lootUi, options.inventory, options.lootField, options.map);
       options.lootUi.close();
-      options.modalState.close("loot");
+      options.modalState.close("inventory");
     },
   });
   lootCloseButton.layout.setVisible(false);
   lootCloseButton.layout.setInteractive(false);
   lootWindow.addChild(lootCloseButton);
 
-  lootWindow.addComponent(new LootWindowRenderComponent(options.map, options.lootField, options.lootUi, lootCloseButton));
-  lootWindow.addComponent(new LootWindowInputComponent(options.lootUi, options.modalState));
+  lootWindow.addComponent(
+    new LootWindowRenderComponent(
+      options.map,
+      options.lootField,
+      options.inventory,
+      options.lootUi,
+      options.modalState,
+      lootCloseButton,
+    ),
+  );
+  lootWindow.addComponent(
+    new LootWindowInputComponent(options.lootUi, options.modalState, options.inventory, options.lootField, options.map),
+  );
 
   info.awake();
   debug.awake();

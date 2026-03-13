@@ -98,12 +98,6 @@ export class LootBoxField {
     const key = tileKey(x, y);
     const normalized = normalizeItemSlots(slots, LOOT_BOX_SLOT_COUNT);
 
-    if (!hasAnyItems(normalized)) {
-      this.overrides.set(key, { removed: true });
-      this.cache.delete(key);
-      return;
-    }
-
     this.overrides.set(key, { slots: normalized });
     this.cache.delete(key);
   }

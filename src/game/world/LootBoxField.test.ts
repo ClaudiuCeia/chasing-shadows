@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { InfiniteTilemap } from "./InfiniteTilemap.ts";
-import { LootBoxField } from "./LootBoxField.ts";
+import { LOOT_BOX_SLOT_COUNT, LootBoxField } from "./LootBoxField.ts";
 import { createTileCornerHeights, createTileData } from "./tile-types.ts";
 
 const findAnyBox = (
@@ -98,7 +98,7 @@ describe("LootBoxField", () => {
     expect(field.serializeDeltas(map)).toEqual([]);
   });
 
-  test("keeps removal deltas for emptied generated loot boxes", () => {
+  test("keeps emptied generated loot boxes as empty slot overrides", () => {
     const map = new InfiniteTilemap({ seed: 19, chunkSize: 16 });
     const field = new LootBoxField({ seed: 555 });
     const location = findAnyBox(field, map);
@@ -110,10 +110,14 @@ describe("LootBoxField", () => {
     field.setSlots(location.x, location.y, []);
 
     const deltas = field.serializeDeltas(map);
-    expect(deltas).toContainEqual({ x: location.x, y: location.y, removed: true });
+    expect(deltas).toContainEqual({
+      x: location.x,
+      y: location.y,
+      slots: Array.from({ length: LOOT_BOX_SLOT_COUNT }, () => null),
+    });
 
     const restored = new LootBoxField({ seed: 555 });
     restored.applyDeltas(deltas);
-    expect(restored.getBoxAt(location.x, location.y, map)).toBeNull();
+    expect(restored.getBoxAt(location.x, location.y, map)?.slots.every((slot) => slot === null)).toBeTrue();
   });
 });

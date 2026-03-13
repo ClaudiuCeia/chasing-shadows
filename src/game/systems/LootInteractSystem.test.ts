@@ -50,7 +50,7 @@ describe("LootInteractSystem", () => {
         0,
         0,
         Array.from({ length: LOOT_BOX_SLOT_COUNT }, (_unused, index) =>
-          index === 0 ? { itemId: "wire", count: 2 } : null,
+          index === 0 ? { itemId: "body-armor", count: 2 } : null,
         ),
       );
 
@@ -65,7 +65,7 @@ describe("LootInteractSystem", () => {
       system.update();
 
       expect(uiState.lootUi.openSource).toEqual({ kind: "tile-box", x: 0, y: 0 });
-      expect(uiState.modalState.activeModal).toBe("loot");
+      expect(uiState.modalState.activeModal).toBe("inventory");
     });
   });
 
@@ -83,7 +83,7 @@ describe("LootInteractSystem", () => {
         0,
         0,
         Array.from({ length: LOOT_BOX_SLOT_COUNT }, (_unused, index) =>
-          index === 0 ? { itemId: "wire", count: 2 } : null,
+          index === 0 ? { itemId: "body-armor", count: 2 } : null,
         ),
       );
 

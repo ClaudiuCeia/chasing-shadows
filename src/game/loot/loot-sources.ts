@@ -3,6 +3,7 @@ import { LootContainerComponent } from "../components/LootContainerComponent.ts"
 import { LootFieldComponent } from "../components/LootFieldComponent.ts";
 import type { ItemStack } from "../items/item-catalog.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
+import { LOOT_BOX_SLOT_COUNT } from "../world/LootBoxField.ts";
 
 export type TileBoxLootSourceRef = {
   kind: "tile-box";
@@ -64,5 +65,45 @@ export const setLootSourceSlots = (
       }
       source.entity.getComponent(LootContainerComponent).setSlots(slots);
     }
+  }
+};
+
+export const getLootSourceSlotCount = (
+  source: LootSourceRef,
+  lootField: LootFieldComponent,
+  map: InfiniteTilemap,
+): number => {
+  const snapshot = getLootSourceSnapshot(source, lootField, map);
+  if (snapshot) {
+    return snapshot.slots.length;
+  }
+
+  switch (source.kind) {
+    case "tile-box":
+      return LOOT_BOX_SLOT_COUNT;
+    case "entity":
+      return source.entity.hasComponent(LootContainerComponent)
+        ? source.entity.getComponent(LootContainerComponent).capacity
+        : 0;
+  }
+};
+
+export const getLootSourceTitle = (
+  source: LootSourceRef,
+  lootField: LootFieldComponent,
+  map: InfiniteTilemap,
+): string => {
+  const snapshot = getLootSourceSnapshot(source, lootField, map);
+  if (snapshot) {
+    return snapshot.title;
+  }
+
+  switch (source.kind) {
+    case "tile-box":
+      return "Loot";
+    case "entity":
+      return source.entity.hasComponent(LootContainerComponent)
+        ? source.entity.getComponent(LootContainerComponent).title
+        : "Loot";
   }
 };

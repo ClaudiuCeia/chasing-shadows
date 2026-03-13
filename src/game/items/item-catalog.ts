@@ -1,47 +1,179 @@
 export type ItemId =
-  | "wire"
-  | "battery"
-  | "water"
-  | "ration"
-  | "ore"
-  | "fiber"
-  | "chip"
-  | "scrap-metal"
-  | "sealant"
-  | "ice"
-  | "dust"
-  | "circuit"
+  | "body-armor"
+  | "helmet"
+  | "pistol-ammo"
+  | "shotgun-ammo"
+  | "pistol"
+  | "ump5"
+  | "shotgun"
+  | "lug-wrench"
+  | "knife"
+  | "bandage"
+  | "syringe"
+  | "water-bottle"
   | "med-gel"
-  | "fuel"
-  | "alloy";
+  | "canned-beans"
+  | "hrc-pack";
 
 export type ItemStack = {
   itemId: ItemId;
   count: number;
 };
 
+export type EquipmentSlotId = "mainWeapon" | "secondaryWeapon" | "helmet" | "bodyArmor";
+export type WeaponAmmoSlotId = "mainWeaponAmmo" | "secondaryWeaponAmmo";
+export type ItemCategory =
+  | "material"
+  | "consumable"
+  | "medical"
+  | "tool"
+  | "weapon"
+  | "melee"
+  | "throwable"
+  | "armor-head"
+  | "armor-body"
+  | "ammo";
+
 export type ItemDefinition = {
   id: ItemId;
   label: string;
+  description: string;
   spriteIndex: number;
+  category: ItemCategory;
+  quickSlotCompatible: boolean;
+  equipmentSlot?: EquipmentSlotId;
+  ammoSlot?: WeaponAmmoSlotId;
+  usesAmmo?: ItemId;
 };
 
 export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [
-  { id: "wire", label: "Wire", spriteIndex: 0 },
-  { id: "battery", label: "Battery", spriteIndex: 1 },
-  { id: "water", label: "Water", spriteIndex: 2 },
-  { id: "ration", label: "Ration", spriteIndex: 3 },
-  { id: "ore", label: "Ore", spriteIndex: 4 },
-  { id: "fiber", label: "Fiber", spriteIndex: 5 },
-  { id: "chip", label: "Chip", spriteIndex: 6 },
-  { id: "scrap-metal", label: "Scrap", spriteIndex: 8 },
-  { id: "sealant", label: "Sealant", spriteIndex: 9 },
-  { id: "ice", label: "Ice", spriteIndex: 10 },
-  { id: "dust", label: "Dust", spriteIndex: 11 },
-  { id: "circuit", label: "Circuit", spriteIndex: 12 },
-  { id: "med-gel", label: "Med Gel", spriteIndex: 13 },
-  { id: "fuel", label: "Fuel", spriteIndex: 14 },
-  { id: "alloy", label: "Alloy", spriteIndex: 15 },
+  {
+    id: "body-armor",
+    label: "Body Armor",
+    description: "A battered torso rig that still catches shrapnel.",
+    spriteIndex: 0,
+    category: "armor-body",
+    quickSlotCompatible: false,
+    equipmentSlot: "bodyArmor",
+  },
+  {
+    id: "helmet",
+    label: "Helmet",
+    description: "A hard combat helmet with a scarred face plate.",
+    spriteIndex: 1,
+    category: "armor-head",
+    quickSlotCompatible: false,
+    equipmentSlot: "helmet",
+  },
+  {
+    id: "pistol-ammo",
+    label: "Pistol Ammo",
+    description: "A handful of pistol rounds in a small carton.",
+    spriteIndex: 2,
+    category: "ammo",
+    quickSlotCompatible: false,
+    ammoSlot: "secondaryWeaponAmmo",
+  },
+  {
+    id: "shotgun-ammo",
+    label: "Shotgun Ammo",
+    description: "Rough shells packed for close-range work.",
+    spriteIndex: 3,
+    category: "ammo",
+    quickSlotCompatible: false,
+    ammoSlot: "mainWeaponAmmo",
+  },
+  {
+    id: "pistol",
+    label: "Pistol",
+    description: "A reliable sidearm with enough wear to trust.",
+    spriteIndex: 4,
+    category: "weapon",
+    quickSlotCompatible: false,
+    usesAmmo: "pistol-ammo",
+  },
+  {
+    id: "ump5",
+    label: "UMP-5",
+    description: "Compact submachine gun built for short bursts.",
+    spriteIndex: 5,
+    category: "weapon",
+    quickSlotCompatible: false,
+    usesAmmo: "pistol-ammo",
+  },
+  {
+    id: "shotgun",
+    label: "Shotgun",
+    description: "Heavy scattergun that ends arguments quickly.",
+    spriteIndex: 6,
+    category: "weapon",
+    quickSlotCompatible: false,
+    usesAmmo: "shotgun-ammo",
+  },
+  {
+    id: "lug-wrench",
+    label: "Lug Wrench",
+    description: "A heavy wheel wrench that doubles as a brutal tool.",
+    spriteIndex: 8,
+    category: "melee",
+    quickSlotCompatible: true,
+  },
+  {
+    id: "knife",
+    label: "Knife",
+    description: "A compact field blade for close work and utility.",
+    spriteIndex: 9,
+    category: "melee",
+    quickSlotCompatible: true,
+  },
+  {
+    id: "bandage",
+    label: "Bandage",
+    description: "Clean wrap for quick patch jobs in the field.",
+    spriteIndex: 10,
+    category: "medical",
+    quickSlotCompatible: true,
+  },
+  {
+    id: "syringe",
+    label: "Syringe",
+    description: "A sealed injector loaded for emergency use.",
+    spriteIndex: 11,
+    category: "medical",
+    quickSlotCompatible: true,
+  },
+  {
+    id: "water-bottle",
+    label: "Water Bottle",
+    description: "A clear bottle filled with potable water.",
+    spriteIndex: 12,
+    category: "consumable",
+    quickSlotCompatible: true,
+  },
+  {
+    id: "med-gel",
+    label: "Med Gel",
+    description: "Fast-acting emergency gel for field treatment.",
+    spriteIndex: 13,
+    category: "medical",
+    quickSlotCompatible: true,
+  },
+  {
+    id: "canned-beans",
+    label: "Canned Beans",
+    description: "A dented can of beans. Cold, but filling.",
+    spriteIndex: 14,
+    category: "consumable",
+    quickSlotCompatible: true,
+  },
+  {
+    id: "hrc-pack",
+    label: "HRC Pack",
+    description: "Compressed ration carton stamped with HRC.",
+    spriteIndex: 15,
+    category: "consumable",
+    quickSlotCompatible: true,
+  },
 ] as const;
 
 export const ITEM_IDS = ITEM_DEFINITIONS.map((definition) => definition.id);
@@ -57,3 +189,28 @@ export const getItemDefinition = (id: ItemId): ItemDefinition => {
   }
   return definition;
 };
+
+export const canEquipItemInSlot = (itemId: ItemId, slot: EquipmentSlotId): boolean => {
+  const definition = getItemDefinition(itemId);
+  if (definition.equipmentSlot === slot) {
+    return true;
+  }
+
+  if (slot === "mainWeapon" || slot === "secondaryWeapon") {
+    return definition.category === "weapon" || definition.category === "melee";
+  }
+
+  return false;
+};
+
+export const canLoadAmmoIntoSlot = (itemId: ItemId, _slot: WeaponAmmoSlotId): boolean => {
+  const definition = getItemDefinition(itemId);
+  return definition.category === "ammo";
+};
+
+export const canWeaponUseAmmo = (weaponItemId: ItemId, ammoItemId: ItemId): boolean => {
+  const weapon = getItemDefinition(weaponItemId);
+  return weapon.category === "weapon" && weapon.usesAmmo === ammoItemId;
+};
+
+export const canPlaceItemInQuickSlot = (itemId: ItemId): boolean => getItemDefinition(itemId).quickSlotCompatible;

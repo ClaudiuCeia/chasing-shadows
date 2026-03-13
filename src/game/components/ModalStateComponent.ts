@@ -1,6 +1,6 @@
 import { Component } from "@claudiu-ceia/tick";
 
-export type UiModalId = "loot";
+export type UiModalId = "inventory";
 
 export class ModalStateComponent extends Component {
   public activeModal: UiModalId | null = null;

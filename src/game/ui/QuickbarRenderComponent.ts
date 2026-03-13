@@ -4,12 +4,13 @@ import {
   Vector2D,
   type ICamera,
 } from "@claudiu-ceia/tick";
+import { GAME_CONFIG } from "../config/game-config.ts";
 import { InventoryComponent } from "../components/InventoryComponent.ts";
 import { getItemDefinition } from "../items/item-catalog.ts";
 import { drawItemSprite, getItemSheet } from "./item-sprites.ts";
 
 const SLOT_GAP = 6;
-const SLOT_COUNT = 8;
+const SLOT_COUNT = GAME_CONFIG.inventoryQuickSlots;
 
 export class QuickbarRenderComponent extends HudRenderComponent {
   private itemSheet: HTMLImageElement | null = null;
@@ -43,7 +44,7 @@ export class QuickbarRenderComponent extends HudRenderComponent {
 
     const innerWidth = frame.width - 20;
     const slotSize = Math.floor((innerWidth - SLOT_GAP * (SLOT_COUNT - 1)) / SLOT_COUNT);
-    const slots = this.inventory.getSlots();
+    const slots = this.inventory.getQuickSlots();
     const totalWidth = slotSize * SLOT_COUNT + SLOT_GAP * (SLOT_COUNT - 1);
     const startX = Math.floor(frame.x + (frame.width - totalWidth) / 2);
     const y = Math.floor(frame.y + (frame.height - slotSize) / 2);

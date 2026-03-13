@@ -11,9 +11,8 @@ import { LootUiComponent } from "../components/LootUiComponent.ts";
 import { ModalStateComponent } from "../components/ModalStateComponent.ts";
 import { getSingletonComponent } from "../ecs/singleton.ts";
 import { PlayerEntity } from "../entities/PlayerEntity.ts";
-import { getLootSourceSnapshot, setLootSourceSlots } from "../loot/loot-sources.ts";
+import { getLootSourceSnapshot } from "../loot/loot-sources.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
-import { ItemTransferSystem } from "./ItemTransferSystem.ts";
 
 export type LootInteractSystemOptions = {
   interactRange: number;
@@ -55,13 +54,17 @@ export class LootInteractSystem implements System {
 
     const open = ui.openSource;
     if (open && !getLootSourceSnapshot(open, lootField, this.map)) {
-      ui.close();
-      modalState.close("loot");
-    }
+      if (ui.draggedItem?.hiddenOrigin?.section === "source") {
+        if (ui.hoveredSlot?.section === "source") {
+          ui.hoveredSlot = null;
+        }
+        return;
+      }
 
-    if (ui.pendingSlotClick !== null && ui.openSource) {
-      this.processSlotClick(ui, lootField, ui.pendingSlotClick);
-      ui.pendingSlotClick = null;
+      ui.openSource = null;
+      if (ui.hoveredSlot?.section === "source") {
+        ui.hoveredSlot = null;
+      }
     }
 
     const pressed = this.runtime.input.isPressed("e") || this.runtime.input.isPressed("E");
@@ -79,42 +82,7 @@ export class LootInteractSystem implements System {
 
     if (nearest) {
       ui.openTileBox(nearest.x, nearest.y);
-      modalState.open("loot");
-    }
-  }
-
-  private processSlotClick(ui: LootUiComponent, lootField: LootFieldComponent, slot: number): void {
-    const open = ui.openSource;
-    if (!open) {
-      return;
-    }
-
-    const snapshot = getLootSourceSnapshot(open, lootField, this.map);
-    if (!snapshot) {
-      ui.close();
-      const modalState = this.uiQuery ? getSingletonComponent(this.uiQuery, ModalStateComponent) : null;
-      modalState?.close("loot");
-      return;
-    }
-
-    const stack = snapshot.slots[slot] ?? null;
-    if (!stack) {
-      return;
-    }
-
-    const leftover = ItemTransferSystem.addItem(this.player.inventory, stack.itemId, stack.count);
-    if (leftover >= stack.count) {
-      return;
-    }
-
-    const updatedSlots = [...snapshot.slots];
-    updatedSlots[slot] = leftover > 0 ? { itemId: stack.itemId, count: leftover } : null;
-    setLootSourceSlots(open, updatedSlots, lootField, this.map);
-
-    if (!getLootSourceSnapshot(open, lootField, this.map)) {
-      ui.close();
-      const modalState = this.uiQuery ? getSingletonComponent(this.uiQuery, ModalStateComponent) : null;
-      modalState?.close("loot");
+      modalState.open("inventory");
     }
   }
 }

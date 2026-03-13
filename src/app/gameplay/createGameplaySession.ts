@@ -24,6 +24,7 @@ import { DebugOverlaySystem } from "../../game/systems/DebugOverlaySystem.ts";
 import { ExposureSystem } from "../../game/systems/ExposureSystem.ts";
 import { InputIntentSystem } from "../../game/systems/InputIntentSystem.ts";
 import { InteractableHighlightSystem } from "../../game/systems/InteractableHighlightSystem.ts";
+import { InventoryModalSystem } from "../../game/systems/InventoryModalSystem.ts";
 import { LootBoxChunkSystem } from "../../game/systems/LootBoxChunkSystem.ts";
 import { LootInteractSystem } from "../../game/systems/LootInteractSystem.ts";
 import { NeedsDecaySystem } from "../../game/systems/NeedsDecaySystem.ts";
@@ -94,7 +95,7 @@ const applySavedPlayerState = (player: PlayerEntity, tilemap: TilemapStateCompon
   player.temperature.thermalBalance = autosave.player.temperature.thermalBalance;
   player.temperature.heat = autosave.player.temperature.heat;
   player.temperature.cold = autosave.player.temperature.cold;
-  player.inventory.setSlots(autosave.player.inventory);
+  player.inventory.setState(autosave.player.inventory);
   player.attack.fireMode = autosave.player.fireMode;
   syncPlayerToTerrain(tilemap, player);
 };
@@ -137,7 +138,7 @@ const serializeGameplay = (roots: GameplayRoots): SaveGameV1 => {
         heat: roots.player.temperature.heat,
         cold: roots.player.temperature.cold,
       },
-      inventory: [...roots.player.inventory.getSlots()],
+      inventory: roots.player.inventory.getState(),
       fireMode: roots.player.attack.fireMode,
     },
   };
@@ -310,6 +311,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
   });
 
   world.addSystem(new InputIntentSystem(camera, options.canvas, runtime));
+  world.addSystem(new InventoryModalSystem(roots.player.inventory, roots.worldState.lootField, roots.tilemapEntity.tilemap.map, runtime));
   world.addSystem(new DebugOverlaySystem(runtime));
   world.addSystem(new InteractableHighlightSystem(roots.player, runtime));
   world.addSystem(

@@ -27,7 +27,7 @@ describe("LootBoxChunkSystem", () => {
         0,
         0,
         Array.from({ length: LOOT_BOX_SLOT_COUNT }, (_unused, index) =>
-          index === 0 ? { itemId: "wire", count: 3 } : null,
+          index === 0 ? { itemId: "body-armor", count: 3 } : null,
         ),
       );
 
