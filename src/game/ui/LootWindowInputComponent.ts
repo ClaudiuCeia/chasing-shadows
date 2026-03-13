@@ -9,6 +9,7 @@ import { getInventorySlotAtHudPoint, INVENTORY_MODAL_HEIGHT, INVENTORY_MODAL_WID
 import {
   canPlaceInventoryStackAt,
   combineInventoryStacks,
+  getInvalidInventoryDropMessage,
   getInventoryStackAt,
   isSingleItemInventorySlot,
   isStackingInventorySlot,
@@ -93,6 +94,8 @@ export class LootWindowInputComponent extends HudInputComponent {
         return;
       }
 
+      this.state.clearDropFeedback();
+
       if (!this.state.dragSnapshot) {
         this.state.dragSnapshot = {
           inventory: this.inventory.getState(),
@@ -116,8 +119,14 @@ export class LootWindowInputComponent extends HudInputComponent {
 
     const targetStack = getInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, target);
     if (!canPlaceInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, target, dragging.stack)) {
+      const feedback = getInvalidInventoryDropMessage(this.inventory, target, dragging.stack);
+      if (feedback) {
+        this.state.showDropFeedback(feedback);
+      }
       return;
     }
+
+    this.state.clearDropFeedback();
 
     if (isStackingInventorySlot(target) && targetStack?.itemId === dragging.stack.itemId) {
       const merged = combineInventoryStacks(targetStack, dragging.stack);

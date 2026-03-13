@@ -22,7 +22,7 @@ import {
   createGridLayout,
   getSlotRect,
 } from "./inventory-layout.ts";
-import { getInventoryStackAt } from "./inventory-slots.ts";
+import { canPlaceInventoryStackAt, getInventoryStackAt, isReservedInventorySlot } from "./inventory-slots.ts";
 import { drawItemSprite, getItemSheet } from "./item-sprites.ts";
 
 type InventoryModalSnapshot = {
@@ -98,6 +98,7 @@ export class LootWindowRenderComponent extends HudRenderComponent {
       this.drawSourceSection(ctx, frame, snapshot);
     }
 
+    this.drawDropFeedback(ctx, frame);
     this.drawTooltip(ctx, frame);
     this.drawDraggedItem(ctx, frame);
   }
@@ -142,16 +143,36 @@ export class LootWindowRenderComponent extends HudRenderComponent {
     const rect = getSlotRect(frame as never, { ref, x, y });
     const hovered = this.state.hoveredSlot?.section === ref.section && this.state.hoveredSlot.key === ref.key;
     const stack = getInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, ref);
+    const draggedStack = this.state.draggedItem?.stack ?? null;
     const hiddenByDrag =
       this.state.draggedItem &&
       this.state.draggedItem.hiddenOrigin !== null &&
       this.state.draggedItem.hiddenOrigin.section === ref.section &&
       this.state.draggedItem.hiddenOrigin.key === ref.key;
+    const acceptsDragged =
+      draggedStack !== null &&
+      isReservedInventorySlot(ref) &&
+      canPlaceInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, ref, draggedStack);
+    const rejectsDragged =
+      hovered &&
+      draggedStack !== null &&
+      isReservedInventorySlot(ref) &&
+      !canPlaceInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, ref, draggedStack);
 
-    ctx.fillStyle = hovered ? "rgba(93, 103, 118, 0.92)" : "rgba(42, 50, 62, 0.96)";
+    ctx.fillStyle = acceptsDragged
+      ? "rgba(96, 108, 126, 0.96)"
+      : hovered
+        ? "rgba(93, 103, 118, 0.92)"
+        : "rgba(42, 50, 62, 0.96)";
     ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-    ctx.strokeStyle = hovered ? "rgba(252, 240, 213, 0.95)" : "rgba(229, 217, 194, 0.55)";
-    ctx.lineWidth = hovered ? 2 : 1;
+    ctx.strokeStyle = acceptsDragged
+      ? "rgba(255, 255, 255, 0.98)"
+      : rejectsDragged
+        ? "rgba(255, 118, 118, 0.95)"
+        : hovered
+          ? "rgba(252, 240, 213, 0.95)"
+          : "rgba(229, 217, 194, 0.55)";
+    ctx.lineWidth = acceptsDragged || hovered || rejectsDragged ? 2 : 1;
     ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
 
     if (label) {
@@ -307,23 +328,68 @@ export class LootWindowRenderComponent extends HudRenderComponent {
     maxWidth: number,
     lineHeight: number,
   ): void {
-    const words = text.split(" ");
-    let line = "";
     let lineY = y;
+    for (const line of this.wrapText(ctx, text, maxWidth)) {
+      ctx.fillText(line, x, lineY);
+      lineY += lineHeight;
+    }
+  }
+
+  private wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+    const words = text.split(" ");
+    const lines: string[] = [];
+    let line = "";
 
     for (const word of words) {
       const next = line ? `${line} ${word}` : word;
       if (line && ctx.measureText(next).width > maxWidth) {
-        ctx.fillText(line, x, lineY);
+        lines.push(line);
         line = word;
-        lineY += lineHeight;
       } else {
         line = next;
       }
     }
 
     if (line) {
-      ctx.fillText(line, x, lineY);
+      lines.push(line);
     }
+
+    return lines;
+  }
+
+  private drawDropFeedback(ctx: CanvasRenderingContext2D, frame: { x: number; y: number; width: number; height: number }): void {
+    const message = this.state.getVisibleDropFeedback();
+    if (!message) {
+      return;
+    }
+
+    const paddingX = 14;
+    const paddingY = 10;
+    const lineHeight = 15;
+
+    ctx.save();
+    ctx.font = "12px monospace";
+    const width = Math.min(frame.width - 32, 280);
+    const lines = this.wrapText(ctx, message, width - paddingX * 2);
+    const height = Math.max(30, lines.length * lineHeight + paddingY * 2);
+    const x = frame.x + Math.floor((frame.width - width) / 2);
+    const y = frame.y + frame.height - height - 16;
+
+    ctx.fillStyle = "rgba(76, 18, 18, 0.94)";
+    ctx.fillRect(x, y, width, height);
+    ctx.strokeStyle = "rgba(255, 176, 176, 0.9)";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, width, height);
+
+    ctx.fillStyle = "#fff0f0";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    const textBlockHeight = lines.length * lineHeight;
+    let lineY = y + Math.floor((height - textBlockHeight) / 2);
+    for (const line of lines) {
+      ctx.fillText(line, x + width / 2, lineY);
+      lineY += lineHeight;
+    }
+    ctx.restore();
   }
 }

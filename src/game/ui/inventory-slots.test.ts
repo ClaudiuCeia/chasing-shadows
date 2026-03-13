@@ -3,7 +3,13 @@ import { InventoryComponent } from "../components/InventoryComponent.ts";
 import { LootFieldComponent } from "../components/LootFieldComponent.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
 import { createTileBoxLootSource } from "../loot/loot-sources.ts";
-import { canPlaceInventoryStackAt, combineInventoryStacks, setInventoryStackAt } from "./inventory-slots.ts";
+import {
+  canPlaceInventoryStackAt,
+  combineInventoryStacks,
+  getInvalidInventoryDropMessage,
+  getInventorySlotRequirementLabel,
+  setInventoryStackAt,
+} from "./inventory-slots.ts";
 
 describe("inventory-slots", () => {
   test("equipment slots clamp stacks to a single item", () => {
@@ -77,5 +83,29 @@ describe("inventory-slots", () => {
         { itemId: "pistol-ammo", count: 3 },
       ),
     ).toBeTrue();
+  });
+
+  test("describes reserved slot requirements for feedback", () => {
+    const inventory = new InventoryComponent(4);
+
+    inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
+
+    expect(getInventorySlotRequirementLabel(inventory, { section: "equipment", key: "helmet" })).toBe("Helmet");
+    expect(getInventorySlotRequirementLabel(inventory, { section: "equipment", key: "mainWeapon" })).toBe("Weapon or Melee Weapon");
+    expect(getInventorySlotRequirementLabel(inventory, { section: "weaponAmmo", key: "mainWeaponAmmo" })).toBe("Shotgun Ammo");
+  });
+
+  test("builds invalid drop feedback for reserved slots", () => {
+    const inventory = new InventoryComponent(4);
+
+    inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
+
+    expect(
+      getInvalidInventoryDropMessage(inventory, { section: "weaponAmmo", key: "mainWeaponAmmo" }, { itemId: "water-bottle", count: 1 }),
+    ).toBe("Cannot drop Water Bottle here, expected Shotgun Ammo.");
+
+    expect(
+      getInvalidInventoryDropMessage(inventory, { section: "equipment", key: "bodyArmor" }, { itemId: "knife", count: 1 }),
+    ).toBe("Cannot drop Knife here, expected Body Armor.");
   });
 });

@@ -3,6 +3,7 @@ import {
   canEquipItemInSlot,
   canPlaceItemInQuickSlot,
   canWeaponUseAmmo,
+  getItemDefinition,
   type EquipmentSlotId,
   type ItemStack,
   type WeaponAmmoSlotId,
@@ -16,6 +17,9 @@ import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
 export const isSingleItemInventorySlot = (ref: InventorySlotRef): boolean => ref.section === "equipment";
 
 export const isStackingInventorySlot = (ref: InventorySlotRef): boolean => !isSingleItemInventorySlot(ref);
+
+export const isReservedInventorySlot = (ref: InventorySlotRef): boolean =>
+  ref.section === "equipment" || ref.section === "weaponAmmo";
 
 export const normalizeStackForInventorySlot = (ref: InventorySlotRef, stack: ItemStack | null): ItemStack | null => {
   const next = cloneItemStack(stack);
@@ -144,12 +148,64 @@ export const canPlaceInventoryStackAt = (
   }
 };
 
+export const getInventorySlotRequirementLabel = (
+  inventory: InventoryComponent,
+  ref: InventorySlotRef,
+): string | null => {
+  switch (ref.section) {
+    case "equipment":
+      switch (ref.key) {
+        case "mainWeapon":
+        case "secondaryWeapon":
+          return "Weapon or Melee Weapon";
+        case "helmet":
+          return getItemDefinition("helmet").label;
+        case "bodyArmor":
+          return getItemDefinition("body-armor").label;
+      }
+      return null;
+    case "weaponAmmo": {
+      const pairedWeapon = inventory.getEquipmentSlot(ref.key === "mainWeaponAmmo" ? "mainWeapon" : "secondaryWeapon");
+      if (!pairedWeapon) {
+        return null;
+      }
+
+      const ammoItemId = getItemDefinition(pairedWeapon.itemId).usesAmmo;
+      return ammoItemId ? getItemDefinition(ammoItemId).label : null;
+    }
+    default:
+      return null;
+  }
+};
+
+export const getInvalidInventoryDropMessage = (
+  inventory: InventoryComponent,
+  ref: InventorySlotRef,
+  stack: ItemStack,
+): string | null => {
+  if (!isReservedInventorySlot(ref)) {
+    return null;
+  }
+
+  const itemLabel = getItemDefinition(stack.itemId).label;
+  if (ref.section === "weaponAmmo") {
+    const pairedWeapon = inventory.getEquipmentSlot(ref.key === "mainWeaponAmmo" ? "mainWeapon" : "secondaryWeapon");
+    if (!pairedWeapon) {
+      return `Cannot drop ${itemLabel} here, equip a weapon first.`;
+    }
+  }
+
+  const expected = getInventorySlotRequirementLabel(inventory, ref);
+  return expected ? `Cannot drop ${itemLabel} here, expected ${expected}.` : `Cannot drop ${itemLabel} here.`;
+};
+
 export const restoreDraggedInventoryItem = (
   state: {
     draggedItem: { hiddenOrigin: InventorySlotRef | null; stack: ItemStack } | null;
     dragSnapshot: InventoryDragSnapshot | null;
     openSource: LootSourceRef | null;
     dragHudPoint: unknown;
+    clearDropFeedback?: () => void;
   },
   inventory: InventoryComponent,
   lootField: LootFieldComponent,
@@ -170,4 +226,5 @@ export const restoreDraggedInventoryItem = (
   state.draggedItem = null;
   state.dragSnapshot = null;
   state.dragHudPoint = null;
+  state.clearDropFeedback?.();
 };

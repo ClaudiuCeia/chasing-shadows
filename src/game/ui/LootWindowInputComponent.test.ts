@@ -126,4 +126,45 @@ describe("LootWindowInputComponent", () => {
       expect(lootUi.draggedItem).toBeNull();
     });
   });
+
+  test("invalid drop into reserved slot shows feedback and keeps dragged item", () => {
+    const runtime = new EcsRuntime();
+
+    EcsRuntime.runWith(runtime, () => {
+      const inventory = new InventoryComponent(16, 4);
+      inventory.setBackpackSlots([{ itemId: "water-bottle", count: 1 }, ...Array.from({ length: 15 }, () => null)]);
+      inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
+
+      const lootUi = new LootUiComponent();
+      const modalState = new ModalStateComponent();
+      modalState.open("inventory");
+      const lootField = new LootFieldComponent({ seed: 1 });
+      const map = new InfiniteTilemap({ seed: 1, chunkSize: 16 });
+
+      const node = new HudNode();
+      const layout = new HudLayoutNodeComponent({
+        width: INVENTORY_MODAL_WIDTH.inventoryOnly,
+        height: INVENTORY_MODAL_HEIGHT,
+        anchor: "center",
+      });
+      const input = new LootWindowInputComponent(lootUi, modalState, inventory, lootField, map);
+      node.addComponent(layout);
+      node.addComponent(input);
+      node.awake();
+      layout.setResolvedFrame({ x: 0, y: 0, width: INVENTORY_MODAL_WIDTH.inventoryOnly, height: INVENTORY_MODAL_HEIGHT });
+
+      const backpackPoint = new Vector2D(BACKPACK_ORIGIN.x + INVENTORY_SLOT_SIZE / 2, BACKPACK_ORIGIN.y + INVENTORY_SLOT_SIZE / 2);
+      const ammoSlot = EQUIPMENT_LAYOUT[1]!;
+      const ammoPoint = new Vector2D(ammoSlot.x + INVENTORY_SLOT_SIZE / 2, ammoSlot.y + INVENTORY_SLOT_SIZE / 2);
+
+      input.handleHudInput(clickEventAt(backpackPoint.x, backpackPoint.y));
+      expect(lootUi.draggedItem?.stack).toEqual({ itemId: "water-bottle", count: 1 });
+
+      input.handleHudInput(clickEventAt(ammoPoint.x, ammoPoint.y));
+
+      expect(lootUi.draggedItem?.stack).toEqual({ itemId: "water-bottle", count: 1 });
+      expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toBeNull();
+      expect(lootUi.getVisibleDropFeedback()).toBe("Cannot drop Water Bottle here, expected Shotgun Ammo.");
+    });
+  });
 });
