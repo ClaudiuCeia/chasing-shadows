@@ -8,8 +8,10 @@ import {
 } from "@claudiu-ceia/tick";
 import { LootFieldComponent } from "../components/LootFieldComponent.ts";
 import { LootUiComponent } from "../components/LootUiComponent.ts";
+import { ModalStateComponent } from "../components/ModalStateComponent.ts";
 import { getSingletonComponent } from "../ecs/singleton.ts";
 import { PlayerEntity } from "../entities/PlayerEntity.ts";
+import { getLootSourceSnapshot, setLootSourceSlots } from "../loot/loot-sources.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
 import { ItemTransferSystem } from "./ItemTransferSystem.ts";
 
@@ -35,7 +37,7 @@ export class LootInteractSystem implements System {
   }
 
   public awake(): void {
-    this.uiQuery = this.runtime.registry.query().with(LootUiComponent);
+    this.uiQuery = this.runtime.registry.query().with(LootUiComponent).with(ModalStateComponent);
     this.worldQuery = this.runtime.registry.query().with(LootFieldComponent);
   }
 
@@ -45,17 +47,19 @@ export class LootInteractSystem implements System {
     }
 
     const ui = getSingletonComponent(this.uiQuery, LootUiComponent);
+    const modalState = getSingletonComponent(this.uiQuery, ModalStateComponent);
     const lootField = getSingletonComponent(this.worldQuery, LootFieldComponent);
-    if (!ui || !lootField) {
+    if (!ui || !modalState || !lootField) {
       return;
     }
 
-    const open = ui.openBox;
-    if (open && !lootField.getBoxAt(open.x, open.y, this.map)) {
+    const open = ui.openSource;
+    if (open && !getLootSourceSnapshot(open, lootField, this.map)) {
       ui.close();
+      modalState.close("loot");
     }
 
-    if (ui.pendingSlotClick !== null && ui.openBox) {
+    if (ui.pendingSlotClick !== null && ui.openSource) {
       this.processSlotClick(ui, lootField, ui.pendingSlotClick);
       ui.pendingSlotClick = null;
     }
@@ -74,23 +78,26 @@ export class LootInteractSystem implements System {
     );
 
     if (nearest) {
-      ui.open(nearest.x, nearest.y);
+      ui.openTileBox(nearest.x, nearest.y);
+      modalState.open("loot");
     }
   }
 
   private processSlotClick(ui: LootUiComponent, lootField: LootFieldComponent, slot: number): void {
-    const open = ui.openBox;
+    const open = ui.openSource;
     if (!open) {
       return;
     }
 
-    const box = lootField.getBoxAt(open.x, open.y, this.map);
-    if (!box) {
+    const snapshot = getLootSourceSnapshot(open, lootField, this.map);
+    if (!snapshot) {
       ui.close();
+      const modalState = this.uiQuery ? getSingletonComponent(this.uiQuery, ModalStateComponent) : null;
+      modalState?.close("loot");
       return;
     }
 
-    const stack = box.slots[slot] ?? null;
+    const stack = snapshot.slots[slot] ?? null;
     if (!stack) {
       return;
     }
@@ -100,12 +107,14 @@ export class LootInteractSystem implements System {
       return;
     }
 
-    const updatedSlots = [...box.slots];
+    const updatedSlots = [...snapshot.slots];
     updatedSlots[slot] = leftover > 0 ? { itemId: stack.itemId, count: leftover } : null;
-    lootField.setSlots(open.x, open.y, updatedSlots);
+    setLootSourceSlots(open, updatedSlots, lootField, this.map);
 
-    if (!lootField.getBoxAt(open.x, open.y, this.map)) {
+    if (!getLootSourceSnapshot(open, lootField, this.map)) {
       ui.close();
+      const modalState = this.uiQuery ? getSingletonComponent(this.uiQuery, ModalStateComponent) : null;
+      modalState?.close("loot");
     }
   }
 }

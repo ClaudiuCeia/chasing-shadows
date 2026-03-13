@@ -23,6 +23,7 @@ import { ChunkPrewarmSystem } from "../../game/systems/ChunkPrewarmSystem.ts";
 import { DebugOverlaySystem } from "../../game/systems/DebugOverlaySystem.ts";
 import { ExposureSystem } from "../../game/systems/ExposureSystem.ts";
 import { InputIntentSystem } from "../../game/systems/InputIntentSystem.ts";
+import { InteractableHighlightSystem } from "../../game/systems/InteractableHighlightSystem.ts";
 import { LootBoxChunkSystem } from "../../game/systems/LootBoxChunkSystem.ts";
 import { LootInteractSystem } from "../../game/systems/LootInteractSystem.ts";
 import { NeedsDecaySystem } from "../../game/systems/NeedsDecaySystem.ts";
@@ -57,6 +58,7 @@ export type GameplaySession = {
   camera: IsometricCameraEntity;
   renderSystem: RenderSystem;
   lootUi: UiStateEntity["lootUi"];
+  modalState: UiStateEntity["modalState"];
   createAutosaveData: () => SaveGameV1;
 };
 
@@ -251,10 +253,10 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
     tilemapEntity.configureRender(terminatorEntity.terminator, {
       tileWidth: GAME_CONFIG.tileWidth,
       tileHeight: GAME_CONFIG.tileHeight,
-      render: {
-        isSelectedAt: (x, y, z) => {
-          const open = uiState.lootUi.openBox;
-          if (!open || open.x !== x || open.y !== y) {
+        render: {
+          isSelectedAt: (x, y, z) => {
+          const open = uiState.lootUi.openSource;
+          if (!open || open.kind !== "tile-box" || open.x !== x || open.y !== y) {
             return false;
           }
           return Math.abs(tilemapEntity.tilemap.getElevationAt(open.x, open.y) - z) <= GAME_CONFIG.lootElevationTolerance;
@@ -301,6 +303,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
       terminator: roots.terminatorEntity.terminator,
       inventory: roots.player.inventory,
       lootUi: roots.uiState.lootUi,
+      modalState: roots.uiState.modalState,
       lootField: roots.worldState.lootField,
       map: roots.tilemapEntity.tilemap.map,
     });
@@ -308,6 +311,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
 
   world.addSystem(new InputIntentSystem(camera, options.canvas, runtime));
   world.addSystem(new DebugOverlaySystem(runtime));
+  world.addSystem(new InteractableHighlightSystem(roots.player, runtime));
   world.addSystem(
     new ChunkPrewarmSystem(roots.tilemapEntity.tilemap.map, roots.player, {
       radius: GAME_CONFIG.chunkPrewarmRadius,
@@ -317,7 +321,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
   world.addSystem(new PlayerAttackSystem(runtime));
   world.addSystem(new LootInteractSystem(roots.tilemapEntity.tilemap.map, roots.player, { interactRange: GAME_CONFIG.lootBoxInteractRange }, runtime));
   world.addSystem(new PointerMarkerSystem(camera, options.canvas, roots.tilemapEntity.tilemap.map, GAME_CONFIG.maxTerrainElevation, runtime));
-  world.addSystem(new WorldPointerActionSystem(roots.tilemapEntity.tilemap.map, runtime));
+  world.addSystem(new WorldPointerActionSystem(roots.tilemapEntity.tilemap.map, GAME_CONFIG.lootBoxInteractRange, runtime));
   world.addSystem(
     new TopDownControllerSystem(
       { isoConfig: { tileWidth: GAME_CONFIG.tileWidth, tileHeight: GAME_CONFIG.tileHeight } },
@@ -363,6 +367,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
     camera,
     renderSystem,
     lootUi: roots.uiState.lootUi,
+    modalState: roots.uiState.modalState,
     createAutosaveData: () => serializeGameplay(roots),
   };
 };

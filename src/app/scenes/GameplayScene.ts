@@ -1,10 +1,12 @@
 import { Scene, type EcsRuntime, type World } from "@claudiu-ceia/tick";
 import { LootUiComponent } from "../../game/components/LootUiComponent.ts";
+import { ModalStateComponent } from "../../game/components/ModalStateComponent.ts";
 
 export type GameplaySceneOptions = {
   runtime: EcsRuntime;
   world: World;
   lootUi: LootUiComponent;
+  modalState: ModalStateComponent;
   onOpenTitle: () => void;
   renderFrame: () => void;
 };
@@ -19,7 +21,7 @@ export class GameplayScene extends Scene {
   }
 
   public override update(dt: number): void {
-    if (this.options.runtime.input.isPressed("Escape")) {
+    if (this.options.runtime.input.isPressed("Escape") && !this.options.modalState.isOpen()) {
       this.options.lootUi.close();
       this.options.onOpenTitle();
       return;

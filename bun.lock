@@ -16,7 +16,7 @@
     },
   },
   "packages": {
-    "@claudiu-ceia/tick": ["@claudiu-ceia/tick@0.1.11", "", {}, "sha512-w7KD5Is+3dEXZ+rq9TgBKed/yeiyhtYl5NC14e6orwRuowtox2/KhaarbsGurRD0fUX/uUVY1tPubS3Oi51sfQ=="],
+    "@claudiu-ceia/tick": ["@claudiu-ceia/tick@0.1.13", "", {}, "sha512-Bqun8GiFsE68CYv+QDi1uc3htD7cW8KUd0/AO37O5cUB9naw/0sOuFWBoo1p/gCgir+rKWACfJ6DbAQgvGHuvg=="],
 
     "@types/bun": ["@types/bun@1.3.10", "", { "dependencies": { "bun-types": "1.3.10" } }, "sha512-0+rlrUrOrTSskibryHbvQkDOWRJwJZqZlxrUs1u4oOoTln8+WIXBPmAuCF35SWB2z4Zl3E84Nl/D0P7803nigQ=="],
 

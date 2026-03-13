@@ -10,9 +10,9 @@
     "@types/bun": "latest"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@claudiu-ceia/tick": "^0.1.11"
+    "@claudiu-ceia/tick": "^0.1.13"
   }
 }

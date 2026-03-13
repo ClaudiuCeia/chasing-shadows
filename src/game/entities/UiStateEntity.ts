@@ -1,17 +1,20 @@
 import { Entity } from "@claudiu-ceia/tick";
 import { DebugOverlayComponent } from "../components/DebugOverlayComponent.ts";
 import { LootUiComponent } from "../components/LootUiComponent.ts";
+import { ModalStateComponent } from "../components/ModalStateComponent.ts";
 import { PointerWorldComponent } from "../components/PointerWorldComponent.ts";
 
 export class UiStateEntity extends Entity {
   public readonly debugOverlay = new DebugOverlayComponent();
   public readonly lootUi = new LootUiComponent();
+  public readonly modalState = new ModalStateComponent();
   public readonly pointerWorld = new PointerWorldComponent();
 
   public constructor() {
     super();
     this.addComponent(this.debugOverlay);
     this.addComponent(this.lootUi);
+    this.addComponent(this.modalState);
     this.addComponent(this.pointerWorld);
   }
 

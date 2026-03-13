@@ -1,4 +1,5 @@
 import { DebugOverlayComponent } from "../components/DebugOverlayComponent.ts";
+import { ModalStateComponent } from "../components/ModalStateComponent.ts";
 import { Entity, HudLayoutNodeComponent } from "@claudiu-ceia/tick";
 import { FpsCounterRenderComponent, type FpsSnapshot } from "./FpsCounterRenderComponent.ts";
 import { HudDebugRenderComponent } from "./HudDebugRenderComponent.ts";
@@ -6,6 +7,7 @@ import { HudInfoRenderComponent } from "./HudInfoRenderComponent.ts";
 import { HudTemperatureRenderComponent } from "./HudTemperatureRenderComponent.ts";
 import { LootWindowInputComponent } from "./LootWindowInputComponent.ts";
 import { LootWindowRenderComponent } from "./LootWindowRenderComponent.ts";
+import { HudButtonEntity } from "./HudButtonEntity.ts";
 import { QuickbarRenderComponent } from "./QuickbarRenderComponent.ts";
 import { InventoryComponent } from "../components/InventoryComponent.ts";
 import { LootFieldComponent } from "../components/LootFieldComponent.ts";
@@ -27,6 +29,7 @@ export type CreateHudOptions = {
   terminator: TerminatorComponent;
   inventory: InventoryComponent;
   lootUi: LootUiComponent;
+  modalState: ModalStateComponent;
   lootField: LootFieldComponent;
   map: InfiniteTilemap;
 };
@@ -99,8 +102,25 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
       order: 90,
     }),
   );
-  lootWindow.addComponent(new LootWindowRenderComponent(options.map, options.lootField, options.lootUi));
-  lootWindow.addComponent(new LootWindowInputComponent(options.lootUi));
+
+  const lootCloseButton = new HudButtonEntity({
+    label: "X",
+    width: 42,
+    height: 34,
+    anchor: "top-right",
+    offset: { x: -20, y: 18 },
+    order: 2,
+    onClick: () => {
+      options.lootUi.close();
+      options.modalState.close("loot");
+    },
+  });
+  lootCloseButton.layout.setVisible(false);
+  lootCloseButton.layout.setInteractive(false);
+  lootWindow.addChild(lootCloseButton);
+
+  lootWindow.addComponent(new LootWindowRenderComponent(options.map, options.lootField, options.lootUi, lootCloseButton));
+  lootWindow.addComponent(new LootWindowInputComponent(options.lootUi, options.modalState));
 
   info.awake();
   debug.awake();

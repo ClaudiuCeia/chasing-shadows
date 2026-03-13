@@ -15,7 +15,6 @@ export const GAME_CONFIG = {
   autosaveIntervalSeconds: 10,
   inventorySlots: 8,
   lootBoxInteractRange: 1.35,
-  lootBoxClickRange: 0.65,
   lootBoxSpawnChance: 0.0025,
   maxStepUpHeight: 1,
   maxStepDownHeight: 1,

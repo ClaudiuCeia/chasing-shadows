@@ -9,7 +9,9 @@ import {
 } from "@claudiu-ceia/tick";
 import { PlayerAttackComponent } from "../components/PlayerAttackComponent.ts";
 import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
+import { ModalStateComponent } from "../components/ModalStateComponent.ts";
 import { PlayerTagComponent } from "../components/PlayerTagComponent.ts";
+import { getSingletonComponent } from "../ecs/singleton.ts";
 import { IsometricCameraEntity } from "../render/IsometricCameraEntity.ts";
 import { PlayerAttackSystem } from "./PlayerAttackSystem.ts";
 import { clientToCanvas } from "../../shared/canvas-utils.ts";
@@ -26,6 +28,7 @@ export class InputIntentSystem implements System {
 
   private readonly runtime: EcsRuntime;
   private query: EntityQuery | null = null;
+  private uiQuery: EntityQuery | null = null;
   private walkToggled = false;
   private crouchToggled = false;
 
@@ -44,28 +47,32 @@ export class InputIntentSystem implements System {
       .with(PlayerAttackComponent)
       .with(MovementIntentComponent)
       .with(TransformComponent);
+    this.uiQuery = this.runtime.registry.query().with(ModalStateComponent);
   }
 
   public update(): void {
     if (!this.query) return;
+
+    const modalState = this.uiQuery ? getSingletonComponent(this.uiQuery, ModalStateComponent) : null;
+    const modalOpen = modalState?.isOpen() ?? false;
 
     const left = this.runtime.input.isDown("a") || this.runtime.input.isDown("ArrowLeft");
     const right = this.runtime.input.isDown("d") || this.runtime.input.isDown("ArrowRight");
     const up = this.runtime.input.isDown("w") || this.runtime.input.isDown("ArrowUp");
     const down = this.runtime.input.isDown("s") || this.runtime.input.isDown("ArrowDown");
 
-    if (this.runtime.input.isPressed("Shift")) {
+    if (!modalOpen && this.runtime.input.isPressed("Shift")) {
       this.walkToggled = !this.walkToggled;
     }
 
-    if (this.runtime.input.isPressed("c") || this.runtime.input.isPressed("C")) {
+    if (!modalOpen && (this.runtime.input.isPressed("c") || this.runtime.input.isPressed("C"))) {
       this.crouchToggled = !this.crouchToggled;
     }
 
-    const toggleFireMode = this.runtime.input.isPressed("v") || this.runtime.input.isPressed("V");
+    const toggleFireMode = !modalOpen && (this.runtime.input.isPressed("v") || this.runtime.input.isPressed("V"));
 
-    const strafe = (right ? 1 : 0) - (left ? 1 : 0);
-    const forward = (up ? 1 : 0) - (down ? 1 : 0);
+    const strafe = modalOpen ? 0 : (right ? 1 : 0) - (left ? 1 : 0);
+    const forward = modalOpen ? 0 : (up ? 1 : 0) - (down ? 1 : 0);
 
     const mouse = this.runtime.input.getMousePos();
     const canvasPoint = clientToCanvas(mouse, this.canvas);
@@ -84,7 +91,7 @@ export class InputIntentSystem implements System {
       intent.setIntent(strafe, forward, this.walkToggled, this.crouchToggled);
 
       const look = worldPoint.subtract(transform.transform.position);
-      if (look.magnitude > 0.0001) {
+      if (!modalOpen && look.magnitude > 0.0001) {
         transform.transform.rotation = Math.atan2(look.y, look.x);
       }
     }

@@ -29,7 +29,7 @@ describe("WorldPointerActionSystem", () => {
       PlayerAttackSystem.toggleFireMode(player.attack);
       expect(player.attack.fireMode).toBe("semi");
 
-      const system = new WorldPointerActionSystem(map, runtime);
+      const system = new WorldPointerActionSystem(map, GAME_CONFIG.lootBoxInteractRange, runtime);
       system.awake();
 
       uiState.pointerWorld.setResolved(new Vector2D(5, 0), new Vector2D(0, 0), map.getElevationAt(5, 0));
@@ -75,7 +75,7 @@ describe("WorldPointerActionSystem", () => {
 
       PlayerAttackSystem.toggleFireMode(player.attack);
 
-      const system = new WorldPointerActionSystem(map, runtime);
+      const system = new WorldPointerActionSystem(map, GAME_CONFIG.lootBoxInteractRange, runtime);
       system.awake();
 
       uiState.pointerWorld.setResolved(new Vector2D(5, 0), new Vector2D(0, 0), map.getElevationAt(5, 0));
@@ -90,6 +90,32 @@ describe("WorldPointerActionSystem", () => {
       expect(player.attack.active).toBeTrue();
       expect(player.attack.releasedSinceLastShot).toBeFalse();
       expect(player.attack.releaseQueued).toBeTrue();
+    });
+  });
+  test("does not open loot from outside interact range on click", () => {
+    const runtime = new EcsRuntime();
+
+    EcsRuntime.runWith(runtime, () => {
+      const map = new InfiniteTilemap({ seed: 1, chunkSize: 16 });
+      const uiState = new UiStateEntity();
+      const worldState = new WorldStateEntity({ seed: 1, spawnChance: 0 });
+      const player = new PlayerEntity(new Vector2D(0, 0), GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
+
+      worldState.lootField.setSlots(8, 0, [{ itemId: "wire", count: 1 }, ...Array.from({ length: 15 }, () => null)]);
+
+      uiState.awake();
+      worldState.awake();
+      player.awake();
+
+      const system = new WorldPointerActionSystem(map, GAME_CONFIG.lootBoxInteractRange, runtime);
+      system.awake();
+
+      uiState.pointerWorld.setResolved(new Vector2D(8, 0), new Vector2D(0, 0), map.getElevationAt(8, 0));
+      uiState.pointerWorld.phase = "press";
+      system.update();
+
+      expect(uiState.lootUi.openSource).toBeNull();
+      expect(uiState.modalState.activeModal).toBeNull();
     });
   });
 });

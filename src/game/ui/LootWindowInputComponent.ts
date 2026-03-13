@@ -1,10 +1,12 @@
 import { HudInputComponent, HudLayoutNodeComponent, type HudInputEvent } from "@claudiu-ceia/tick";
 import { LootUiComponent } from "../components/LootUiComponent.ts";
+import { ModalStateComponent } from "../components/ModalStateComponent.ts";
 import { getLootSlotAtHudPoint } from "./loot-window-layout.ts";
 
 export class LootWindowInputComponent extends HudInputComponent {
   public constructor(
     private readonly state: LootUiComponent,
+    private readonly modalState: ModalStateComponent,
   ) {
     super();
     this.focusable = true;
@@ -39,8 +41,6 @@ export class LootWindowInputComponent extends HudInputComponent {
       return;
     }
 
-    event.stopPropagation();
-
     const frame = this.ent.getComponent(HudLayoutNodeComponent).getFrame();
     if (!frame || !event.hudPoint) {
       return;
@@ -48,6 +48,7 @@ export class LootWindowInputComponent extends HudInputComponent {
 
     const slot = getLootSlotAtHudPoint(frame, event.hudPoint.x, event.hudPoint.y);
     if (slot !== null) {
+      event.stopPropagation();
       this.state.pendingSlotClick = slot;
     }
   }
@@ -60,10 +61,11 @@ export class LootWindowInputComponent extends HudInputComponent {
     if (event.key === "Escape") {
       event.stopPropagation();
       this.state.close();
+      this.modalState.close("loot");
     }
   }
 
   private isOpen(): boolean {
-    return this.state.openBox !== null;
+    return this.state.openSource !== null;
   }
 }

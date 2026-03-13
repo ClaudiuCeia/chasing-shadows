@@ -128,6 +128,7 @@ export const bootstrapGame = (): void => {
             runtime: session.runtime,
             world: session.world,
             lootUi: session.lootUi,
+            modalState: session.modalState,
             onOpenTitle: requestTitleScene,
             renderFrame: () => {
               context.imageSmoothingEnabled = false;

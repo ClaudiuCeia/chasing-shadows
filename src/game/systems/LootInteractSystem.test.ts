@@ -64,7 +64,8 @@ describe("LootInteractSystem", () => {
       emit(handlers, "keydown", { key: "e" });
       system.update();
 
-      expect(uiState.lootUi.openBox).toEqual({ x: 0, y: 0 });
+      expect(uiState.lootUi.openSource).toEqual({ kind: "tile-box", x: 0, y: 0 });
+      expect(uiState.modalState.activeModal).toBe("loot");
     });
   });
 
@@ -96,7 +97,8 @@ describe("LootInteractSystem", () => {
       emit(handlers, "keydown", { key: "e" });
       system.update();
 
-      expect(uiState.lootUi.openBox).toBeNull();
+      expect(uiState.lootUi.openSource).toBeNull();
+      expect(uiState.modalState.activeModal).toBeNull();
     });
   });
 });

@@ -6,7 +6,9 @@ import {
 } from "@claudiu-ceia/tick";
 import { LootFieldComponent } from "../components/LootFieldComponent.ts";
 import { LootUiComponent } from "../components/LootUiComponent.ts";
+import { HudButtonEntity } from "./HudButtonEntity.ts";
 import { getItemDefinition, type ItemStack } from "../items/item-catalog.ts";
+import { getLootSourceSnapshot } from "../loot/loot-sources.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
 import {
   LOOT_WINDOW_COLUMNS,
@@ -17,8 +19,7 @@ import {
 import { drawItemSprite, getItemSheet } from "./item-sprites.ts";
 
 export type LootWindowSnapshot = {
-  x: number;
-  y: number;
+  title: string;
   slots: readonly (ItemStack | null)[];
 };
 
@@ -29,6 +30,7 @@ export class LootWindowRenderComponent extends HudRenderComponent {
     private readonly map: InfiniteTilemap,
     private readonly lootField: LootFieldComponent,
     private readonly state: LootUiComponent,
+    private readonly closeButton: HudButtonEntity,
   ) {
     super();
 
@@ -50,6 +52,8 @@ export class LootWindowRenderComponent extends HudRenderComponent {
     if (!frame) return;
 
     const loot = this.getLoot();
+    this.closeButton.layout.setVisible(loot !== null);
+    this.closeButton.layout.setInteractive(loot !== null);
     if (!loot) {
       return;
     }
@@ -65,12 +69,11 @@ export class LootWindowRenderComponent extends HudRenderComponent {
     ctx.font = "bold 26px monospace";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText(`Loot Box (${loot.x}, ${loot.y})`, frame.x + 24, frame.y + 18);
+    ctx.fillText(loot.title, frame.x + 24, frame.y + 18);
 
     ctx.fillStyle = "rgba(236, 226, 204, 0.72)";
     ctx.font = "17px monospace";
     ctx.fillText("Click items to collect.", frame.x + 24, frame.y + 52);
-    ctx.fillText("Press E while near a box to open it.", frame.x + 24, frame.y + 74);
 
     const stride = LOOT_WINDOW_GRID.slotSize + LOOT_WINDOW_GRID.gap;
     for (let row = 0; row < LOOT_WINDOW_ROWS; row++) {
@@ -119,21 +122,20 @@ export class LootWindowRenderComponent extends HudRenderComponent {
   }
 
   private getLoot(): LootWindowSnapshot | null {
-    const open = this.state.openBox;
-    if (!open) {
+    const source = this.state.openSource;
+    if (!source) {
       return null;
     }
 
-    const box = this.lootField.getBoxAt(open.x, open.y, this.map);
-    if (!box) {
+    const snapshot = getLootSourceSnapshot(source, this.lootField, this.map);
+    if (!snapshot) {
       this.state.close();
       return null;
     }
 
     return {
-      x: open.x,
-      y: open.y,
-      slots: box.slots,
+      title: snapshot.title,
+      slots: snapshot.slots,
     };
   }
 }

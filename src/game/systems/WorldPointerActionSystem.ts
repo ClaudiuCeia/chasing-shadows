@@ -10,6 +10,7 @@ import {
 } from "@claudiu-ceia/tick";
 import { LootFieldComponent } from "../components/LootFieldComponent.ts";
 import { LootUiComponent } from "../components/LootUiComponent.ts";
+import { ModalStateComponent } from "../components/ModalStateComponent.ts";
 import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
 import { PlayerAttackComponent } from "../components/PlayerAttackComponent.ts";
 import { PlayerTagComponent } from "../components/PlayerTagComponent.ts";
@@ -35,6 +36,7 @@ export class WorldPointerActionSystem implements System {
 
   public constructor(
     private readonly map: InfiniteTilemap,
+    private readonly interactRange: number,
     runtime: EcsRuntime = EcsRuntime.getCurrent(),
   ) {
     this.runtime = runtime;
@@ -49,16 +51,17 @@ export class WorldPointerActionSystem implements System {
       .with(PhysicsBodyComponent)
       .with(TransformComponent)
       .with(PlayerAttackComponent);
-    this.uiQuery = this.runtime.registry.query().with(LootUiComponent).with(PointerWorldComponent);
+    this.uiQuery = this.runtime.registry.query().with(LootUiComponent).with(PointerWorldComponent).with(ModalStateComponent);
     this.worldQuery = this.runtime.registry.query().with(LootFieldComponent);
   }
 
   public update(): void {
     const pointer = this.uiQuery ? getSingletonComponent(this.uiQuery, PointerWorldComponent) : null;
     const lootUi = this.uiQuery ? getSingletonComponent(this.uiQuery, LootUiComponent) : null;
+    const modalState = this.uiQuery ? getSingletonComponent(this.uiQuery, ModalStateComponent) : null;
     const lootField = this.worldQuery ? getSingletonComponent(this.worldQuery, LootFieldComponent) : null;
     const player = this.playerQuery ? getSingletonEntity<PlayerEntity>(this.playerQuery) : null;
-    if (!pointer || !lootUi || !lootField || !player) {
+    if (!pointer || !lootUi || !modalState || !lootField || !player) {
       return;
     }
 
@@ -69,6 +72,12 @@ export class WorldPointerActionSystem implements System {
     }
 
     if (pointer.phase === "release") {
+      if (modalState.isOpen()) {
+        pointer.mode = null;
+        pointer.blockedByHud = false;
+        pointer.phase = null;
+        return;
+      }
       if (pointer.mode === "attack" || (attack.fireMode === "semi" && !attack.releasedSinceLastShot)) {
         PlayerAttackSystem.handleTrigger(attack, null, null, null, "release");
       }
@@ -83,15 +92,26 @@ export class WorldPointerActionSystem implements System {
       return;
     }
 
+    if (modalState.isOpen()) {
+      pointer.mode = null;
+      pointer.phase = null;
+      return;
+    }
+
     if (pointer.phase === "press") {
+      const playerPosition = player.getComponent(TransformComponent).transform.position;
       const tileX = Math.round(pointer.worldPoint.x);
       const tileY = Math.round(pointer.worldPoint.y);
       const tileElevation = this.map.getElevationAt(tileX, tileY);
+      const clickedBox = lootField.getBoxAt(tileX, tileY, this.map);
+      const clickedDistance = Math.hypot(tileX - playerPosition.x, tileY - playerPosition.y);
       if (
         Math.abs(tileElevation - pointer.elevation) <= GAME_CONFIG.lootElevationTolerance &&
-        lootField.getBoxAt(tileX, tileY, this.map)
+        clickedBox &&
+        clickedDistance <= this.interactRange
       ) {
-        lootUi.open(tileX, tileY);
+        lootUi.openTileBox(tileX, tileY);
+        modalState.open("loot");
         pointer.mode = "interaction";
         pointer.phase = null;
         return;
@@ -100,13 +120,18 @@ export class WorldPointerActionSystem implements System {
       const hit = lootField.findNearestBox(
         pointer.worldPoint.x,
         pointer.worldPoint.y,
-        GAME_CONFIG.lootBoxClickRange,
+        this.interactRange,
         this.map,
       );
       const validHit =
-        hit && Math.abs(this.map.getElevationAt(hit.x, hit.y) - pointer.elevation) <= GAME_CONFIG.lootElevationTolerance ? hit : null;
+        hit &&
+        Math.hypot(hit.x - playerPosition.x, hit.y - playerPosition.y) <= this.interactRange &&
+        Math.abs(this.map.getElevationAt(hit.x, hit.y) - pointer.elevation) <= GAME_CONFIG.lootElevationTolerance
+          ? hit
+          : null;
       if (validHit) {
-        lootUi.open(validHit.x, validHit.y);
+        lootUi.openTileBox(validHit.x, validHit.y);
+        modalState.open("loot");
         pointer.mode = "interaction";
         pointer.phase = null;
         return;

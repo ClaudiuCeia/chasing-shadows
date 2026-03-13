@@ -1,21 +1,25 @@
 import { Component } from "@claudiu-ceia/tick";
-
-export type OpenLootBoxRef = {
-  x: number;
-  y: number;
-};
+import { createTileBoxLootSource, type LootSourceRef } from "../loot/loot-sources.ts";
 
 export class LootUiComponent extends Component {
-  public openBox: OpenLootBoxRef | null = null;
+  public openSource: LootSourceRef | null = null;
   public hoveredSlot: number | null = null;
   public pendingSlotClick: number | null = null;
 
-  public open(x: number, y: number): void {
-    this.openBox = { x: Math.floor(x), y: Math.floor(y) };
+  public isOpen(): boolean {
+    return this.openSource !== null;
+  }
+
+  public open(source: LootSourceRef): void {
+    this.openSource = source;
+  }
+
+  public openTileBox(x: number, y: number): void {
+    this.open(createTileBoxLootSource(x, y));
   }
 
   public close(): void {
-    this.openBox = null;
+    this.openSource = null;
     this.hoveredSlot = null;
     this.pendingSlotClick = null;
   }
