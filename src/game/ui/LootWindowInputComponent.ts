@@ -170,6 +170,18 @@ export class LootWindowInputComponent extends HudInputComponent {
       return;
     }
 
+    if (targetStack && dragging.hiddenOrigin && isSingleItemInventorySlot(dragging.hiddenOrigin) && isSingleItemInventorySlot(target)) {
+      if (!canPlaceInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, dragging.hiddenOrigin, targetStack)) {
+        return;
+      }
+
+      setInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, dragging.hiddenOrigin, targetStack);
+      setInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, target, dragging.stack);
+      this.state.draggedItem = null;
+      this.state.dragSnapshot = null;
+      return;
+    }
+
     if (
       targetStack &&
       dragging.hiddenOrigin &&

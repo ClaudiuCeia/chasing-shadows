@@ -4,7 +4,11 @@ import { getSingletonComponent } from "../ecs/singleton.ts";
 import { LootBoxEntity } from "../entities/LootBoxEntity.ts";
 import { PlayerEntity } from "../entities/PlayerEntity.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
+import type { LootBoxState } from "../world/LootBoxField.ts";
 import { tileKey } from "../../shared/math/tile-key.ts";
+
+const hasRenderableLoot = (box: LootBoxState | null): box is LootBoxState =>
+  box !== null && box.slots.some((slot) => slot !== null && slot.count > 0);
 
 export class LootBoxChunkSystem implements System {
   public readonly phase = SystemPhase.Simulation;
@@ -54,7 +58,7 @@ export class LootBoxChunkSystem implements System {
       const tile = entity.tile;
       entity.tile.z = this.map.getElevationAt(tile.x, tile.y);
       const box = lootField.getBoxAt(tile.x, tile.y, this.map);
-      if (!box) {
+      if (!hasRenderableLoot(box)) {
         entity.destroy();
         this.active.delete(key);
         continue;
@@ -90,7 +94,7 @@ export class LootBoxChunkSystem implements System {
             const worldX = cx * chunkSize + localX;
             const worldY = cy * chunkSize + localY;
             const box = lootField.getBoxAt(worldX, worldY, this.map);
-            if (!box) {
+            if (!hasRenderableLoot(box)) {
               continue;
             }
 

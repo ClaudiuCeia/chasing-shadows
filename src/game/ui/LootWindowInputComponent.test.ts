@@ -72,4 +72,58 @@ describe("LootWindowInputComponent", () => {
       expect(lootUi.draggedItem).toBeNull();
     });
   });
+
+  test("swapping primary and secondary weapons should not leave the displaced weapon dragged", () => {
+    const runtime = new EcsRuntime();
+
+    EcsRuntime.runWith(runtime, () => {
+      const inventory = new InventoryComponent(16, 4);
+      inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
+      inventory.setEquipmentSlot("secondaryWeapon", { itemId: "pistol", count: 1 });
+
+      const lootUi = new LootUiComponent();
+      const modalState = new ModalStateComponent();
+      modalState.open("inventory");
+      const lootField = new LootFieldComponent({ seed: 1 });
+      const map = new InfiniteTilemap({ seed: 1, chunkSize: 16 });
+
+      const node = new HudNode();
+      const layout = new HudLayoutNodeComponent({
+        width: INVENTORY_MODAL_WIDTH.inventoryOnly,
+        height: INVENTORY_MODAL_HEIGHT,
+        anchor: "center",
+      });
+      const input = new LootWindowInputComponent(lootUi, modalState, inventory, lootField, map);
+      node.addComponent(layout);
+      node.addComponent(input);
+      node.awake();
+      layout.setResolvedFrame({ x: 0, y: 0, width: INVENTORY_MODAL_WIDTH.inventoryOnly, height: INVENTORY_MODAL_HEIGHT });
+
+      const mainWeaponSlot = EQUIPMENT_LAYOUT[0]!;
+      const secondaryWeaponSlot = EQUIPMENT_LAYOUT[2]!;
+      const backpackPoint = new Vector2D(BACKPACK_ORIGIN.x + INVENTORY_SLOT_SIZE / 2, BACKPACK_ORIGIN.y + INVENTORY_SLOT_SIZE / 2);
+
+      const mainWeaponPoint = new Vector2D(mainWeaponSlot.x + INVENTORY_SLOT_SIZE / 2, mainWeaponSlot.y + INVENTORY_SLOT_SIZE / 2);
+      const secondaryWeaponPoint = new Vector2D(
+        secondaryWeaponSlot.x + INVENTORY_SLOT_SIZE / 2,
+        secondaryWeaponSlot.y + INVENTORY_SLOT_SIZE / 2,
+      );
+
+      input.handleHudInput(clickEventAt(mainWeaponPoint.x, mainWeaponPoint.y));
+      expect(lootUi.draggedItem?.stack).toEqual({ itemId: "shotgun", count: 1 });
+
+      input.handleHudInput(clickEventAt(secondaryWeaponPoint.x, secondaryWeaponPoint.y));
+
+      expect(inventory.getEquipmentSlot("mainWeapon")).toEqual({ itemId: "pistol", count: 1 });
+      expect(inventory.getEquipmentSlot("secondaryWeapon")).toEqual({ itemId: "shotgun", count: 1 });
+      expect(lootUi.draggedItem).toBeNull();
+
+      input.handleHudInput(clickEventAt(backpackPoint.x, backpackPoint.y));
+
+      expect(inventory.getEquipmentSlot("mainWeapon")).toEqual({ itemId: "pistol", count: 1 });
+      expect(inventory.getEquipmentSlot("secondaryWeapon")).toEqual({ itemId: "shotgun", count: 1 });
+      expect(inventory.getBackpackSlots()[0]).toBeNull();
+      expect(lootUi.draggedItem).toBeNull();
+    });
+  });
 });
