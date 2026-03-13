@@ -87,6 +87,27 @@ export class WorldPointerActionSystem implements System {
       return;
     }
 
+    if (pointer.phase === "click") {
+      if (modalState.isOpen()) {
+        pointer.mode = null;
+        pointer.phase = null;
+        return;
+      }
+
+      const lootTarget = this.getLootInteractionCandidate(player, lootField, pointer);
+      if (lootTarget) {
+        lootUi.openTileBox(lootTarget.x, lootTarget.y);
+        modalState.open("loot");
+        pointer.mode = null;
+        pointer.phase = null;
+        return;
+      }
+
+      pointer.mode = null;
+      pointer.phase = null;
+      return;
+    }
+
     if (pointer.blockedByHud || !pointer.worldPoint) {
       pointer.phase = null;
       return;
@@ -99,39 +120,7 @@ export class WorldPointerActionSystem implements System {
     }
 
     if (pointer.phase === "press") {
-      const playerPosition = player.getComponent(TransformComponent).transform.position;
-      const tileX = Math.round(pointer.worldPoint.x);
-      const tileY = Math.round(pointer.worldPoint.y);
-      const tileElevation = this.map.getElevationAt(tileX, tileY);
-      const clickedBox = lootField.getBoxAt(tileX, tileY, this.map);
-      const clickedDistance = Math.hypot(tileX - playerPosition.x, tileY - playerPosition.y);
-      if (
-        Math.abs(tileElevation - pointer.elevation) <= GAME_CONFIG.lootElevationTolerance &&
-        clickedBox &&
-        clickedDistance <= this.interactRange
-      ) {
-        lootUi.openTileBox(tileX, tileY);
-        modalState.open("loot");
-        pointer.mode = "interaction";
-        pointer.phase = null;
-        return;
-      }
-
-      const hit = lootField.findNearestBox(
-        pointer.worldPoint.x,
-        pointer.worldPoint.y,
-        this.interactRange,
-        this.map,
-      );
-      const validHit =
-        hit &&
-        Math.hypot(hit.x - playerPosition.x, hit.y - playerPosition.y) <= this.interactRange &&
-        Math.abs(this.map.getElevationAt(hit.x, hit.y) - pointer.elevation) <= GAME_CONFIG.lootElevationTolerance
-          ? hit
-          : null;
-      if (validHit) {
-        lootUi.openTileBox(validHit.x, validHit.y);
-        modalState.open("loot");
+      if (this.getLootInteractionCandidate(player, lootField, pointer)) {
         pointer.mode = "interaction";
         pointer.phase = null;
         return;
@@ -168,5 +157,45 @@ export class WorldPointerActionSystem implements System {
       ? "attack"
       : null;
     pointer.phase = null;
+  }
+
+  private getLootInteractionCandidate(
+    player: PlayerEntity,
+    lootField: LootFieldComponent,
+    pointer: PointerWorldComponent,
+  ): { x: number; y: number } | null {
+    if (!pointer.worldPoint) {
+      return null;
+    }
+
+    const playerPosition = player.getComponent(TransformComponent).transform.position;
+    const tileX = Math.round(pointer.worldPoint.x);
+    const tileY = Math.round(pointer.worldPoint.y);
+    const tileElevation = this.map.getElevationAt(tileX, tileY);
+    const clickedBox = lootField.getBoxAt(tileX, tileY, this.map);
+    const clickedDistance = Math.hypot(tileX - playerPosition.x, tileY - playerPosition.y);
+    if (
+      Math.abs(tileElevation - pointer.elevation) <= GAME_CONFIG.lootElevationTolerance &&
+      clickedBox &&
+      clickedDistance <= this.interactRange
+    ) {
+      return { x: tileX, y: tileY };
+    }
+
+    const hit = lootField.findNearestBox(
+      pointer.worldPoint.x,
+      pointer.worldPoint.y,
+      this.interactRange,
+      this.map,
+    );
+    if (
+      hit &&
+      Math.hypot(hit.x - playerPosition.x, hit.y - playerPosition.y) <= this.interactRange &&
+      Math.abs(this.map.getElevationAt(hit.x, hit.y) - pointer.elevation) <= GAME_CONFIG.lootElevationTolerance
+    ) {
+      return { x: hit.x, y: hit.y };
+    }
+
+    return null;
   }
 }

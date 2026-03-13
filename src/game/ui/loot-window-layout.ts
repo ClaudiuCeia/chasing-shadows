@@ -5,10 +5,10 @@ export const LOOT_WINDOW_ROWS = 4;
 export const LOOT_WINDOW_SLOT_COUNT = LOOT_WINDOW_COLUMNS * LOOT_WINDOW_ROWS;
 
 export const LOOT_WINDOW_GRID = {
-  x: 28,
-  y: 116,
-  gap: 10,
-  slotSize: 84,
+  x: 38,
+  y: 74,
+  gap: 8,
+  slotSize: 68,
 };
 
 export const getLootSlotAtHudPoint = (

@@ -30,7 +30,7 @@ export class HudButtonRenderComponent extends HudRenderComponent {
     ctx.strokeRect(frame.x, frame.y, frame.width, frame.height);
 
     ctx.fillStyle = "rgba(247, 239, 225, 0.96)";
-    ctx.font = "bold 18px monospace";
+    ctx.font = "bold 15px monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(this.options.label, frame.x + frame.width / 2, frame.y + frame.height / 2 + 1);

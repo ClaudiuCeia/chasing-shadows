@@ -1,6 +1,6 @@
 import { Component, Vector2D } from "@claudiu-ceia/tick";
 
-export type PointerWorldActionPhase = "press" | "hold" | "release" | null;
+export type PointerWorldActionPhase = "press" | "hold" | "release" | "click" | null;
 export type PointerWorldActionMode = "interaction" | "attack" | null;
 
 export class PointerWorldComponent extends Component {

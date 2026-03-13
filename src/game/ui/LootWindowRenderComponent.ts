@@ -66,14 +66,14 @@ export class LootWindowRenderComponent extends HudRenderComponent {
     ctx.strokeRect(frame.x, frame.y, frame.width, frame.height);
 
     ctx.fillStyle = "#f4eddd";
-    ctx.font = "bold 26px monospace";
+    ctx.font = "bold 20px monospace";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText(loot.title, frame.x + 24, frame.y + 18);
+    ctx.fillText(loot.title, frame.x + LOOT_WINDOW_GRID.x, frame.y + 12);
 
     ctx.fillStyle = "rgba(236, 226, 204, 0.72)";
-    ctx.font = "17px monospace";
-    ctx.fillText("Click items to collect.", frame.x + 24, frame.y + 52);
+    ctx.font = "14px monospace";
+    ctx.fillText("Click items to collect.", frame.x + LOOT_WINDOW_GRID.x, frame.y + 34);
 
     const stride = LOOT_WINDOW_GRID.slotSize + LOOT_WINDOW_GRID.gap;
     for (let row = 0; row < LOOT_WINDOW_ROWS; row++) {
@@ -97,14 +97,14 @@ export class LootWindowRenderComponent extends HudRenderComponent {
 
         if (this.itemSheet) {
           const item = getItemDefinition(stack.itemId);
-          const iconSize = 52;
+          const iconSize = 42;
           const iconX = Math.floor(x + (LOOT_WINDOW_GRID.slotSize - iconSize) / 2);
           const iconY = Math.floor(y + (LOOT_WINDOW_GRID.slotSize - iconSize) / 2) - 2;
           drawItemSprite(ctx, this.itemSheet, item.spriteIndex, iconX, iconY, iconSize);
         }
 
         ctx.fillStyle = "#f7f1e4";
-        ctx.font = "bold 18px monospace";
+        ctx.font = "bold 15px monospace";
         ctx.textAlign = "right";
         ctx.textBaseline = "bottom";
         ctx.fillText(`${stack.count}`, x + LOOT_WINDOW_GRID.slotSize - 5, y + LOOT_WINDOW_GRID.slotSize - 5);
@@ -114,11 +114,11 @@ export class LootWindowRenderComponent extends HudRenderComponent {
     const occupied = loot.slots.reduce((count, stack) => count + (stack ? 1 : 0), 0);
     const totalItems = loot.slots.reduce((count, stack) => count + (stack?.count ?? 0), 0);
     ctx.fillStyle = "rgba(233, 223, 201, 0.72)";
-    ctx.font = "16px monospace";
+    ctx.font = "13px monospace";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText(`Stacks: ${occupied}/${LOOT_WINDOW_SLOT_COUNT}`, frame.x + 24, frame.y + frame.height - 42);
-    ctx.fillText(`Total items: ${totalItems}`, frame.x + 24, frame.y + frame.height - 22);
+    ctx.fillText(`Stacks: ${occupied}/${LOOT_WINDOW_SLOT_COUNT}`, frame.x + LOOT_WINDOW_GRID.x, frame.y + frame.height - 52);
+    ctx.fillText(`Total items: ${totalItems}`, frame.x + LOOT_WINDOW_GRID.x, frame.y + frame.height - 34);
   }
 
   private getLoot(): LootWindowSnapshot | null {

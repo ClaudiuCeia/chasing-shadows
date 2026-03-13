@@ -48,7 +48,9 @@ export class PointerMarkerSystem implements System {
     const mouseDown = this.runtime.input.isMouseDown(0);
     if (!mouseDown) {
       if (this.wasMouseDown) {
-        pointer.phase = "release";
+        pointer.phase = !pointer.blockedByHud && pointer.mode !== "attack" && pointer.worldPoint !== null ? "click" : "release";
+        this.wasMouseDown = false;
+        return;
       }
       pointer.clearResolved();
       this.wasMouseDown = false;

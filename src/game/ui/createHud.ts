@@ -95,8 +95,8 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
   const lootWindow = new HudNodeEntity();
   lootWindow.addComponent(
     new HudLayoutNodeComponent({
-      width: 460,
-      height: 560,
+      width: 372,
+      height: 474,
       anchor: "center",
       offset: { x: 0, y: 18 },
       order: 90,
@@ -104,11 +104,11 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
   );
 
   const lootCloseButton = new HudButtonEntity({
-    label: "X",
-    width: 42,
-    height: 34,
-    anchor: "top-right",
-    offset: { x: -20, y: 18 },
+    label: "CLOSE",
+    width: 76,
+    height: 30,
+    anchor: "bottom-right",
+    offset: { x: -38, y: -22 },
     order: 2,
     onClick: () => {
       options.lootUi.close();
