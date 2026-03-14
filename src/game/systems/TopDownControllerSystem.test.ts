@@ -120,7 +120,11 @@ describe("TopDownControllerSystem", () => {
 
     stepN(world, 30, 1 / 60);
 
-    expect(runActor.body.getVelocity().magnitude).toBeGreaterThan(walkActor.body.getVelocity().magnitude);
-    expect(walkActor.body.getVelocity().magnitude).toBeGreaterThan(crouchActor.body.getVelocity().magnitude);
+    expect(runActor.body.getVelocity().magnitude).toBeGreaterThan(
+      walkActor.body.getVelocity().magnitude,
+    );
+    expect(walkActor.body.getVelocity().magnitude).toBeGreaterThan(
+      crouchActor.body.getVelocity().magnitude,
+    );
   });
 });

@@ -87,9 +87,15 @@ describe("PointerMarkerSystem", () => {
 
       emit(handlers, "mousemove", { clientX: 50, clientY: 50, buttons: 0 });
       emit(handlers, "mousedown", { button: 0 });
-      HudInputRouter.routePointer(runtime, "pointerdown", new Vector2D(50, 50), new Vector2D(50, 50), {
-        pointerType: "mouse",
-      });
+      HudInputRouter.routePointer(
+        runtime,
+        "pointerdown",
+        new Vector2D(50, 50),
+        new Vector2D(50, 50),
+        {
+          pointerType: "mouse",
+        },
+      );
 
       system.update();
       expect(uiState.pointerWorld.worldPoint).toBeNull();
@@ -155,7 +161,11 @@ describe("PointerMarkerSystem", () => {
       const camera = new IsometricCameraEntity({ tileWidth: 64, tileHeight: 32 });
       camera.awake();
 
-      const player = new PlayerEntity(new Vector2D(0, 0), GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
+      const player = new PlayerEntity(
+        new Vector2D(0, 0),
+        GAME_CONFIG.playerBaseSpeed,
+        GAME_CONFIG.inventorySlots,
+      );
       player.awake();
       player.inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
       player.inventory.setWeaponAmmoSlot("mainWeaponAmmo", { itemId: "shotgun-ammo", count: 2 });
@@ -164,7 +174,11 @@ describe("PointerMarkerSystem", () => {
       const pointerMarker = new PointerMarkerSystem(camera, canvas, map, 6, runtime);
       pointerMarker.awake();
 
-      const worldPointerAction = new WorldPointerActionSystem(map, GAME_CONFIG.lootBoxInteractRange, runtime);
+      const worldPointerAction = new WorldPointerActionSystem(
+        map,
+        GAME_CONFIG.lootBoxInteractRange,
+        runtime,
+      );
       worldPointerAction.awake();
 
       emit(handlers, "mousemove", { clientX: 50, clientY: 50, buttons: 0 });
@@ -220,17 +234,28 @@ describe("PointerMarkerSystem", () => {
       const camera = new IsometricCameraEntity({ tileWidth: 64, tileHeight: 32 });
       camera.awake();
 
-      const player = new PlayerEntity(new Vector2D(0, 0), GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
+      const player = new PlayerEntity(
+        new Vector2D(0, 0),
+        GAME_CONFIG.playerBaseSpeed,
+        GAME_CONFIG.inventorySlots,
+      );
       player.awake();
       player.inventory.setEquipmentSlot("secondaryWeapon", { itemId: "pistol", count: 1 });
-      player.inventory.setWeaponAmmoSlot("secondaryWeaponAmmo", { itemId: "pistol-ammo", count: 2 });
+      player.inventory.setWeaponAmmoSlot("secondaryWeaponAmmo", {
+        itemId: "pistol-ammo",
+        count: 2,
+      });
       player.inventory.setActiveSlot("secondary");
       PlayerAttackSystem.syncFireModeFromInventory(player.attack, player.inventory);
 
       const pointerMarker = new PointerMarkerSystem(camera, canvas, map, 6, runtime);
       pointerMarker.awake();
 
-      const worldPointerAction = new WorldPointerActionSystem(map, GAME_CONFIG.lootBoxInteractRange, runtime);
+      const worldPointerAction = new WorldPointerActionSystem(
+        map,
+        GAME_CONFIG.lootBoxInteractRange,
+        runtime,
+      );
       worldPointerAction.awake();
 
       emit(handlers, "mousemove", { clientX: 50, clientY: 50, buttons: 0 });

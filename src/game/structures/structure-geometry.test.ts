@@ -29,7 +29,15 @@ describe("structure-geometry", () => {
       }
     }
 
-    expect(getStructureBaseElevationAt(map, DEFAULT_POC_STRUCTURE_BLUEPRINT, 8, 8, StructureRotation.North)).toBe(2);
+    expect(
+      getStructureBaseElevationAt(
+        map,
+        DEFAULT_POC_STRUCTURE_BLUEPRINT,
+        8,
+        8,
+        StructureRotation.North,
+      ),
+    ).toBe(2);
   });
 
   test("rejects sloped or mismatched footprint tiles", () => {
@@ -53,7 +61,15 @@ describe("structure-geometry", () => {
       }),
     );
 
-    expect(getStructureBaseElevationAt(map, DEFAULT_POC_STRUCTURE_BLUEPRINT, 4, 4, StructureRotation.North)).toBeNull();
+    expect(
+      getStructureBaseElevationAt(
+        map,
+        DEFAULT_POC_STRUCTURE_BLUEPRINT,
+        4,
+        4,
+        StructureRotation.North,
+      ),
+    ).toBeNull();
   });
 
   test("finds the nearest flat placement and rotates walls", () => {
@@ -74,10 +90,19 @@ describe("structure-geometry", () => {
 
     const structure = placement!;
     const bounds = getStructureBounds(DEFAULT_POC_STRUCTURE_BLUEPRINT, structure);
-    expect(bounds).toEqual({ minX: structure.originX, minY: structure.originY, maxX: structure.originX + 4, maxY: structure.originY + 4 });
+    expect(bounds).toEqual({
+      minX: structure.originX,
+      minY: structure.originY,
+      maxX: structure.originX + 4,
+      maxY: structure.originY + 4,
+    });
 
     const walls = getStructureWalls(DEFAULT_POC_STRUCTURE_BLUEPRINT, structure);
     expect(walls.some((wall) => wall.type === "door" && wall.side === "west")).toBe(true);
-    expect(walls.some((wall) => wall.type === "door" && wall.side === "west" && wall.anchorX === wall.x - 0.5)).toBe(true);
+    expect(
+      walls.some(
+        (wall) => wall.type === "door" && wall.side === "west" && wall.anchorX === wall.x - 0.5,
+      ),
+    ).toBe(true);
   });
 });

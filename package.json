@@ -1,18 +1,24 @@
 {
   "name": "chasing_shadow",
-  "module": "index.ts",
-  "type": "module",
   "private": true,
+  "type": "module",
+  "module": "index.ts",
   "scripts": {
-    "dev": "bun --watch index.html"
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5.9.3"
+    "dev": "bun --watch index.html",
+    "build": "bun build index.html --outdir=dist --minify",
+    "lint": "oxlint",
+    "fmt": "oxfmt .",
+    "fmt:check": "oxfmt --check ."
   },
   "dependencies": {
     "@claudiu-ceia/tick": "^0.1.13"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "oxfmt": "^0.40.0",
+    "oxlint": "^1.55.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.9.3"
   }
 }

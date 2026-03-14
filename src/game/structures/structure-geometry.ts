@@ -20,7 +20,11 @@ const rotateSide = (side: StructureWallSide, rotation: StructureRotation): Struc
   return order[(index + rotation) % order.length] ?? side;
 };
 
-const getWallAnchor = (x: number, y: number, side: StructureWallSide): { anchorX: number; anchorY: number } => {
+const getWallAnchor = (
+  x: number,
+  y: number,
+  side: StructureWallSide,
+): { anchorX: number; anchorY: number } => {
   switch (side) {
     case "north":
       return { anchorX: x, anchorY: y - 0.5 };
@@ -100,7 +104,10 @@ export const getStructureRoofTiles = (
     y: instance.originY + tile.y,
   }));
 
-export const getStructureWalls = (blueprint: StructureBlueprint, instance: StructureInstance): StructureWallSegment[] =>
+export const getStructureWalls = (
+  blueprint: StructureBlueprint,
+  instance: StructureInstance,
+): StructureWallSegment[] =>
   blueprint.walls.map((wall) => {
     const rotated = rotateStructureTile(wall.x, wall.y, blueprint, instance.rotation);
     const x = instance.originX + rotated.x;
@@ -117,7 +124,10 @@ export const getStructureWalls = (blueprint: StructureBlueprint, instance: Struc
     };
   });
 
-export const getStructureOccupiedTiles = (blueprint: StructureBlueprint, instance: StructureInstance): StructureMaskTile[] => {
+export const getStructureOccupiedTiles = (
+  blueprint: StructureBlueprint,
+  instance: StructureInstance,
+): StructureMaskTile[] => {
   const occupied = new Map<string, StructureMaskTile>();
 
   for (const tile of getStructureFloorTiles(blueprint, instance)) {
@@ -135,7 +145,10 @@ export const getStructureOccupiedTiles = (blueprint: StructureBlueprint, instanc
   return Array.from(occupied.values());
 };
 
-export const getStructureBounds = (blueprint: StructureBlueprint, instance: StructureInstance): StructureBounds => {
+export const getStructureBounds = (
+  blueprint: StructureBlueprint,
+  instance: StructureInstance,
+): StructureBounds => {
   const { width, height } = getRotatedFootprintSize(blueprint, instance.rotation);
   return {
     minX: instance.originX,

@@ -58,6 +58,15 @@ export const STRUCTURE_ROTATIONS = [
   StructureRotation.West,
 ] as const;
 
-export const STRUCTURE_WALL_SIDES = ["north", "east", "south", "west"] as const satisfies readonly StructureWallSide[];
+export const STRUCTURE_WALL_SIDES = [
+  "north",
+  "east",
+  "south",
+  "west",
+] as const satisfies readonly StructureWallSide[];
 
-export const STRUCTURE_WALL_TYPES = ["solid", "window", "door"] as const satisfies readonly StructureWallType[];
+export const STRUCTURE_WALL_TYPES = [
+  "solid",
+  "window",
+  "door",
+] as const satisfies readonly StructureWallType[];

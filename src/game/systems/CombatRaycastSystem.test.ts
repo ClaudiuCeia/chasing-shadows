@@ -18,15 +18,24 @@ describe("CombatRaycastSystem", () => {
     EcsRuntime.runWith(runtime, () => {
       const map = new InfiniteTilemap({ seed: 99, chunkSize: 16 });
       const uiState = new UiStateEntity();
-      const player = new PlayerEntity(new Vector2D(0, 0), GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
+      const player = new PlayerEntity(
+        new Vector2D(0, 0),
+        GAME_CONFIG.playerBaseSpeed,
+        GAME_CONFIG.inventorySlots,
+      );
 
       uiState.awake();
-      player.bindTilemap({ getElevationAt: (x: number, y: number) => map.getElevationAt(x, y) } as never);
+      player.bindTilemap({
+        getElevationAt: (x: number, y: number) => map.getElevationAt(x, y),
+      } as never);
       player.awake();
       player.update(1 / 60);
       player.transform.setRotation(0);
       player.inventory.setEquipmentSlot("secondaryWeapon", { itemId: "pistol", count: 1 });
-      player.inventory.setWeaponAmmoSlot("secondaryWeaponAmmo", { itemId: "pistol-ammo", count: 8 });
+      player.inventory.setWeaponAmmoSlot("secondaryWeaponAmmo", {
+        itemId: "pistol-ammo",
+        count: 8,
+      });
       player.inventory.setActiveSlot("secondary");
 
       const system = new CombatRaycastSystem(map, player, runtime);
@@ -47,10 +56,16 @@ describe("CombatRaycastSystem", () => {
     EcsRuntime.runWith(runtime, () => {
       const map = new InfiniteTilemap({ seed: 99, chunkSize: 16 });
       const uiState = new UiStateEntity();
-      const player = new PlayerEntity(new Vector2D(0, 0), GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
+      const player = new PlayerEntity(
+        new Vector2D(0, 0),
+        GAME_CONFIG.playerBaseSpeed,
+        GAME_CONFIG.inventorySlots,
+      );
 
       uiState.awake();
-      player.bindTilemap({ getElevationAt: (x: number, y: number) => map.getElevationAt(x, y) } as never);
+      player.bindTilemap({
+        getElevationAt: (x: number, y: number) => map.getElevationAt(x, y),
+      } as never);
       player.awake();
       player.update(1 / 60);
       player.inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
@@ -67,12 +82,17 @@ describe("CombatRaycastSystem", () => {
       system.update();
 
       expect(player.weaponRaycast.mode).toBe("targeted");
-      expect(player.weaponRaycast.rays.length).toBe(Math.max(1, Math.round(getWeaponSpreadDegrees("shotgun"))));
-      const middleRay = player.weaponRaycast.rays[Math.floor(player.weaponRaycast.rays.length / 2)]!;
+      expect(player.weaponRaycast.rays.length).toBe(
+        Math.max(1, Math.round(getWeaponSpreadDegrees("shotgun"))),
+      );
+      const middleRay =
+        player.weaponRaycast.rays[Math.floor(player.weaponRaycast.rays.length / 2)]!;
       expect(middleRay.endPoint.z).toBeGreaterThan(middleRay.origin.z);
       expect(middleRay.distance).toBeGreaterThan(0);
 
-      const uniqueRoundedHeights = new Set(player.weaponRaycast.rays.map((ray) => ray.endPoint.z.toFixed(2)));
+      const uniqueRoundedHeights = new Set(
+        player.weaponRaycast.rays.map((ray) => ray.endPoint.z.toFixed(2)),
+      );
       expect(uniqueRoundedHeights.size).toBeGreaterThan(1);
     });
   });
@@ -83,10 +103,16 @@ describe("CombatRaycastSystem", () => {
     EcsRuntime.runWith(runtime, () => {
       const map = new InfiniteTilemap({ seed: 99, chunkSize: 16 });
       const uiState = new UiStateEntity();
-      const player = new PlayerEntity(new Vector2D(0, 0), GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
+      const player = new PlayerEntity(
+        new Vector2D(0, 0),
+        GAME_CONFIG.playerBaseSpeed,
+        GAME_CONFIG.inventorySlots,
+      );
 
       uiState.awake();
-      player.bindTilemap({ getElevationAt: (x: number, y: number) => map.getElevationAt(x, y) } as never);
+      player.bindTilemap({
+        getElevationAt: (x: number, y: number) => map.getElevationAt(x, y),
+      } as never);
       player.awake();
       player.update(1 / 60);
       player.inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });

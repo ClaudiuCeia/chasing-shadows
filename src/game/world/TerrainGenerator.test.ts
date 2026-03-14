@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { MAX_TERRAIN_ELEVATION, generateTerrainChunk, generateTerrainTile } from "./TerrainGenerator.ts";
+import {
+  MAX_TERRAIN_ELEVATION,
+  generateTerrainChunk,
+  generateTerrainTile,
+} from "./TerrainGenerator.ts";
 
 describe("TerrainGenerator", () => {
   test("is deterministic for a given seed and coordinate", () => {

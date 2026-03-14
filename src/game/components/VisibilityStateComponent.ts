@@ -36,7 +36,10 @@ export class VisibilityStateComponent extends Component {
     this.visibleStructureKeys = new Set(structureKeys);
   }
 
-  public setVisibleStaticObjects(objectIds: Iterable<string>, occupiedTiles: Iterable<VisibilityTile>): void {
+  public setVisibleStaticObjects(
+    objectIds: Iterable<string>,
+    occupiedTiles: Iterable<VisibilityTile>,
+  ): void {
     this.visibleStaticObjectIds = new Set(objectIds);
     this.visibleStaticObjectTiles.clear();
     for (const tile of occupiedTiles) {

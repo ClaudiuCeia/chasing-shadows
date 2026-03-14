@@ -13,14 +13,20 @@ export const STRUCTURE_WALL_LEVELS = 4;
 export const STRUCTURE_DOOR_LEVELS = 2;
 export const STRUCTURE_WINDOW_BASE_LEVEL = 1;
 export const STRUCTURE_WINDOW_LEVELS = 1;
-export const STRUCTURE_LEVEL_HEIGHT_WORLD = STRUCTURE_LEVEL_HEIGHT_PX / GAME_CONFIG.elevationStepPixels;
+export const STRUCTURE_LEVEL_HEIGHT_WORLD =
+  STRUCTURE_LEVEL_HEIGHT_PX / GAME_CONFIG.elevationStepPixels;
 export const STRUCTURE_WALL_HEIGHT_WORLD = STRUCTURE_WALL_LEVELS * STRUCTURE_LEVEL_HEIGHT_WORLD;
 export const STRUCTURE_ROOF_THICKNESS_WORLD = 0.35;
 
 const HALF_TILE_WIDTH = GAME_CONFIG.tileWidth / 2;
 const HALF_TILE_HEIGHT = GAME_CONFIG.tileHeight / 2;
 
-const projectOffset = (screen: Vector2D, dx: number, dy: number, heightPx: number): ScreenPoint => ({
+const projectOffset = (
+  screen: Vector2D,
+  dx: number,
+  dy: number,
+  heightPx: number,
+): ScreenPoint => ({
   x: Math.floor(screen.x + (dx - dy) * HALF_TILE_WIDTH),
   y: Math.floor(screen.y + (dx + dy) * HALF_TILE_HEIGHT - heightPx),
 });
@@ -177,6 +183,11 @@ export class StructureWallRenderComponent extends IsometricRenderableComponent {
   }
 
   public override renderIsometric(ctx: CanvasRenderingContext2D, screen: Vector2D): void {
-    fillPolygon(ctx, getWallQuad(screen, this.side, this.bottomOffset, this.height), this.fill, this.stroke);
+    fillPolygon(
+      ctx,
+      getWallQuad(screen, this.side, this.bottomOffset, this.height),
+      this.fill,
+      this.stroke,
+    );
   }
 }

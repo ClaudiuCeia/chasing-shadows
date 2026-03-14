@@ -13,14 +13,22 @@ describe("InventoryComponent", () => {
 
     expect(inventory.getActiveSlot()).toBe("quick2");
     expect(inventory.getQuickSlots()).toEqual([{ itemId: "water-bottle", count: 1 }, null]);
-    expect(inventory.getBackpackSlots()).toEqual([{ itemId: "body-armor", count: 2 }, null, null, null]);
+    expect(inventory.getBackpackSlots()).toEqual([
+      { itemId: "body-armor", count: 2 },
+      null,
+      null,
+      null,
+    ]);
   });
 
   test("defaults active slot to primary when state omits it", () => {
     const inventory = new InventoryComponent(4, 2);
 
     inventory.setState({
-      quickSlots: [{ itemId: "water-bottle", count: 1 }, { itemId: "bandage", count: 1 }],
+      quickSlots: [
+        { itemId: "water-bottle", count: 1 },
+        { itemId: "bandage", count: 1 },
+      ],
     });
 
     expect(inventory.getActiveSlot()).toBe("primary");
@@ -56,7 +64,10 @@ describe("InventoryComponent", () => {
 
     expect(inventory.consumeAmmoForActiveWeapon()).toBeTrue();
     expect(inventory.getActiveWeaponAmmoCount()).toBe(1);
-    expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toEqual({ itemId: "shotgun-ammo", count: 1 });
+    expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toEqual({
+      itemId: "shotgun-ammo",
+      count: 1,
+    });
   });
 
   test("consumes ammo from the active secondary weapon slot", () => {
@@ -76,7 +87,10 @@ describe("InventoryComponent", () => {
 
     expect(inventory.consumeAmmoForActiveWeapon()).toBeFalse();
     expect(inventory.getActiveWeaponAmmoCount()).toBe(0);
-    expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toEqual({ itemId: "pistol-ammo", count: 3 });
+    expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toEqual({
+      itemId: "pistol-ammo",
+      count: 3,
+    });
   });
 
   test("does not require ammo for melee weapons", () => {

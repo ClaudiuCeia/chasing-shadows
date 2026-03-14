@@ -21,21 +21,23 @@ type IdleScheduler = {
   cancel: (handle: IdleHandle) => void;
 };
 
-const idleScheduler: IdleScheduler = typeof globalThis.requestIdleCallback === "function" && typeof globalThis.cancelIdleCallback === "function"
-  ? {
-      request: (callback) => globalThis.requestIdleCallback(callback),
-      cancel: (handle) => globalThis.cancelIdleCallback(handle as number),
-    }
-  : {
-      request: (callback) =>
-        globalThis.setTimeout(() => {
-          callback({
-            didTimeout: true,
-            timeRemaining: () => 0,
-          });
-        }, 0),
-      cancel: (handle) => globalThis.clearTimeout(handle),
-    };
+const idleScheduler: IdleScheduler =
+  typeof globalThis.requestIdleCallback === "function" &&
+  typeof globalThis.cancelIdleCallback === "function"
+    ? {
+        request: (callback) => globalThis.requestIdleCallback(callback),
+        cancel: (handle) => globalThis.cancelIdleCallback(handle as number),
+      }
+    : {
+        request: (callback) =>
+          globalThis.setTimeout(() => {
+            callback({
+              didTimeout: true,
+              timeRemaining: () => 0,
+            });
+          }, 0),
+        cancel: (handle) => globalThis.clearTimeout(handle),
+      };
 
 const chunkKey = (x: number, y: number): string => `${x}:${y}`;
 

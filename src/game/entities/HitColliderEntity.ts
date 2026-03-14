@@ -3,7 +3,12 @@ import { CollisionEntity, type CollisionAnchor, type CollisionShape } from "@cla
 export class HitColliderEntity extends CollisionEntity {
   public bodyHeight: number;
 
-  public constructor(shape: CollisionShape, anchorPoint: CollisionAnchor, layer: number, bodyHeight: number) {
+  public constructor(
+    shape: CollisionShape,
+    anchorPoint: CollisionAnchor,
+    layer: number,
+    bodyHeight: number,
+  ) {
     super(shape, anchorPoint, layer, 0);
     this.bodyHeight = Math.max(0.1, bodyHeight);
   }

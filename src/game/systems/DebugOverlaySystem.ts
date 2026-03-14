@@ -1,4 +1,10 @@
-import { EcsRuntime, SystemPhase, SystemTickMode, type EntityQuery, type System } from "@claudiu-ceia/tick";
+import {
+  EcsRuntime,
+  SystemPhase,
+  SystemTickMode,
+  type EntityQuery,
+  type System,
+} from "@claudiu-ceia/tick";
 import { DebugOverlayComponent } from "../components/DebugOverlayComponent.ts";
 import { getSingletonComponent } from "../ecs/singleton.ts";
 

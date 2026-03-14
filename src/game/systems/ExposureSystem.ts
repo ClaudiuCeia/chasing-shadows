@@ -61,7 +61,9 @@ export class ExposureSystem implements System {
           temperature.thermalBalance = Math.min(0, temperature.thermalBalance + recovery);
         }
       } else {
-        const growth = (GAME_CONFIG.thermalGrowthBase + outsideBand * GAME_CONFIG.thermalGrowthScale) * deltaTime;
+        const growth =
+          (GAME_CONFIG.thermalGrowthBase + outsideBand * GAME_CONFIG.thermalGrowthScale) *
+          deltaTime;
         if (this.terminator.getSide(point) === "sun") {
           temperature.thermalBalance = clamp(temperature.thermalBalance + growth, -100, 100);
         } else {
@@ -73,11 +75,23 @@ export class ExposureSystem implements System {
       temperature.cold = clamp(Math.max(0, -temperature.thermalBalance), 0, 100);
 
       if (temperature.heat > GAME_CONFIG.thermalDamageThreshold) {
-        health.hp = Math.max(0, health.hp - (temperature.heat - GAME_CONFIG.thermalDamageThreshold) * GAME_CONFIG.thermalDamageRate * deltaTime);
+        health.hp = Math.max(
+          0,
+          health.hp -
+            (temperature.heat - GAME_CONFIG.thermalDamageThreshold) *
+              GAME_CONFIG.thermalDamageRate *
+              deltaTime,
+        );
       }
 
       if (temperature.cold > GAME_CONFIG.thermalDamageThreshold) {
-        health.hp = Math.max(0, health.hp - (temperature.cold - GAME_CONFIG.thermalDamageThreshold) * GAME_CONFIG.thermalDamageRate * deltaTime);
+        health.hp = Math.max(
+          0,
+          health.hp -
+            (temperature.cold - GAME_CONFIG.thermalDamageThreshold) *
+              GAME_CONFIG.thermalDamageRate *
+              deltaTime,
+        );
       }
     }
   }

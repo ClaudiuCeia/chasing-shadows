@@ -54,7 +54,10 @@ export class PointerMarkerSystem implements System {
       const wasBlockedByHud = pointer.blockedByHud;
       pointer.setResolved(resolved.world, canvasPoint, resolved.elevation);
       if (this.wasMouseDown) {
-        pointer.phase = !wasBlockedByHud && pointer.mode !== "attack" && pointer.worldPoint !== null ? "click" : "release";
+        pointer.phase =
+          !wasBlockedByHud && pointer.mode !== "attack" && pointer.worldPoint !== null
+            ? "click"
+            : "release";
         pointer.blockedByHud = false;
         this.wasMouseDown = false;
         return;

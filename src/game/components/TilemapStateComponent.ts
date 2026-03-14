@@ -1,5 +1,10 @@
 import { Component } from "@claudiu-ceia/tick";
-import { InfiniteTilemap, type ChunkData, type InfiniteTilemapOptions, type TileDelta } from "../world/InfiniteTilemap.ts";
+import {
+  InfiniteTilemap,
+  type ChunkData,
+  type InfiniteTilemapOptions,
+  type TileDelta,
+} from "../world/InfiniteTilemap.ts";
 import type { TileData, TileKind } from "../world/tile-types.ts";
 
 export class TilemapStateComponent extends Component {

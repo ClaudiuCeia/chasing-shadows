@@ -1,10 +1,19 @@
-import { HudLayoutNodeComponent, HudRenderComponent, Vector2D, type ICamera } from "@claudiu-ceia/tick";
+import {
+  HudLayoutNodeComponent,
+  HudRenderComponent,
+  Vector2D,
+  type ICamera,
+} from "@claudiu-ceia/tick";
 import { InventoryComponent } from "../components/InventoryComponent.ts";
 import { LootFieldComponent } from "../components/LootFieldComponent.ts";
 import { LootUiComponent, type InventorySlotRef } from "../components/LootUiComponent.ts";
 import { ModalStateComponent } from "../components/ModalStateComponent.ts";
 import { getItemDefinition, type ItemStack } from "../items/item-catalog.ts";
-import { getLootSourceSlotCount, getLootSourceSnapshot, getLootSourceTitle } from "../loot/loot-sources.ts";
+import {
+  getLootSourceSlotCount,
+  getLootSourceSnapshot,
+  getLootSourceTitle,
+} from "../loot/loot-sources.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
 import { HudButtonEntity } from "./HudButtonEntity.ts";
 import {
@@ -22,7 +31,11 @@ import {
   createGridLayout,
   getSlotRect,
 } from "./inventory-layout.ts";
-import { canPlaceInventoryStackAt, getInventoryStackAt, isReservedInventorySlot } from "./inventory-slots.ts";
+import {
+  canPlaceInventoryStackAt,
+  getInventoryStackAt,
+  isReservedInventorySlot,
+} from "./inventory-slots.ts";
 import { drawItemSprite, getItemSheet } from "./item-sprites.ts";
 
 type InventoryModalSnapshot = {
@@ -30,7 +43,12 @@ type InventoryModalSnapshot = {
   sourceSlots: readonly (ItemStack | null)[];
 };
 
-const drawSectionTitle = (ctx: CanvasRenderingContext2D, text: string, x: number, y: number): void => {
+const drawSectionTitle = (
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+): void => {
   ctx.fillStyle = "rgba(236, 226, 204, 0.76)";
   ctx.font = "bold 13px monospace";
   ctx.textAlign = "left";
@@ -60,9 +78,18 @@ export class LootWindowRenderComponent extends HudRenderComponent {
       });
   }
 
-  public override doRender(ctx: CanvasRenderingContext2D, _camera: ICamera, _canvasSize: Vector2D): void {
+  public override doRender(
+    ctx: CanvasRenderingContext2D,
+    _camera: ICamera,
+    _canvasSize: Vector2D,
+  ): void {
     const layout = this.ent.getComponent(HudLayoutNodeComponent);
-    layout.setSize(this.state.openSource ? INVENTORY_MODAL_WIDTH.withSource : INVENTORY_MODAL_WIDTH.inventoryOnly, INVENTORY_MODAL_HEIGHT);
+    layout.setSize(
+      this.state.openSource
+        ? INVENTORY_MODAL_WIDTH.withSource
+        : INVENTORY_MODAL_WIDTH.inventoryOnly,
+      INVENTORY_MODAL_HEIGHT,
+    );
     const frame = layout.getFrame();
     if (!frame) {
       return;
@@ -100,34 +127,80 @@ export class LootWindowRenderComponent extends HudRenderComponent {
 
     this.drawDropFeedback(ctx, frame);
     this.drawTooltip(ctx, frame);
-    this.drawDraggedItem(ctx, frame);
+    this.drawDraggedItem(ctx);
   }
 
-  private drawEquipmentSection(ctx: CanvasRenderingContext2D, frame: { x: number; y: number }): void {
-    drawSectionTitle(ctx, "Equipment", frame.x + INVENTORY_SECTION_LEFT, frame.y + INVENTORY_SECTION_TOP);
+  private drawEquipmentSection(
+    ctx: CanvasRenderingContext2D,
+    frame: { x: number; y: number },
+  ): void {
+    drawSectionTitle(
+      ctx,
+      "Equipment",
+      frame.x + INVENTORY_SECTION_LEFT,
+      frame.y + INVENTORY_SECTION_TOP,
+    );
     for (const layout of EQUIPMENT_LAYOUT) {
       this.drawSlot(ctx, frame, layout.ref, layout.x, layout.y, this.getSlotLabel(layout.ref));
     }
   }
 
-  private drawQuickbarSection(ctx: CanvasRenderingContext2D, frame: { x: number; y: number }): void {
-    drawSectionTitle(ctx, "Quick Slots", frame.x + QUICKBAR_ORIGIN.x, frame.y + QUICKBAR_ORIGIN.y - INVENTORY_LABEL_GAP);
-    const layouts = createGridLayout("quick", this.inventory.quickSlotCount, this.inventory.quickSlotCount, QUICKBAR_ORIGIN.x, QUICKBAR_ORIGIN.y);
+  private drawQuickbarSection(
+    ctx: CanvasRenderingContext2D,
+    frame: { x: number; y: number },
+  ): void {
+    drawSectionTitle(
+      ctx,
+      "Quick Slots",
+      frame.x + QUICKBAR_ORIGIN.x,
+      frame.y + QUICKBAR_ORIGIN.y - INVENTORY_LABEL_GAP,
+    );
+    const layouts = createGridLayout(
+      "quick",
+      this.inventory.quickSlotCount,
+      this.inventory.quickSlotCount,
+      QUICKBAR_ORIGIN.x,
+      QUICKBAR_ORIGIN.y,
+    );
     layouts.forEach((layout, index) => {
       this.drawSlot(ctx, frame, layout.ref, layout.x, layout.y, `${index + 3}`);
     });
   }
 
-  private drawBackpackSection(ctx: CanvasRenderingContext2D, frame: { x: number; y: number }): void {
+  private drawBackpackSection(
+    ctx: CanvasRenderingContext2D,
+    frame: { x: number; y: number },
+  ): void {
     drawSectionTitle(ctx, "Backpack", frame.x + BACKPACK_ORIGIN.x, frame.y + INVENTORY_SECTION_TOP);
-    createGridLayout("backpack", this.inventory.backpackCapacity, BACKPACK_COLUMNS, BACKPACK_ORIGIN.x, BACKPACK_ORIGIN.y).forEach((layout) => {
+    createGridLayout(
+      "backpack",
+      this.inventory.backpackCapacity,
+      BACKPACK_COLUMNS,
+      BACKPACK_ORIGIN.x,
+      BACKPACK_ORIGIN.y,
+    ).forEach((layout) => {
       this.drawSlot(ctx, frame, layout.ref, layout.x, layout.y);
     });
   }
 
-  private drawSourceSection(ctx: CanvasRenderingContext2D, frame: { x: number; y: number }, snapshot: InventoryModalSnapshot): void {
-    drawSectionTitle(ctx, snapshot.sourceTitle ?? "Loot", frame.x + SOURCE_ORIGIN.x, frame.y + INVENTORY_SECTION_TOP);
-    createGridLayout("source", snapshot.sourceSlots.length, 4, SOURCE_ORIGIN.x, SOURCE_ORIGIN.y).forEach((layout) => {
+  private drawSourceSection(
+    ctx: CanvasRenderingContext2D,
+    frame: { x: number; y: number },
+    snapshot: InventoryModalSnapshot,
+  ): void {
+    drawSectionTitle(
+      ctx,
+      snapshot.sourceTitle ?? "Loot",
+      frame.x + SOURCE_ORIGIN.x,
+      frame.y + INVENTORY_SECTION_TOP,
+    );
+    createGridLayout(
+      "source",
+      snapshot.sourceSlots.length,
+      4,
+      SOURCE_ORIGIN.x,
+      SOURCE_ORIGIN.y,
+    ).forEach((layout) => {
       this.drawSlot(ctx, frame, layout.ref, layout.x, layout.y);
     });
   }
@@ -141,8 +214,15 @@ export class LootWindowRenderComponent extends HudRenderComponent {
     label?: string,
   ): void {
     const rect = getSlotRect(frame as never, { ref, x, y });
-    const hovered = this.state.hoveredSlot?.section === ref.section && this.state.hoveredSlot.key === ref.key;
-    const stack = getInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, ref);
+    const hovered =
+      this.state.hoveredSlot?.section === ref.section && this.state.hoveredSlot.key === ref.key;
+    const stack = getInventoryStackAt(
+      this.inventory,
+      this.state.openSource,
+      this.lootField,
+      this.map,
+      ref,
+    );
     const draggedStack = this.state.draggedItem?.stack ?? null;
     const hiddenByDrag =
       this.state.draggedItem &&
@@ -152,21 +232,35 @@ export class LootWindowRenderComponent extends HudRenderComponent {
     const acceptsDragged =
       draggedStack !== null &&
       isReservedInventorySlot(ref) &&
-      canPlaceInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, ref, draggedStack);
+      canPlaceInventoryStackAt(
+        this.inventory,
+        this.state.openSource,
+        this.lootField,
+        this.map,
+        ref,
+        draggedStack,
+      );
     const rejectsDragged =
       hovered &&
       draggedStack !== null &&
       isReservedInventorySlot(ref) &&
-      !canPlaceInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, ref, draggedStack);
+      !canPlaceInventoryStackAt(
+        this.inventory,
+        this.state.openSource,
+        this.lootField,
+        this.map,
+        ref,
+        draggedStack,
+      );
     const active = this.isActiveRef(ref);
 
     ctx.fillStyle = acceptsDragged
       ? "rgba(96, 108, 126, 0.96)"
       : active
         ? "rgba(82, 90, 106, 0.98)"
-      : hovered
-        ? "rgba(93, 103, 118, 0.92)"
-        : "rgba(42, 50, 62, 0.96)";
+        : hovered
+          ? "rgba(93, 103, 118, 0.92)"
+          : "rgba(42, 50, 62, 0.96)";
     ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
     ctx.strokeStyle = acceptsDragged
       ? "rgba(255, 255, 255, 0.98)"
@@ -174,9 +268,9 @@ export class LootWindowRenderComponent extends HudRenderComponent {
         ? "rgba(255, 118, 118, 0.95)"
         : active
           ? "rgba(255, 244, 214, 0.96)"
-        : hovered
-          ? "rgba(252, 240, 213, 0.95)"
-          : "rgba(229, 217, 194, 0.55)";
+          : hovered
+            ? "rgba(252, 240, 213, 0.95)"
+            : "rgba(229, 217, 194, 0.55)";
     ctx.lineWidth = acceptsDragged || hovered || rejectsDragged || active ? 2 : 1;
     ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
 
@@ -209,7 +303,7 @@ export class LootWindowRenderComponent extends HudRenderComponent {
     }
   }
 
-  private drawDraggedItem(ctx: CanvasRenderingContext2D, frame: { x: number; y: number }): void {
+  private drawDraggedItem(ctx: CanvasRenderingContext2D): void {
     if (!this.state.draggedItem || !this.state.dragHudPoint) {
       return;
     }
@@ -244,17 +338,30 @@ export class LootWindowRenderComponent extends HudRenderComponent {
       ctx.font = "bold 13px monospace";
       ctx.textAlign = "right";
       ctx.textBaseline = "bottom";
-      ctx.fillText(`${stack.count}`, rectX + INVENTORY_SLOT_SIZE - 4, rectY + INVENTORY_SLOT_SIZE - 4);
+      ctx.fillText(
+        `${stack.count}`,
+        rectX + INVENTORY_SLOT_SIZE - 4,
+        rectY + INVENTORY_SLOT_SIZE - 4,
+      );
     }
     ctx.restore();
   }
 
-  private drawTooltip(ctx: CanvasRenderingContext2D, frame: { x: number; y: number; width: number; height: number }): void {
+  private drawTooltip(
+    ctx: CanvasRenderingContext2D,
+    frame: { x: number; y: number; width: number; height: number },
+  ): void {
     if (!this.state.hoveredSlot || this.state.draggedItem || !this.state.dragHudPoint) {
       return;
     }
 
-    const stack = getInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, this.state.hoveredSlot);
+    const stack = getInventoryStackAt(
+      this.inventory,
+      this.state.openSource,
+      this.lootField,
+      this.map,
+      this.state.hoveredSlot,
+    );
     if (!stack) {
       return;
     }
@@ -295,7 +402,10 @@ export class LootWindowRenderComponent extends HudRenderComponent {
       if (this.state.draggedItem?.hiddenOrigin?.section === "source") {
         return {
           sourceTitle: getLootSourceTitle(source, this.lootField, this.map),
-          sourceSlots: Array.from({ length: getLootSourceSlotCount(source, this.lootField, this.map) }, () => null),
+          sourceSlots: Array.from(
+            { length: getLootSourceSlotCount(source, this.lootField, this.map) },
+            () => null,
+          ),
         };
       }
 
@@ -380,7 +490,10 @@ export class LootWindowRenderComponent extends HudRenderComponent {
     return lines;
   }
 
-  private drawDropFeedback(ctx: CanvasRenderingContext2D, frame: { x: number; y: number; width: number; height: number }): void {
+  private drawDropFeedback(
+    ctx: CanvasRenderingContext2D,
+    frame: { x: number; y: number; width: number; height: number },
+  ): void {
     const message = this.state.getVisibleDropFeedback();
     if (!message) {
       return;

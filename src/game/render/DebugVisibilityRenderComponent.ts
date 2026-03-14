@@ -9,7 +9,10 @@ import {
 import { DebugOverlayComponent } from "../components/DebugOverlayComponent.ts";
 import { StaticWorldObjectComponent } from "../components/StaticWorldObjectComponent.ts";
 import { TilePositionComponent } from "../components/TilePositionComponent.ts";
-import { VisibilityStateComponent, type VisibilityTile } from "../components/VisibilityStateComponent.ts";
+import {
+  VisibilityStateComponent,
+  type VisibilityTile,
+} from "../components/VisibilityStateComponent.ts";
 import { IsometricCameraEntity } from "./IsometricCameraEntity.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
 import { GAME_CONFIG } from "../config/game-config.ts";
@@ -45,14 +48,21 @@ export class DebugVisibilityRenderComponent extends RenderComponent {
 
   public override awake(): void {
     super.awake();
-    this.staticObjectQuery = this.runtime.registry.query().with(StaticWorldObjectComponent).with(TilePositionComponent);
+    this.staticObjectQuery = this.runtime.registry
+      .query()
+      .with(StaticWorldObjectComponent)
+      .with(TilePositionComponent);
   }
 
   public override isVisible(_camera: ICamera): boolean {
     return this.debug.enabled;
   }
 
-  public override doRender(ctx: CanvasRenderingContext2D, camera: ICamera, canvasSize: Vector2D): void {
+  public override doRender(
+    ctx: CanvasRenderingContext2D,
+    camera: ICamera,
+    canvasSize: Vector2D,
+  ): void {
     if (!(camera instanceof IsometricCameraEntity) || !this.debug.enabled) {
       return;
     }
@@ -67,7 +77,16 @@ export class DebugVisibilityRenderComponent extends RenderComponent {
         continue;
       }
 
-      this.drawTileOverlay(ctx, camera, canvasSize, tile, "rgba(80, 214, 127, 0.18)", "rgba(80, 214, 127, 0.38)", 1, canvasSize);
+      this.drawTileOverlay(
+        ctx,
+        camera,
+        canvasSize,
+        tile,
+        "rgba(80, 214, 127, 0.18)",
+        "rgba(80, 214, 127, 0.38)",
+        1,
+        canvasSize,
+      );
     }
 
     for (const tile of this.visibility.getVisibleStaticObjectTiles()) {
@@ -75,7 +94,16 @@ export class DebugVisibilityRenderComponent extends RenderComponent {
         continue;
       }
 
-      this.drawTileOverlay(ctx, camera, canvasSize, tile, "rgba(110, 255, 160, 0.22)", "rgba(110, 255, 160, 0.92)", 2, canvasSize);
+      this.drawTileOverlay(
+        ctx,
+        camera,
+        canvasSize,
+        tile,
+        "rgba(110, 255, 160, 0.22)",
+        "rgba(110, 255, 160, 0.92)",
+        2,
+        canvasSize,
+      );
     }
 
     if (this.staticObjectQuery) {
@@ -107,10 +135,26 @@ export class DebugVisibilityRenderComponent extends RenderComponent {
   ): void {
     const tileData = this.map.getTile(tile.x, tile.y);
     const points: ScreenPoint[] = [
-      camera.toCanvasAt(new Vector2D(tile.x - 0.5, tile.y - 0.5), tileData.corners.northWest, canvasSize),
-      camera.toCanvasAt(new Vector2D(tile.x + 0.5, tile.y - 0.5), tileData.corners.northEast, canvasSize),
-      camera.toCanvasAt(new Vector2D(tile.x + 0.5, tile.y + 0.5), tileData.corners.southEast, canvasSize),
-      camera.toCanvasAt(new Vector2D(tile.x - 0.5, tile.y + 0.5), tileData.corners.southWest, canvasSize),
+      camera.toCanvasAt(
+        new Vector2D(tile.x - 0.5, tile.y - 0.5),
+        tileData.corners.northWest,
+        canvasSize,
+      ),
+      camera.toCanvasAt(
+        new Vector2D(tile.x + 0.5, tile.y - 0.5),
+        tileData.corners.northEast,
+        canvasSize,
+      ),
+      camera.toCanvasAt(
+        new Vector2D(tile.x + 0.5, tile.y + 0.5),
+        tileData.corners.southEast,
+        canvasSize,
+      ),
+      camera.toCanvasAt(
+        new Vector2D(tile.x - 0.5, tile.y + 0.5),
+        tileData.corners.southWest,
+        canvasSize,
+      ),
     ];
 
     if (!this.isPolygonVisible(points, viewportSize)) {
@@ -163,9 +207,11 @@ export class DebugVisibilityRenderComponent extends RenderComponent {
     const center = camera.transform.transform.position;
     const radiusX = Math.ceil(canvasSize.x / GAME_CONFIG.tileWidth) + 8;
     const radiusY = Math.ceil(canvasSize.y / GAME_CONFIG.tileHeight) + 8;
-    const verticalPadding = Math.ceil(
-      (GAME_CONFIG.maxTerrainElevation * camera.getElevationStepPixels()) / GAME_CONFIG.tileHeight,
-    ) + 2;
+    const verticalPadding =
+      Math.ceil(
+        (GAME_CONFIG.maxTerrainElevation * camera.getElevationStepPixels()) /
+          GAME_CONFIG.tileHeight,
+      ) + 2;
 
     return {
       minX: Math.floor(center.x) - radiusX,
@@ -176,7 +222,12 @@ export class DebugVisibilityRenderComponent extends RenderComponent {
   }
 
   private isTileWithinCullBounds(tile: VisibilityTile, bounds: TileCullBounds): boolean {
-    return tile.x >= bounds.minX && tile.x <= bounds.maxX && tile.y >= bounds.minY && tile.y <= bounds.maxY;
+    return (
+      tile.x >= bounds.minX &&
+      tile.x <= bounds.maxX &&
+      tile.y >= bounds.minY &&
+      tile.y <= bounds.maxY
+    );
   }
 
   private isPolygonVisible(points: readonly ScreenPoint[], viewportSize: Vector2D): boolean {

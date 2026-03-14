@@ -19,7 +19,10 @@ import { PlayerEntity } from "../entities/PlayerEntity.ts";
 import { TopDownControllerComponent } from "../components/TopDownControllerComponent.ts";
 import { GAME_CONFIG } from "../config/game-config.ts";
 import { getSingletonComponent, getSingletonEntity } from "../ecs/singleton.ts";
-import { getDefaultAttackSelection, getPlayerMovementProfile } from "../render/player-animation-logic.ts";
+import {
+  getDefaultAttackSelection,
+  getPlayerMovementProfile,
+} from "../render/player-animation-logic.ts";
 import { PlayerAttackSystem } from "./PlayerAttackSystem.ts";
 import { screenVectorToDirectionIndex } from "../render/player-sprite-math.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
@@ -51,15 +54,25 @@ export class WorldPointerActionSystem implements System {
       .with(PhysicsBodyComponent)
       .with(TransformComponent)
       .with(PlayerAttackComponent);
-    this.uiQuery = this.runtime.registry.query().with(LootUiComponent).with(PointerWorldComponent).with(ModalStateComponent);
+    this.uiQuery = this.runtime.registry
+      .query()
+      .with(LootUiComponent)
+      .with(PointerWorldComponent)
+      .with(ModalStateComponent);
     this.worldQuery = this.runtime.registry.query().with(LootFieldComponent);
   }
 
   public update(): void {
-    const pointer = this.uiQuery ? getSingletonComponent(this.uiQuery, PointerWorldComponent) : null;
+    const pointer = this.uiQuery
+      ? getSingletonComponent(this.uiQuery, PointerWorldComponent)
+      : null;
     const lootUi = this.uiQuery ? getSingletonComponent(this.uiQuery, LootUiComponent) : null;
-    const modalState = this.uiQuery ? getSingletonComponent(this.uiQuery, ModalStateComponent) : null;
-    const lootField = this.worldQuery ? getSingletonComponent(this.worldQuery, LootFieldComponent) : null;
+    const modalState = this.uiQuery
+      ? getSingletonComponent(this.uiQuery, ModalStateComponent)
+      : null;
+    const lootField = this.worldQuery
+      ? getSingletonComponent(this.worldQuery, LootFieldComponent)
+      : null;
     const player = this.playerQuery ? getSingletonEntity<PlayerEntity>(this.playerQuery) : null;
     if (!pointer || !lootUi || !modalState || !lootField || !player) {
       return;
@@ -79,7 +92,10 @@ export class WorldPointerActionSystem implements System {
         pointer.phase = null;
         return;
       }
-      if (pointer.mode === "attack" || (attack.fireMode === "semi" && !attack.releasedSinceLastShot)) {
+      if (
+        pointer.mode === "attack" ||
+        (attack.fireMode === "semi" && !attack.releasedSinceLastShot)
+      ) {
         PlayerAttackSystem.handleTrigger(attack, null, null, null, "release");
       }
       pointer.mode = null;
@@ -166,7 +182,10 @@ export class WorldPointerActionSystem implements System {
     );
     pointer.mode = triggered
       ? "attack"
-      : pointer.phase === "hold" && previousMode === "attack" && attack.fireMode === "semi" && !attack.releasedSinceLastShot
+      : pointer.phase === "hold" &&
+          previousMode === "attack" &&
+          attack.fireMode === "semi" &&
+          !attack.releasedSinceLastShot
         ? "attack"
         : null;
     pointer.phase = null;
@@ -204,7 +223,8 @@ export class WorldPointerActionSystem implements System {
     if (
       hit &&
       Math.hypot(hit.x - playerPosition.x, hit.y - playerPosition.y) <= this.interactRange &&
-      Math.abs(this.map.getElevationAt(hit.x, hit.y) - pointer.elevation) <= GAME_CONFIG.lootElevationTolerance
+      Math.abs(this.map.getElevationAt(hit.x, hit.y) - pointer.elevation) <=
+        GAME_CONFIG.lootElevationTolerance
     ) {
       return { x: hit.x, y: hit.y };
     }

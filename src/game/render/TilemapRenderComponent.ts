@@ -14,7 +14,7 @@ import { TilePositionComponent } from "../components/TilePositionComponent.ts";
 import { isTileFlat, type TileData, type TileKind } from "../world/tile-types.ts";
 import type { TileAtlas, TileLighting } from "./TileAtlas.ts";
 import { IsometricCameraEntity } from "./IsometricCameraEntity.ts";
-import { parseHexColor, rgbToHex, type Rgb } from "../../shared/math/color.ts";
+import { parseHexColor, rgbToHex } from "../../shared/math/color.ts";
 import { tileKey } from "../../shared/math/tile-key.ts";
 
 export type TilemapRenderOptions = {
@@ -160,12 +160,20 @@ const createTileColorCache = (atlas: TileAtlas): TileColorCache => ({
     south: blendColor(atlas.palettes.regolith.neutral, "#000000", 0.26),
   },
   rock: {
-    top: createTopLightingSet(atlas.palettes.rock.neutral, atlas.palettes.rock.sun, atlas.palettes.rock.dark),
+    top: createTopLightingSet(
+      atlas.palettes.rock.neutral,
+      atlas.palettes.rock.sun,
+      atlas.palettes.rock.dark,
+    ),
     east: blendColor(atlas.palettes.rock.neutral, "#000000", 0.18),
     south: blendColor(atlas.palettes.rock.neutral, "#000000", 0.26),
   },
   scrap: {
-    top: createTopLightingSet(atlas.palettes.scrap.neutral, atlas.palettes.scrap.sun, atlas.palettes.scrap.dark),
+    top: createTopLightingSet(
+      atlas.palettes.scrap.neutral,
+      atlas.palettes.scrap.sun,
+      atlas.palettes.scrap.dark,
+    ),
     east: blendColor(atlas.palettes.scrap.neutral, "#000000", 0.18),
     south: blendColor(atlas.palettes.scrap.neutral, "#000000", 0.26),
   },
@@ -228,14 +236,23 @@ export class TilemapRenderComponent extends RenderComponent {
     const radiusY = Math.ceil(canvasSize.y / this.tileHeight) + 8;
     const maxTerrainElevation = this.options?.maxTerrainElevation ?? DEFAULT_MAX_TERRAIN_ELEVATION;
     const southCullingPadding = this.options?.southCullingPadding ?? DEFAULT_SOUTH_CULLING_PADDING;
-    const verticalPadding = Math.ceil((maxTerrainElevation * camera.getElevationStepPixels()) / this.tileHeight) + 2;
+    const verticalPadding =
+      Math.ceil((maxTerrainElevation * camera.getElevationStepPixels()) / this.tileHeight) + 2;
     const minX = Math.floor(center.x) - radiusX;
     const maxX = Math.floor(center.x) + radiusX;
     const minY = Math.floor(center.y) - radiusY - verticalPadding;
     const maxY = Math.floor(center.y) + radiusY + verticalPadding + southCullingPadding;
     const projection = this.createProjection(camera, canvasSize);
 
-    const tileEntries = this.buildTileEntries(minX, maxX, minY, maxY, projection, canvasSize, maxTerrainElevation);
+    const tileEntries = this.buildTileEntries(
+      minX,
+      maxX,
+      minY,
+      maxY,
+      projection,
+      canvasSize,
+      maxTerrainElevation,
+    );
 
     tileEntries.visible.sort((a, b) => {
       const depthDelta = a.depth - b.depth;
@@ -255,7 +272,14 @@ export class TilemapRenderComponent extends RenderComponent {
       this.drawTopFace(ctx, entry);
     }
 
-    const overlayCommands = this.collectOverlayCommands(tileEntries, minX, maxX, minY, maxY, projection);
+    const overlayCommands = this.collectOverlayCommands(
+      tileEntries,
+      minX,
+      maxX,
+      minY,
+      maxY,
+      projection,
+    );
     overlayCommands.sort((a, b) => {
       const depthDelta = a.depth - b.depth;
       if (Math.abs(depthDelta) > DEPTH_EPSILON) {
@@ -298,8 +322,18 @@ export class TilemapRenderComponent extends RenderComponent {
     const tangentX = this.terminator.tangent.x;
     const tangentY = this.terminator.tangent.y;
     const half = 200;
-    const a = this.projectPoint(centerX - tangentX * half, centerY - tangentY * half, 0, projection);
-    const b = this.projectPoint(centerX + tangentX * half, centerY + tangentY * half, 0, projection);
+    const a = this.projectPoint(
+      centerX - tangentX * half,
+      centerY - tangentY * half,
+      0,
+      projection,
+    );
+    const b = this.projectPoint(
+      centerX + tangentX * half,
+      centerY + tangentY * half,
+      0,
+      projection,
+    );
 
     ctx.strokeStyle = "rgba(255, 235, 170, 0.7)";
     ctx.lineWidth = 2;
@@ -327,7 +361,12 @@ export class TilemapRenderComponent extends RenderComponent {
     };
   }
 
-  private projectPoint(x: number, y: number, elevation: number, projection: CameraProjection): ScreenPoint {
+  private projectPoint(
+    x: number,
+    y: number,
+    elevation: number,
+    projection: CameraProjection,
+  ): ScreenPoint {
     const isoX = (x - y) * projection.halfTileWidth;
     const isoY = (x + y) * projection.halfTileHeight - elevation * projection.elevationStepPixels;
     return {
@@ -354,11 +393,8 @@ export class TilemapRenderComponent extends RenderComponent {
       for (let x = minX; x <= maxX + 1; x++) {
         const tile = this.map.getTile(x, y);
         const distance = this.terminator.distanceOutsideSafeBandXY(x, y);
-        const lighting: TileLighting = distance <= 0
-          ? "neutral"
-          : this.terminator.getSideXY(x, y) === "sun"
-            ? "sun"
-            : "dark";
+        const lighting: TileLighting =
+          distance <= 0 ? "neutral" : this.terminator.getSideXY(x, y) === "sun" ? "sun" : "dark";
 
         const screen = this.projectPoint(x, y, tile.elevation, projection);
         const corners = this.getCornerPointsForTile(x, y, tile, projection);
@@ -481,7 +517,8 @@ export class TilemapRenderComponent extends RenderComponent {
       for (const renderable of renderables) {
         commands.push({
           kind: "entity",
-          depth: position.x + position.y + position.z + renderable.sortOffset + ENTITY_DEPTH_EPSILON,
+          depth:
+            position.x + position.y + position.z + renderable.sortOffset + ENTITY_DEPTH_EPSILON,
           screenY: screenPoint.y,
           screen,
           renderable,
@@ -501,7 +538,12 @@ export class TilemapRenderComponent extends RenderComponent {
 
     fillPolygon(
       ctx,
-      [entry.corners.northWest, entry.corners.northEast, entry.corners.southEast, entry.corners.southWest],
+      [
+        entry.corners.northWest,
+        entry.corners.northEast,
+        entry.corners.southEast,
+        entry.corners.southWest,
+      ],
       this.colorCache[entry.tile.kind].top[entry.lighting],
       "rgba(0, 0, 0, 0.12)",
     );
@@ -540,10 +582,18 @@ export class TilemapRenderComponent extends RenderComponent {
     projection: CameraProjection,
   ): TileCornerPoints {
     return {
-      northWest: snapScreenPoint(this.projectPoint(x - 0.5, y - 0.5, tile.corners.northWest, projection)),
-      northEast: snapScreenPoint(this.projectPoint(x + 0.5, y - 0.5, tile.corners.northEast, projection)),
-      southEast: snapScreenPoint(this.projectPoint(x + 0.5, y + 0.5, tile.corners.southEast, projection)),
-      southWest: snapScreenPoint(this.projectPoint(x - 0.5, y + 0.5, tile.corners.southWest, projection)),
+      northWest: snapScreenPoint(
+        this.projectPoint(x - 0.5, y - 0.5, tile.corners.northWest, projection),
+      ),
+      northEast: snapScreenPoint(
+        this.projectPoint(x + 0.5, y - 0.5, tile.corners.northEast, projection),
+      ),
+      southEast: snapScreenPoint(
+        this.projectPoint(x + 0.5, y + 0.5, tile.corners.southEast, projection),
+      ),
+      southWest: snapScreenPoint(
+        this.projectPoint(x - 0.5, y + 0.5, tile.corners.southWest, projection),
+      ),
     };
   }
 }

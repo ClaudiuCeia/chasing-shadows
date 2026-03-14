@@ -32,13 +32,11 @@ export class LootBoxSpriteComponent extends IsometricRenderableComponent {
       LootBoxSpriteComponent.spritesPromise = getLootBoxSprites(EcsRuntime.getCurrent());
     }
 
-    LootBoxSpriteComponent.spritesPromise!
-      .then((sprites) => {
-        this.sprites = sprites;
-      })
-      .catch((error) => {
-        console.error(error);
-      });
+    LootBoxSpriteComponent.spritesPromise!.then((sprites) => {
+      this.sprites = sprites;
+    }).catch((error) => {
+      console.error(error);
+    });
   }
 
   public setSpriteIndex(value: number): void {
@@ -57,8 +55,10 @@ export class LootBoxSpriteComponent extends IsometricRenderableComponent {
     const drawSize = BOX_FRAME_SIZE * BOX_SCALE;
     const drawX = Math.floor(screen.x - drawSize / 2);
     const drawY = Math.floor(screen.y - drawSize + 6);
-    const frame = BOX_FRAME_LOOKUP[this.spriteIndex % BOX_FRAME_LOOKUP.length] ?? BOX_FRAME_LOOKUP[0];
-    const highlighted = this.ent.hasComponent(HighlightComponent) && this.ent.getComponent(HighlightComponent).active;
+    const frame =
+      BOX_FRAME_LOOKUP[this.spriteIndex % BOX_FRAME_LOOKUP.length] ?? BOX_FRAME_LOOKUP[0];
+    const highlighted =
+      this.ent.hasComponent(HighlightComponent) && this.ent.getComponent(HighlightComponent).active;
 
     ctx.drawImage(this.sprites.shadow, drawX, drawY + 1, drawSize, drawSize);
 

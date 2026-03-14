@@ -1,4 +1,11 @@
-import { EcsRuntime, SystemPhase, SystemTickMode, TransformComponent, Vector2D, type System } from "@claudiu-ceia/tick";
+import {
+  EcsRuntime,
+  SystemPhase,
+  SystemTickMode,
+  TransformComponent,
+  Vector2D,
+  type System,
+} from "@claudiu-ceia/tick";
 import { PlayerEntity } from "../entities/PlayerEntity.ts";
 import { NpcEntity } from "../entities/NpcEntity.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
@@ -70,7 +77,10 @@ export class NpcChunkSystem implements System {
               continue;
             }
 
-            if (Math.hypot(worldX - playerPosition.x, worldY - playerPosition.y) < MIN_PLAYER_SPAWN_DISTANCE) {
+            if (
+              Math.hypot(worldX - playerPosition.x, worldY - playerPosition.y) <
+              MIN_PLAYER_SPAWN_DISTANCE
+            ) {
               continue;
             }
 
@@ -82,7 +92,10 @@ export class NpcChunkSystem implements System {
               continue;
             }
 
-            const entity = new NpcEntity(new Vector2D(worldX, worldY), this.getEntitySeed(worldX, worldY));
+            const entity = new NpcEntity(
+              new Vector2D(worldX, worldY),
+              this.getEntitySeed(worldX, worldY),
+            );
             entity.bindTilemap(this.map);
             entity.awake();
             this.active.set(key, entity);
@@ -111,6 +124,8 @@ export class NpcChunkSystem implements System {
   }
 
   private getEntitySeed(worldX: number, worldY: number): number {
-    return Math.floor(hash2(worldX, worldY, NPC_ENTITY_SEED ^ this.map.getSeed()) * 0x7fffffff) || 1;
+    return (
+      Math.floor(hash2(worldX, worldY, NPC_ENTITY_SEED ^ this.map.getSeed()) * 0x7fffffff) || 1
+    );
   }
 }

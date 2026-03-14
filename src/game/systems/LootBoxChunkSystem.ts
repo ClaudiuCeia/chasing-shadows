@@ -1,4 +1,11 @@
-import { EcsRuntime, SystemPhase, SystemTickMode, TransformComponent, type EntityQuery, type System } from "@claudiu-ceia/tick";
+import {
+  EcsRuntime,
+  SystemPhase,
+  SystemTickMode,
+  TransformComponent,
+  type EntityQuery,
+  type System,
+} from "@claudiu-ceia/tick";
 import { LootFieldComponent } from "../components/LootFieldComponent.ts";
 import { getSingletonComponent } from "../ecs/singleton.ts";
 import { LootBoxEntity } from "../entities/LootBoxEntity.ts";
@@ -34,7 +41,9 @@ export class LootBoxChunkSystem implements System {
   }
 
   public update(): void {
-    const lootField = this.worldQuery ? getSingletonComponent(this.worldQuery, LootFieldComponent) : null;
+    const lootField = this.worldQuery
+      ? getSingletonComponent(this.worldQuery, LootFieldComponent)
+      : null;
     if (!lootField) {
       return;
     }

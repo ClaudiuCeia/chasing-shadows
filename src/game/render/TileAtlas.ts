@@ -1,5 +1,5 @@
 import type { TileKind } from "../world/tile-types.ts";
-import { type Rgb, clampChannel, parseHexColor, rgbToHex } from "../../shared/math/color.ts";
+import { parseHexColor, rgbToHex } from "../../shared/math/color.ts";
 
 export type TileLighting = "neutral" | "sun" | "dark";
 
@@ -65,7 +65,11 @@ const drawDiamond = (
   ctx.fill();
 };
 
-const createFlatTile = (tileWidth: number, tileHeight: number, color: string): HTMLCanvasElement => {
+const createFlatTile = (
+  tileWidth: number,
+  tileHeight: number,
+  color: string,
+): HTMLCanvasElement => {
   const canvas = createCanvas(tileWidth, tileHeight);
   const ctx = canvas.getContext("2d");
   if (!ctx) {

@@ -33,7 +33,11 @@ const createPaletteColor = (luminance: number): Rgb => {
   return mixRgb(NPC_PALETTE.mid, NPC_PALETTE.light, (t - 0.5) / 0.5);
 };
 
-const createPaletteSwappedSheet = (source: CanvasImageSource, width: number, height: number): HTMLCanvasElement => {
+const createPaletteSwappedSheet = (
+  source: CanvasImageSource,
+  width: number,
+  height: number,
+): HTMLCanvasElement => {
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -70,13 +74,19 @@ const createPaletteSwappedSheet = (source: CanvasImageSource, width: number, hei
 
 let npcSheetsPromise: Promise<NpcSheets> | null = null;
 
-export const getNpcSheets = (
-  runtime: EcsRuntime = EcsRuntime.getCurrent(),
-): Promise<NpcSheets> => {
+export const getNpcSheets = (runtime: EcsRuntime = EcsRuntime.getCurrent()): Promise<NpcSheets> => {
   if (!npcSheetsPromise) {
     npcSheetsPromise = getPlayerSheets(runtime).then((playerSheets) => ({
-      idle: createPaletteSwappedSheet(playerSheets.idle, playerSheets.idle.width, playerSheets.idle.height),
-      walk: createPaletteSwappedSheet(playerSheets.walk, playerSheets.walk.width, playerSheets.walk.height),
+      idle: createPaletteSwappedSheet(
+        playerSheets.idle,
+        playerSheets.idle.width,
+        playerSheets.idle.height,
+      ),
+      walk: createPaletteSwappedSheet(
+        playerSheets.walk,
+        playerSheets.walk.width,
+        playerSheets.walk.height,
+      ),
     }));
   }
 

@@ -60,7 +60,14 @@ export class CombatRaycastSystem implements System {
     const hoveredTargetPoint = weaponRaycast.targetPoint;
     const mode = hoveredTargetPoint ? "targeted" : "fire-at-will";
     const baseAngles = this.getBaseAngles(origin, hoveredTargetPoint, maxDistance);
-    const aimSignature = this.createAimSignature(origin, hoveredTargetPoint, baseAngles.yaw, baseAngles.pitch, maxDistance, rayCount);
+    const aimSignature = this.createAimSignature(
+      origin,
+      hoveredTargetPoint,
+      baseAngles.yaw,
+      baseAngles.pitch,
+      maxDistance,
+      rayCount,
+    );
     const shotChanged = this.player.attack.shotCounter !== weaponRaycast.lastResolvedShotCounter;
     const aimChanged = aimSignature !== weaponRaycast.lastAimSignature;
     const weaponChanged = activeWeapon.itemId !== previousWeaponItemId;
@@ -68,13 +75,29 @@ export class CombatRaycastSystem implements System {
 
     if (shotChanged) {
       weaponRaycast.setRays(
-        this.buildRays(origin, maxDistance, baseAngles.yaw, baseAngles.pitch, fovRadians, rayCount, definition.accuracy),
+        this.buildRays(
+          origin,
+          maxDistance,
+          baseAngles.yaw,
+          baseAngles.pitch,
+          fovRadians,
+          rayCount,
+          definition.accuracy,
+        ),
       );
       weaponRaycast.lastResolvedShotCounter = this.player.attack.shotCounter;
       weaponRaycast.lastAimSignature = aimSignature;
     } else if (weaponRaycast.rays.length === 0 || aimChanged || weaponChanged || modeChanged) {
       weaponRaycast.setRays(
-        this.buildRays(origin, maxDistance, baseAngles.yaw, baseAngles.pitch, fovRadians, rayCount, 1),
+        this.buildRays(
+          origin,
+          maxDistance,
+          baseAngles.yaw,
+          baseAngles.pitch,
+          fovRadians,
+          rayCount,
+          1,
+        ),
       );
       weaponRaycast.lastAimSignature = aimSignature;
     }
@@ -155,7 +178,10 @@ export class CombatRaycastSystem implements System {
     });
   }
 
-  private getConeOffsets(fovRadians: number, rayCount: number): Array<{ yaw: number; pitch: number }> {
+  private getConeOffsets(
+    fovRadians: number,
+    rayCount: number,
+  ): Array<{ yaw: number; pitch: number }> {
     if (rayCount <= 1 || fovRadians <= 0.0001) {
       return [{ yaw: 0, pitch: 0 }];
     }

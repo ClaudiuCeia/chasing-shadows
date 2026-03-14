@@ -4,9 +4,11 @@ import {
   Vector2D,
   type ICamera,
 } from "@claudiu-ceia/tick";
-import { GAME_CONFIG } from "../config/game-config.ts";
 import { InventoryComponent } from "../components/InventoryComponent.ts";
-import { DRY_FIRE_FEEDBACK_SECONDS, PlayerAttackComponent } from "../components/PlayerAttackComponent.ts";
+import {
+  DRY_FIRE_FEEDBACK_SECONDS,
+  PlayerAttackComponent,
+} from "../components/PlayerAttackComponent.ts";
 import { getItemDefinition } from "../items/item-catalog.ts";
 import { drawItemSprite, getItemSheet } from "./item-sprites.ts";
 
@@ -157,7 +159,10 @@ export class QuickbarRenderComponent extends HudRenderComponent {
     const elapsed = 1 - progress;
     const shakeOffsetX =
       progress > 0
-        ? Math.sin(elapsed * Math.PI * 2 * DRY_FIRE_SHAKE_OSCILLATIONS + this.attack.dryFireFeedbackCount * 0.75) *
+        ? Math.sin(
+            elapsed * Math.PI * 2 * DRY_FIRE_SHAKE_OSCILLATIONS +
+              this.attack.dryFireFeedbackCount * 0.75,
+          ) *
           DRY_FIRE_SHAKE_DISTANCE *
           progress
         : 0;
@@ -180,7 +185,11 @@ export class QuickbarRenderComponent extends HudRenderComponent {
     ctx.fillStyle = progress > 0 ? "#fff0e8" : "#f6f0e1";
     ctx.font = "bold 28px monospace";
     ctx.textBaseline = "middle";
-    ctx.fillText(`${this.inventory.getActiveWeaponAmmoCount() ?? 0}`, panelX + AMMO_PANEL_WIDTH / 2, y + 38);
+    ctx.fillText(
+      `${this.inventory.getActiveWeaponAmmoCount() ?? 0}`,
+      panelX + AMMO_PANEL_WIDTH / 2,
+      y + 38,
+    );
     ctx.restore();
   }
 }

@@ -102,7 +102,11 @@ const applyStartingLoadout = (player: PlayerEntity): void => {
   PlayerAttackSystem.syncFireModeFromInventory(player.attack, player.inventory);
 };
 
-const applySavedPlayerState = (player: PlayerEntity, tilemap: TilemapStateComponent, autosave: SaveGameV1): void => {
+const applySavedPlayerState = (
+  player: PlayerEntity,
+  tilemap: TilemapStateComponent,
+  autosave: SaveGameV1,
+): void => {
   player.transform.setPosition(autosave.player.position.x, autosave.player.position.y);
   player.transform.setRotation(autosave.player.rotation);
   player.body.setVelocity(new Vector2D(autosave.player.velocity.x, autosave.player.velocity.y));
@@ -128,7 +132,8 @@ const serializeGameplay = (roots: GameplayRoots): SaveGameV1 => {
     world: {
       seed: roots.tilemapEntity.tilemap.getSeed(),
       chunkSize: roots.tilemapEntity.tilemap.getChunkSize(),
-      lootSpawnChance: roots.worldState.lootField.getSpawnChance() ?? GAME_CONFIG.lootBoxSpawnChance,
+      lootSpawnChance:
+        roots.worldState.lootField.getSpawnChance() ?? GAME_CONFIG.lootBoxSpawnChance,
       elapsedSeconds: roots.worldState.session.elapsedSeconds,
       terminator: {
         safeBandHalfWidth: roots.terminatorEntity.terminator.safeBandHalfWidth,
@@ -221,10 +226,16 @@ const createInitialStructure = (
   aroundX: number,
   aroundY: number,
 ) => {
-  const structure = findStructurePlacementNear(tilemap.map, aroundX, aroundY, DEFAULT_POC_STRUCTURE_BLUEPRINT, {
-    minRadius: 6,
-    maxRadius: 48,
-  });
+  const structure = findStructurePlacementNear(
+    tilemap.map,
+    aroundX,
+    aroundY,
+    DEFAULT_POC_STRUCTURE_BLUEPRINT,
+    {
+      minRadius: 6,
+      maxRadius: 48,
+    },
+  );
 
   if (!structure) {
     throw new Error("Failed to find a flat placement for the initial proof-of-concept structure");
@@ -255,7 +266,8 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
     const uiState = new UiStateEntity();
     const worldState = new WorldStateEntity({ seed, spawnChance: lootSpawnChance });
     const terminatorEntity = new TerminatorEntity({
-      safeBandHalfWidth: terminatorSave?.safeBandHalfWidth ?? GAME_CONFIG.terminatorSafeBandHalfWidth,
+      safeBandHalfWidth:
+        terminatorSave?.safeBandHalfWidth ?? GAME_CONFIG.terminatorSafeBandHalfWidth,
       travelSpeed: terminatorSave?.travelSpeed ?? GAME_CONFIG.terminatorTravelSpeed,
       travelDistance: terminatorSave?.travelDistance ?? 0,
       direction: terminatorSave
@@ -281,27 +293,41 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
     const player = new PlayerEntity(spawn, GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
     player.bindTilemap(tilemapEntity.tilemap);
     player.addComponent(new PlayerRenderComponent());
-    player.addComponent(new DebugVisibilityRenderComponent(uiState.debugOverlay, worldState.visibility, tilemapEntity.tilemap.map, runtime));
-    player.addComponent(new DebugRayRenderComponent(uiState.debugOverlay, tilemapEntity.tilemap.map));
+    player.addComponent(
+      new DebugVisibilityRenderComponent(
+        uiState.debugOverlay,
+        worldState.visibility,
+        tilemapEntity.tilemap.map,
+        runtime,
+      ),
+    );
+    player.addComponent(
+      new DebugRayRenderComponent(uiState.debugOverlay, tilemapEntity.tilemap.map),
+    );
 
     if (autosave) {
       applySavedPlayerState(player, tilemapEntity.tilemap, autosave);
     } else {
       applyStartingLoadout(player);
       syncPlayerToTerrain(tilemapEntity.tilemap, player);
-      worldState.structures.addInstance(createInitialStructure(tilemapEntity.tilemap, spawn.x, spawn.y));
+      worldState.structures.addInstance(
+        createInitialStructure(tilemapEntity.tilemap, spawn.x, spawn.y),
+      );
     }
 
     tilemapEntity.configureRender(terminatorEntity.terminator, {
       tileWidth: GAME_CONFIG.tileWidth,
       tileHeight: GAME_CONFIG.tileHeight,
-        render: {
-          isSelectedAt: (x, y, z) => {
+      render: {
+        isSelectedAt: (x, y, z) => {
           const open = uiState.lootUi.openSource;
           if (!open || open.kind !== "tile-box" || open.x !== x || open.y !== y) {
             return false;
           }
-          return Math.abs(tilemapEntity.tilemap.getElevationAt(open.x, open.y) - z) <= GAME_CONFIG.lootElevationTolerance;
+          return (
+            Math.abs(tilemapEntity.tilemap.getElevationAt(open.x, open.y) - z) <=
+            GAME_CONFIG.lootElevationTolerance
+          );
         },
         maxTerrainElevation: GAME_CONFIG.maxTerrainElevation,
         southCullingPadding: GAME_CONFIG.southCullingPadding,
@@ -352,7 +378,14 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
   });
 
   world.addSystem(new InputIntentSystem(camera, options.canvas, runtime));
-  world.addSystem(new InventoryModalSystem(roots.player.inventory, roots.worldState.lootField, roots.tilemapEntity.tilemap.map, runtime));
+  world.addSystem(
+    new InventoryModalSystem(
+      roots.player.inventory,
+      roots.worldState.lootField,
+      roots.tilemapEntity.tilemap.map,
+      runtime,
+    ),
+  );
   world.addSystem(new DebugOverlaySystem(runtime));
   world.addSystem(new InteractableHighlightSystem(roots.player, runtime));
   world.addSystem(
@@ -360,7 +393,14 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
       radius: GAME_CONFIG.chunkPrewarmRadius,
     }),
   );
-  world.addSystem(new LootBoxChunkSystem(roots.tilemapEntity.tilemap.map, roots.player, GAME_CONFIG.chunkRadius, runtime));
+  world.addSystem(
+    new LootBoxChunkSystem(
+      roots.tilemapEntity.tilemap.map,
+      roots.player,
+      GAME_CONFIG.chunkRadius,
+      runtime,
+    ),
+  );
   world.addSystem(
     new NpcChunkSystem(
       roots.tilemapEntity.tilemap.map,
@@ -370,12 +410,48 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
       runtime,
     ),
   );
-  world.addSystem(new StructureChunkSystem(roots.tilemapEntity.tilemap.map, roots.player, GAME_CONFIG.chunkRadius, runtime));
+  world.addSystem(
+    new StructureChunkSystem(
+      roots.tilemapEntity.tilemap.map,
+      roots.player,
+      GAME_CONFIG.chunkRadius,
+      runtime,
+    ),
+  );
   world.addSystem(new PlayerAttackSystem(runtime));
-  world.addSystem(new LootInteractSystem(roots.tilemapEntity.tilemap.map, roots.player, { interactRange: GAME_CONFIG.lootBoxInteractRange }, runtime));
-  world.addSystem(new PointerMarkerSystem(camera, options.canvas, roots.tilemapEntity.tilemap.map, GAME_CONFIG.maxTerrainElevation, runtime));
-  world.addSystem(new TargetHoverSystem(camera, options.canvas, roots.tilemapEntity.tilemap.map, roots.player, runtime));
-  world.addSystem(new WorldPointerActionSystem(roots.tilemapEntity.tilemap.map, GAME_CONFIG.lootBoxInteractRange, runtime));
+  world.addSystem(
+    new LootInteractSystem(
+      roots.tilemapEntity.tilemap.map,
+      roots.player,
+      { interactRange: GAME_CONFIG.lootBoxInteractRange },
+      runtime,
+    ),
+  );
+  world.addSystem(
+    new PointerMarkerSystem(
+      camera,
+      options.canvas,
+      roots.tilemapEntity.tilemap.map,
+      GAME_CONFIG.maxTerrainElevation,
+      runtime,
+    ),
+  );
+  world.addSystem(
+    new TargetHoverSystem(
+      camera,
+      options.canvas,
+      roots.tilemapEntity.tilemap.map,
+      roots.player,
+      runtime,
+    ),
+  );
+  world.addSystem(
+    new WorldPointerActionSystem(
+      roots.tilemapEntity.tilemap.map,
+      GAME_CONFIG.lootBoxInteractRange,
+      runtime,
+    ),
+  );
   world.addSystem(new NpcRoamingSystem(runtime));
   world.addSystem(
     new TopDownControllerSystem(
@@ -409,7 +485,11 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
       runtime,
     ),
   );
-  world.addSystem(new CameraFollowSystem(camera, roots.player, { followStrength: GAME_CONFIG.cameraFollowStrength }));
+  world.addSystem(
+    new CameraFollowSystem(camera, roots.player, {
+      followStrength: GAME_CONFIG.cameraFollowStrength,
+    }),
+  );
   world.addSystem(
     new AutosaveSystem({
       intervalSeconds: GAME_CONFIG.autosaveIntervalSeconds,

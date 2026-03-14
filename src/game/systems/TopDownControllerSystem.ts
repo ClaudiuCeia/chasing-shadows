@@ -62,7 +62,10 @@ export class TopDownControllerSystem implements System {
       const intent = entity.getComponent(MovementIntentComponent);
       const controller = entity.getComponent(TopDownControllerComponent);
       const body = entity.getComponent(PhysicsBodyComponent);
-      const movementIntent = isoToWorld(new Vector2D(intent.strafe, -intent.forward), this.isoConfig);
+      const movementIntent = isoToWorld(
+        new Vector2D(intent.strafe, -intent.forward),
+        this.isoConfig,
+      );
 
       const hasIntent = movementIntent.magnitude > 0;
       const normalizedIntent = hasIntent ? movementIntent.normalize() : Vector2D.zero;
@@ -81,7 +84,9 @@ export class TopDownControllerSystem implements System {
       if (!hasIntent) {
         const damping = Math.max(0, 1 - controller.config.damping * deltaTime);
         const nextVelocity = currentVelocity.multiply(damping);
-        body.setVelocity(nextVelocity.magnitude <= STOP_SPEED_EPSILON ? Vector2D.zero : nextVelocity);
+        body.setVelocity(
+          nextVelocity.magnitude <= STOP_SPEED_EPSILON ? Vector2D.zero : nextVelocity,
+        );
         continue;
       }
 

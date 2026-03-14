@@ -1,6 +1,11 @@
 import { Component } from "@claudiu-ceia/tick";
 import type { ItemStack } from "../items/item-catalog.ts";
-import { LootBoxField, type LootBoxDelta, type LootBoxFieldOptions, type LootBoxState } from "../world/LootBoxField.ts";
+import {
+  LootBoxField,
+  type LootBoxDelta,
+  type LootBoxFieldOptions,
+  type LootBoxState,
+} from "../world/LootBoxField.ts";
 import type { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
 
 export type NearestLootBoxRef = { x: number; y: number; distance: number };
@@ -35,7 +40,12 @@ export class LootFieldComponent extends Component {
     return this.field.getBoxAt(x, y, map);
   }
 
-  public findNearestBox(x: number, y: number, range: number, map: InfiniteTilemap): NearestLootBoxRef | null {
+  public findNearestBox(
+    x: number,
+    y: number,
+    range: number,
+    map: InfiniteTilemap,
+  ): NearestLootBoxRef | null {
     return this.field.findNearestBox(x, y, range, map);
   }
 

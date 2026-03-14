@@ -1,4 +1,8 @@
-import type { StructureBlueprint, StructureWallSide, StructureWallType } from "./structure-types.ts";
+import type {
+  StructureBlueprint,
+  StructureWallSide,
+  StructureWallType,
+} from "./structure-types.ts";
 
 const createFilledMask = (width: number, height: number): boolean[] =>
   Array.from({ length: width * height }, () => true);
@@ -38,7 +42,12 @@ const createPerimeterWalls = (
   const walls: StructureBlueprint["walls"] = [];
 
   for (let x = 0; x < width; x++) {
-    walls.push({ x, y: 0, side: "north", type: classifyWall("north", x, 0, width, height, doorSide) });
+    walls.push({
+      x,
+      y: 0,
+      side: "north",
+      type: classifyWall("north", x, 0, width, height, doorSide),
+    });
     walls.push({
       x,
       y: height - 1,
@@ -48,7 +57,12 @@ const createPerimeterWalls = (
   }
 
   for (let y = 0; y < height; y++) {
-    walls.push({ x: 0, y, side: "west", type: classifyWall("west", 0, y, width, height, doorSide) });
+    walls.push({
+      x: 0,
+      y,
+      side: "west",
+      type: classifyWall("west", 0, y, width, height, doorSide),
+    });
     walls.push({
       x: width - 1,
       y,
@@ -60,7 +74,12 @@ const createPerimeterWalls = (
   return walls;
 };
 
-const createCuboidBlueprint = (id: string, width: number, height: number, doorSide: StructureWallSide): StructureBlueprint => ({
+const createCuboidBlueprint = (
+  id: string,
+  width: number,
+  height: number,
+  doorSide: StructureWallSide,
+): StructureBlueprint => ({
   id,
   width,
   height,
@@ -73,7 +92,9 @@ export const POC_STRUCTURE_BLUEPRINTS: readonly StructureBlueprint[] = [
   createCuboidBlueprint("poc-shelter-5x5", 5, 5, "south"),
 ];
 
-const blueprintById = new Map(POC_STRUCTURE_BLUEPRINTS.map((blueprint) => [blueprint.id, blueprint]));
+const blueprintById = new Map(
+  POC_STRUCTURE_BLUEPRINTS.map((blueprint) => [blueprint.id, blueprint]),
+);
 
 export const hasStructureBlueprintId = (id: string): boolean => blueprintById.has(id);
 

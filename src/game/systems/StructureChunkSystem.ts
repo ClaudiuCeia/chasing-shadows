@@ -109,7 +109,10 @@ const createWallCollider = (wall: StructureWallSegment): ObstacleEntity | null =
   }
 };
 
-const createWallHitVolumes = (wall: StructureWallSegment, baseZ: number): StructureHitVolumeEntity[] => {
+const createWallHitVolumes = (
+  wall: StructureWallSegment,
+  baseZ: number,
+): StructureHitVolumeEntity[] => {
   const horizontal = wall.side === "north" || wall.side === "south";
   const w = horizontal ? 1 : WALL_HIT_VOLUME_DEPTH;
   const h = horizontal ? WALL_HIT_VOLUME_DEPTH : 1;
@@ -157,7 +160,11 @@ const createWallVisuals = (wall: StructureWallSegment, baseZ: number): Structure
         wall.anchorX,
         wall.anchorY,
         baseZ,
-        new StructureWallRenderComponent(wall.side, STRUCTURE_DOOR_LEVELS, STRUCTURE_WALL_LEVELS - STRUCTURE_DOOR_LEVELS),
+        new StructureWallRenderComponent(
+          wall.side,
+          STRUCTURE_DOOR_LEVELS,
+          STRUCTURE_WALL_LEVELS - STRUCTURE_DOOR_LEVELS,
+        ),
       ),
     ];
   }
@@ -218,7 +225,9 @@ export class StructureChunkSystem implements System {
   }
 
   public update(): void {
-    const structures = this.worldQuery ? getSingletonComponent(this.worldQuery, StructureStateComponent) : null;
+    const structures = this.worldQuery
+      ? getSingletonComponent(this.worldQuery, StructureStateComponent)
+      : null;
     if (!structures) {
       return;
     }
@@ -263,7 +272,11 @@ export class StructureChunkSystem implements System {
     this.active.clear();
   }
 
-  private refreshActiveWindow(chunkX: number, chunkY: number, instances: readonly StructureInstance[]): void {
+  private refreshActiveWindow(
+    chunkX: number,
+    chunkY: number,
+    instances: readonly StructureInstance[],
+  ): void {
     const desired = new Set<string>();
 
     for (const instance of instances) {
@@ -298,13 +311,21 @@ export class StructureChunkSystem implements System {
     const roofParts: StructureRoofRenderComponent[] = [];
 
     for (const tile of getStructureFloorTiles(blueprint, instance)) {
-      const floor = new StructureVisualEntity(tile.x, tile.y, instance.baseZ, new StructureFloorRenderComponent());
+      const floor = new StructureVisualEntity(
+        tile.x,
+        tile.y,
+        instance.baseZ,
+        new StructureFloorRenderComponent(),
+      );
       floor.awake();
       entities.push(floor);
     }
 
     for (const tile of getStructureFloorTiles(blueprint, instance)) {
-      this.map.getChunk(Math.floor(tile.x / this.map.getChunkSize()), Math.floor(tile.y / this.map.getChunkSize()));
+      this.map.getChunk(
+        Math.floor(tile.x / this.map.getChunkSize()),
+        Math.floor(tile.y / this.map.getChunkSize()),
+      );
     }
 
     for (const tile of getStructureRoofTiles(blueprint, instance)) {

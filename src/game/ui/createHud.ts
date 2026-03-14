@@ -89,7 +89,12 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
   combatToggleButton.layout.setInteractive(false);
   debug.addChild(combatToggleButton);
 
-  debug.addComponent(new HudDebugRenderComponent(options.debug, options.player, [losToggleButton, combatToggleButton]));
+  debug.addComponent(
+    new HudDebugRenderComponent(options.debug, options.player, [
+      losToggleButton,
+      combatToggleButton,
+    ]),
+  );
 
   const temperature = new HudNodeEntity();
   temperature.addComponent(
@@ -144,7 +149,12 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
     offset: { x: -34, y: -20 },
     order: 2,
     onClick: () => {
-      restoreDraggedInventoryItem(options.lootUi, options.inventory, options.lootField, options.map);
+      restoreDraggedInventoryItem(
+        options.lootUi,
+        options.inventory,
+        options.lootField,
+        options.map,
+      );
       options.lootUi.close();
       options.modalState.close("inventory");
     },
@@ -164,7 +174,13 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
     ),
   );
   lootWindow.addComponent(
-    new LootWindowInputComponent(options.lootUi, options.modalState, options.inventory, options.lootField, options.map),
+    new LootWindowInputComponent(
+      options.lootUi,
+      options.modalState,
+      options.inventory,
+      options.lootField,
+      options.map,
+    ),
   );
 
   info.awake();

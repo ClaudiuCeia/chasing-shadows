@@ -67,7 +67,9 @@ export class InputIntentSystem implements System {
   public update(): void {
     if (!this.query) return;
 
-    const modalState = this.uiQuery ? getSingletonComponent(this.uiQuery, ModalStateComponent) : null;
+    const modalState = this.uiQuery
+      ? getSingletonComponent(this.uiQuery, ModalStateComponent)
+      : null;
     const modalOpen = modalState?.isOpen() ?? false;
 
     const left = this.runtime.input.isDown("a") || this.runtime.input.isDown("ArrowLeft");

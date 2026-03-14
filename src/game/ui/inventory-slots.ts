@@ -1,4 +1,4 @@
-import { cloneItemStack, normalizeItemSlots } from "../items/item-stack.ts";
+import { cloneItemStack } from "../items/item-stack.ts";
 import {
   canEquipItemInSlot,
   canPlaceItemInQuickSlot,
@@ -8,20 +8,30 @@ import {
   type ItemStack,
   type WeaponAmmoSlotId,
 } from "../items/item-catalog.ts";
-import { getLootSourceSlotCount, getLootSourceSnapshot, setLootSourceSlots, type LootSourceRef } from "../loot/loot-sources.ts";
+import {
+  getLootSourceSlotCount,
+  getLootSourceSnapshot,
+  setLootSourceSlots,
+  type LootSourceRef,
+} from "../loot/loot-sources.ts";
 import { InventoryComponent } from "../components/InventoryComponent.ts";
 import type { InventoryDragSnapshot, InventorySlotRef } from "../components/LootUiComponent.ts";
 import { LootFieldComponent } from "../components/LootFieldComponent.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
 
-export const isSingleItemInventorySlot = (ref: InventorySlotRef): boolean => ref.section === "equipment";
+export const isSingleItemInventorySlot = (ref: InventorySlotRef): boolean =>
+  ref.section === "equipment";
 
-export const isStackingInventorySlot = (ref: InventorySlotRef): boolean => !isSingleItemInventorySlot(ref);
+export const isStackingInventorySlot = (ref: InventorySlotRef): boolean =>
+  !isSingleItemInventorySlot(ref);
 
 export const isReservedInventorySlot = (ref: InventorySlotRef): boolean =>
   ref.section === "equipment" || ref.section === "weaponAmmo";
 
-export const normalizeStackForInventorySlot = (ref: InventorySlotRef, stack: ItemStack | null): ItemStack | null => {
+export const normalizeStackForInventorySlot = (
+  ref: InventorySlotRef,
+  stack: ItemStack | null,
+): ItemStack | null => {
   const next = cloneItemStack(stack);
   if (!next) {
     return null;
@@ -56,7 +66,10 @@ export const getInventoryStackAt = (
   }
 };
 
-export const combineInventoryStacks = (target: ItemStack | null, incoming: ItemStack | null): ItemStack | null => {
+export const combineInventoryStacks = (
+  target: ItemStack | null,
+  incoming: ItemStack | null,
+): ItemStack | null => {
   if (!target) {
     return cloneItemStack(incoming);
   }
@@ -80,7 +93,10 @@ export const setInventoryStackAt = (
 ): void => {
   switch (ref.section) {
     case "equipment":
-      inventory.setEquipmentSlot(ref.key as EquipmentSlotId, normalizeStackForInventorySlot(ref, stack));
+      inventory.setEquipmentSlot(
+        ref.key as EquipmentSlotId,
+        normalizeStackForInventorySlot(ref, stack),
+      );
       return;
     case "weaponAmmo":
       inventory.setWeaponAmmoSlot(ref.key as WeaponAmmoSlotId, stack);
@@ -104,9 +120,12 @@ export const setInventoryStackAt = (
       const snapshot = getLootSourceSnapshot(source, lootField, map);
       const next = snapshot
         ? [...snapshot.slots]
-        : Array.from({ length: getLootSourceSlotCount(source, lootField, map) }, () => null as ItemStack | null);
+        : Array.from(
+            { length: getLootSourceSlotCount(source, lootField, map) },
+            () => null as ItemStack | null,
+          );
       next[ref.key as number] = cloneItemStack(stack);
-      setLootSourceSlots(source, next, lootField, map);
+      setLootSourceSlots(source, next, lootField);
     }
   }
 };
@@ -133,7 +152,9 @@ export const canPlaceInventoryStackAt = (
       if (stack.count <= 0) {
         return false;
       }
-      const pairedWeapon = inventory.getEquipmentSlot(ref.key === "mainWeaponAmmo" ? "mainWeapon" : "secondaryWeapon");
+      const pairedWeapon = inventory.getEquipmentSlot(
+        ref.key === "mainWeaponAmmo" ? "mainWeapon" : "secondaryWeapon",
+      );
       return pairedWeapon !== null && canWeaponUseAmmo(pairedWeapon.itemId, stack.itemId);
     case "quick":
       return canPlaceItemInQuickSlot(stack.itemId);
@@ -165,12 +186,19 @@ export const getInventorySlotRequirementLabel = (
       }
       return null;
     case "weaponAmmo": {
-      const pairedWeapon = inventory.getEquipmentSlot(ref.key === "mainWeaponAmmo" ? "mainWeapon" : "secondaryWeapon");
+      const pairedWeapon = inventory.getEquipmentSlot(
+        ref.key === "mainWeaponAmmo" ? "mainWeapon" : "secondaryWeapon",
+      );
       if (!pairedWeapon) {
         return null;
       }
 
-      const ammoItemId = getItemDefinition(pairedWeapon.itemId).usesAmmo;
+      const item = getItemDefinition(pairedWeapon.itemId);
+      if (item.category !== "weapon") {
+        return null;
+      }
+
+      const ammoItemId = item.usesAmmo;
       return ammoItemId ? getItemDefinition(ammoItemId).label : null;
     }
     default:
@@ -189,19 +217,26 @@ export const getInvalidInventoryDropMessage = (
 
   const itemLabel = getItemDefinition(stack.itemId).label;
   if (ref.section === "weaponAmmo") {
-    const pairedWeapon = inventory.getEquipmentSlot(ref.key === "mainWeaponAmmo" ? "mainWeapon" : "secondaryWeapon");
+    const pairedWeapon = inventory.getEquipmentSlot(
+      ref.key === "mainWeaponAmmo" ? "mainWeapon" : "secondaryWeapon",
+    );
     if (!pairedWeapon) {
       return `Cannot drop ${itemLabel} here, equip a weapon first.`;
     }
   }
 
   const expected = getInventorySlotRequirementLabel(inventory, ref);
-  return expected ? `Cannot drop ${itemLabel} here, expected ${expected}.` : `Cannot drop ${itemLabel} here.`;
+  return expected
+    ? `Cannot drop ${itemLabel} here, expected ${expected}.`
+    : `Cannot drop ${itemLabel} here.`;
 };
 
 export const restoreDraggedInventoryItem = (
   state: {
-    draggedItem: { hiddenOrigin: InventorySlotRef | null; stack: ItemStack } | null;
+    draggedItem: {
+      hiddenOrigin: InventorySlotRef | null;
+      stack: ItemStack;
+    } | null;
     dragSnapshot: InventoryDragSnapshot | null;
     openSource: LootSourceRef | null;
     dragHudPoint: unknown;
@@ -209,7 +244,6 @@ export const restoreDraggedInventoryItem = (
   },
   inventory: InventoryComponent,
   lootField: LootFieldComponent,
-  map: InfiniteTilemap,
 ): void => {
   if (!state.draggedItem && !state.dragSnapshot) {
     return;
@@ -219,7 +253,7 @@ export const restoreDraggedInventoryItem = (
     inventory.setState(state.dragSnapshot.inventory);
     state.openSource = state.dragSnapshot.source;
     if (state.dragSnapshot.source && state.dragSnapshot.sourceSlots) {
-      setLootSourceSlots(state.dragSnapshot.source, state.dragSnapshot.sourceSlots, lootField, map);
+      setLootSourceSlots(state.dragSnapshot.source, state.dragSnapshot.sourceSlots, lootField);
     }
   }
 

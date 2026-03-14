@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { EcsRuntime, Entity, World } from "@claudiu-ceia/tick";
 import { InventoryComponent } from "../components/InventoryComponent.ts";
-import { DRY_FIRE_FEEDBACK_SECONDS, PlayerAttackComponent } from "../components/PlayerAttackComponent.ts";
+import {
+  DRY_FIRE_FEEDBACK_SECONDS,
+  PlayerAttackComponent,
+} from "../components/PlayerAttackComponent.ts";
 import { getItemRefireSeconds } from "../items/item-catalog.ts";
 import { ATTACK_SEMI_END_FRAME } from "../render/player-animation-logic.ts";
 import { PlayerAttackSystem } from "./PlayerAttackSystem.ts";
@@ -56,8 +59,13 @@ describe("PlayerAttackSystem", () => {
     inventory.setWeaponAmmoSlot("mainWeaponAmmo", { itemId: "shotgun-ammo", count: 2 });
     PlayerAttackSystem.syncFireModeFromInventory(attack, inventory);
 
-    expect(PlayerAttackSystem.handleTrigger(attack, "attack1", 0, 1, "press", inventory)).toBeTrue();
-    expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toEqual({ itemId: "shotgun-ammo", count: 1 });
+    expect(
+      PlayerAttackSystem.handleTrigger(attack, "attack1", 0, 1, "press", inventory),
+    ).toBeTrue();
+    expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toEqual({
+      itemId: "shotgun-ammo",
+      count: 1,
+    });
   });
 
   test("dry fires when the active ranged weapon has no ammo", () => {
@@ -68,7 +76,9 @@ describe("PlayerAttackSystem", () => {
     inventory.setActiveSlot("secondary");
     PlayerAttackSystem.syncFireModeFromInventory(attack, inventory);
 
-    expect(PlayerAttackSystem.handleTrigger(attack, "attack1", 0, 1, "press", inventory)).toBeFalse();
+    expect(
+      PlayerAttackSystem.handleTrigger(attack, "attack1", 0, 1, "press", inventory),
+    ).toBeFalse();
     expect(attack.active).toBeFalse();
     expect(attack.dryFireFeedbackRemaining).toBe(DRY_FIRE_FEEDBACK_SECONDS);
     expect(inventory.getActiveWeaponAmmoCount()).toBe(0);
@@ -82,18 +92,32 @@ describe("PlayerAttackSystem", () => {
     inventory.setWeaponAmmoSlot("mainWeaponAmmo", { itemId: "pistol-ammo", count: 2 });
     PlayerAttackSystem.syncFireModeFromInventory(attack, inventory);
 
-    expect(PlayerAttackSystem.handleTrigger(attack, "runAttack", 2, 1, "press", inventory)).toBeTrue();
-    expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toEqual({ itemId: "pistol-ammo", count: 1 });
+    expect(
+      PlayerAttackSystem.handleTrigger(attack, "runAttack", 2, 1, "press", inventory),
+    ).toBeTrue();
+    expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toEqual({
+      itemId: "pistol-ammo",
+      count: 1,
+    });
 
-    expect(PlayerAttackSystem.handleTrigger(attack, "runAttack", 2, 1, "hold", inventory)).toBeTrue();
-    expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toEqual({ itemId: "pistol-ammo", count: 1 });
+    expect(
+      PlayerAttackSystem.handleTrigger(attack, "runAttack", 2, 1, "hold", inventory),
+    ).toBeTrue();
+    expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toEqual({
+      itemId: "pistol-ammo",
+      count: 1,
+    });
 
     attack.refireRemaining = 0;
-    expect(PlayerAttackSystem.handleTrigger(attack, "runAttack", 2, 1, "hold", inventory)).toBeTrue();
+    expect(
+      PlayerAttackSystem.handleTrigger(attack, "runAttack", 2, 1, "hold", inventory),
+    ).toBeTrue();
     expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toBeNull();
 
     attack.refireRemaining = 0;
-    expect(PlayerAttackSystem.handleTrigger(attack, "runAttack", 2, 1, "hold", inventory)).toBeFalse();
+    expect(
+      PlayerAttackSystem.handleTrigger(attack, "runAttack", 2, 1, "hold", inventory),
+    ).toBeFalse();
     expect(attack.active).toBeFalse();
     expect(attack.dryFireFeedbackRemaining).toBe(DRY_FIRE_FEEDBACK_SECONDS);
   });

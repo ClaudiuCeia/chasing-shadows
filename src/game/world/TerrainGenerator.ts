@@ -70,7 +70,12 @@ const macroRegionValueCache = new Map<string, number>();
 
 const makeCacheKey = (a: number, b: number, c: number, d: number): string => `${a}:${b}:${c}:${d}`;
 
-const sampleJitteredPoint = (cellX: number, cellY: number, seed: number, cellSize: number): SamplePoint => {
+const sampleJitteredPoint = (
+  cellX: number,
+  cellY: number,
+  seed: number,
+  cellSize: number,
+): SamplePoint => {
   const key = makeCacheKey(cellX, cellY, seed, cellSize);
   const cached = jitteredPointCache.get(key);
   if (cached) {
@@ -157,7 +162,13 @@ const sampleMacroRegionValue = (x: number, y: number, seed: number): number => {
   const shelf = smoothstep(0.52, 0.8, valueNoise(x - 14.2, y + 17.6, seed + 401, 94));
 
   const value =
-    -0.45 + continental * 2.15 + broadRelief * 1.45 + ridge * 1.05 + peak * 2.8 + shelf * 0.75 - basin * 2.35;
+    -0.45 +
+    continental * 2.15 +
+    broadRelief * 1.45 +
+    ridge * 1.05 +
+    peak * 2.8 +
+    shelf * 0.75 -
+    basin * 2.35;
   macroRegionValueCache.set(cacheKey, value);
   return value;
 };
@@ -254,12 +265,12 @@ const sampleRawVertexHeight = (vx: number, vy: number, seed: number): number =>
 
 const sampleVertexElevation = (vx: number, vy: number, seed: number): number => {
   const center = sampleRawVertexHeight(vx, vy, seed);
-  const cardinals = (
-    sampleRawVertexHeight(vx - 1, vy, seed) +
-    sampleRawVertexHeight(vx + 1, vy, seed) +
-    sampleRawVertexHeight(vx, vy - 1, seed) +
-    sampleRawVertexHeight(vx, vy + 1, seed)
-  ) / 4;
+  const cardinals =
+    (sampleRawVertexHeight(vx - 1, vy, seed) +
+      sampleRawVertexHeight(vx + 1, vy, seed) +
+      sampleRawVertexHeight(vx, vy - 1, seed) +
+      sampleRawVertexHeight(vx, vy + 1, seed)) /
+    4;
   const smoothedBase = center * 0.72 + cardinals * 0.28;
   return clamp(Math.round(smoothedBase), 0, MAX_TERRAIN_ELEVATION);
 };
@@ -277,7 +288,12 @@ const sampleTileCorners = (x: number, y: number, seed: number) =>
     southWest: sampleVertexElevation(x * 2 - 1, y * 2 + 1, seed),
   });
 
-const createTerrainTile = (x: number, y: number, tileCorners: TileData["corners"], seed: number): TileData => {
+const createTerrainTile = (
+  x: number,
+  y: number,
+  tileCorners: TileData["corners"],
+  seed: number,
+): TileData => {
   const corners = createTileCornerHeights({
     northWest: tileCorners.northWest,
     northEast: tileCorners.northEast,
@@ -313,13 +329,17 @@ export const generateTerrainChunk = (
   const worldStartX = chunkX * chunkSize;
   const worldStartY = chunkY * chunkSize;
   const vertexWidth = chunkSize + 1;
-  const vertexElevations = new Array<number>(vertexWidth * vertexWidth);
+  const vertexElevations: number[] = Array.from({ length: vertexWidth * vertexWidth });
 
   for (let vy = 0; vy <= chunkSize; vy++) {
     for (let vx = 0; vx <= chunkSize; vx++) {
       const worldVertexX = (worldStartX + vx) * 2 - 1;
       const worldVertexY = (worldStartY + vy) * 2 - 1;
-      vertexElevations[vy * vertexWidth + vx] = sampleVertexElevation(worldVertexX, worldVertexY, seed);
+      vertexElevations[vy * vertexWidth + vx] = sampleVertexElevation(
+        worldVertexX,
+        worldVertexY,
+        seed,
+      );
     }
   }
 

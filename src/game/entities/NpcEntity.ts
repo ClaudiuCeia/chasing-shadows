@@ -100,7 +100,11 @@ export class NpcEntity extends ObstacleEntity {
     }
 
     const position = this.transform.transform.position;
-    this.tilePosition.set(position.x, position.y, this.tilemap.getElevationAt(position.x, position.y));
+    this.tilePosition.set(
+      position.x,
+      position.y,
+      this.tilemap.getElevationAt(position.x, position.y),
+    );
     this.rayEmitter.setOriginHeight(this.hitCollider.bodyHeight);
   }
 }

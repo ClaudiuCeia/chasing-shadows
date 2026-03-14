@@ -242,16 +242,22 @@ const ITEM_BY_ID = new Map<ItemId, ItemDefinition>(
   ITEM_DEFINITIONS.map((definition) => [definition.id, definition]),
 );
 
-export const isArmorItemDefinition = (definition: ItemDefinition): definition is ArmorItemDefinition =>
+export const isArmorItemDefinition = (
+  definition: ItemDefinition,
+): definition is ArmorItemDefinition =>
   definition.category === "armor-head" || definition.category === "armor-body";
 
-export const isAmmoItemDefinition = (definition: ItemDefinition): definition is AmmoItemDefinition =>
-  definition.category === "ammo";
+export const isAmmoItemDefinition = (
+  definition: ItemDefinition,
+): definition is AmmoItemDefinition => definition.category === "ammo";
 
-export const isRangedWeaponItemDefinition = (definition: ItemDefinition): definition is RangedWeaponItemDefinition =>
-  definition.category === "weapon";
+export const isRangedWeaponItemDefinition = (
+  definition: ItemDefinition,
+): definition is RangedWeaponItemDefinition => definition.category === "weapon";
 
-export const isWeaponItemDefinition = (definition: ItemDefinition): definition is WeaponItemDefinition =>
+export const isWeaponItemDefinition = (
+  definition: ItemDefinition,
+): definition is WeaponItemDefinition =>
   definition.category === "weapon" || definition.category === "melee";
 
 export const getItemDefinition = (id: ItemId): ItemDefinition => {
@@ -292,7 +298,9 @@ export const getItemFireMode = (itemId: ItemId): PlayerFireMode => {
 
 export const getItemRefireSeconds = (itemId: ItemId): number => {
   const definition = getItemDefinition(itemId);
-  return isRangedWeaponItemDefinition(definition) ? definition.refireSeconds : ATTACK_REFIRE_SECONDS;
+  return isRangedWeaponItemDefinition(definition)
+    ? definition.refireSeconds
+    : ATTACK_REFIRE_SECONDS;
 };
 
 export const getWeaponCombatStats = (itemId: ItemId): WeaponCombatStats | null => {
@@ -311,10 +319,14 @@ export const getWeaponCombatStats = (itemId: ItemId): WeaponCombatStats | null =
   };
 };
 
-export const getWeaponSpreadDegrees = (itemId: ItemId): number => getWeaponCombatStats(itemId)?.spreadDegrees ?? 0;
+export const getWeaponSpreadDegrees = (itemId: ItemId): number =>
+  getWeaponCombatStats(itemId)?.spreadDegrees ?? 0;
 
-export const getWeaponAccuracy = (itemId: ItemId): number => getWeaponCombatStats(itemId)?.accuracy ?? 1;
+export const getWeaponAccuracy = (itemId: ItemId): number =>
+  getWeaponCombatStats(itemId)?.accuracy ?? 1;
 
-export const getWeaponBaseDamage = (itemId: ItemId): number => getWeaponCombatStats(itemId)?.baseDamage ?? 0;
+export const getWeaponBaseDamage = (itemId: ItemId): number =>
+  getWeaponCombatStats(itemId)?.baseDamage ?? 0;
 
-export const canPlaceItemInQuickSlot = (itemId: ItemId): boolean => getItemDefinition(itemId).quickSlotCompatible;
+export const canPlaceItemInQuickSlot = (itemId: ItemId): boolean =>
+  getItemDefinition(itemId).quickSlotCompatible;

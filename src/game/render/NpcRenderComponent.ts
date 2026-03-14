@@ -20,7 +20,9 @@ const WALK_FPS_MAX = 15;
 
 type AnimationClipName = "idle" | "walk";
 
-const getSpriteBounds = (screen: Vector2D): { x: number; y: number; width: number; height: number } => {
+const getSpriteBounds = (
+  screen: Vector2D,
+): { x: number; y: number; width: number; height: number } => {
   const width = Math.floor(FRAME_SIZE * SPRITE_SCALE);
   const height = Math.floor(FRAME_SIZE * SPRITE_SCALE);
   return {
@@ -53,13 +55,11 @@ export class NpcRenderComponent extends IsometricRenderableComponent {
       NpcRenderComponent.sheetsPromise = getNpcSheets(EcsRuntime.getCurrent());
     }
 
-    NpcRenderComponent.sheetsPromise!
-      .then((sheets) => {
-        this.sheets = sheets;
-      })
-      .catch((error) => {
-        console.error(error);
-      });
+    NpcRenderComponent.sheetsPromise!.then((sheets) => {
+      this.sheets = sheets;
+    }).catch((error) => {
+      console.error(error);
+    });
   }
 
   public override update(dt: number): void {
@@ -69,10 +69,7 @@ export class NpcRenderComponent extends IsometricRenderableComponent {
     const velocity = this.ent.getComponent(PhysicsBodyComponent).getVelocity();
     const transform = this.ent.getComponent(TransformComponent).transform;
     const speed = velocity.magnitude;
-    const facingVector = new Vector2D(
-      Math.cos(transform.rotation),
-      Math.sin(transform.rotation),
-    );
+    const facingVector = new Vector2D(Math.cos(transform.rotation), Math.sin(transform.rotation));
     const isoFacing = worldToIso(facingVector, {
       tileWidth: GAME_CONFIG.tileWidth,
       tileHeight: GAME_CONFIG.tileHeight,
@@ -82,9 +79,11 @@ export class NpcRenderComponent extends IsometricRenderableComponent {
     }
 
     this.currentClip = speed > MOVE_THRESHOLD ? "walk" : "idle";
-    const fps = this.currentClip === "walk"
-      ? WALK_FPS_MIN + (WALK_FPS_MAX - WALK_FPS_MIN) * Math.min(1, speed / GAME_CONFIG.playerBaseSpeed)
-      : IDLE_FPS;
+    const fps =
+      this.currentClip === "walk"
+        ? WALK_FPS_MIN +
+          (WALK_FPS_MAX - WALK_FPS_MIN) * Math.min(1, speed / GAME_CONFIG.playerBaseSpeed)
+        : IDLE_FPS;
     this.frameCursor += deltaTime * fps;
     this.frameCursor %= FRAME_COLS;
     this.currentFrameIndex = Math.floor(this.frameCursor) % FRAME_COLS;
@@ -103,11 +102,22 @@ export class NpcRenderComponent extends IsometricRenderableComponent {
     const frameY = (this.directionIndex % FRAME_ROWS) * FRAME_SIZE;
     const bounds = getSpriteBounds(screen);
 
-    const highlighted = this.ent.hasComponent(HighlightComponent) && this.ent.getComponent(HighlightComponent).active;
+    const highlighted =
+      this.ent.hasComponent(HighlightComponent) && this.ent.getComponent(HighlightComponent).active;
     if (highlighted) {
       this.drawTargetOutline(ctx, bounds.x, bounds.y, bounds.width, bounds.height, frameX, frameY);
     }
-    ctx.drawImage(this.sheets[this.currentClip], frameX, frameY, FRAME_SIZE, FRAME_SIZE, bounds.x, bounds.y, bounds.width, bounds.height);
+    ctx.drawImage(
+      this.sheets[this.currentClip],
+      frameX,
+      frameY,
+      FRAME_SIZE,
+      FRAME_SIZE,
+      bounds.x,
+      bounds.y,
+      bounds.width,
+      bounds.height,
+    );
   }
 
   private drawTargetOutline(

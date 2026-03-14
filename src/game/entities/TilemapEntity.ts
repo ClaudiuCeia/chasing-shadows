@@ -3,7 +3,10 @@ import { TilemapStateComponent } from "../components/TilemapStateComponent.ts";
 import type { TerminatorComponent } from "../components/TerminatorComponent.ts";
 import type { InfiniteTilemapOptions } from "../world/InfiniteTilemap.ts";
 import { createTileAtlas } from "../render/TileAtlas.ts";
-import { TilemapRenderComponent, type TilemapRenderOptions } from "../render/TilemapRenderComponent.ts";
+import {
+  TilemapRenderComponent,
+  type TilemapRenderOptions,
+} from "../render/TilemapRenderComponent.ts";
 
 export type TilemapEntityOptions = {
   tileWidth: number;
@@ -15,9 +18,7 @@ export type TilemapEntityOptions = {
 export class TilemapEntity extends Entity {
   public readonly tilemap: TilemapStateComponent;
 
-  public constructor(
-    state: InfiniteTilemapOptions,
-  ) {
+  public constructor(state: InfiniteTilemapOptions) {
     super();
     this.tilemap = new TilemapStateComponent(state);
     this.addComponent(this.tilemap);

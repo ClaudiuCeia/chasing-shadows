@@ -80,7 +80,10 @@ const getOutlineMask = ({
   return canvas;
 };
 
-export const drawSpriteOutline = (ctx: CanvasRenderingContext2D, options: SpriteOutlineOptions): void => {
+export const drawSpriteOutline = (
+  ctx: CanvasRenderingContext2D,
+  options: SpriteOutlineOptions,
+): void => {
   const mask = getOutlineMask(options);
   if (!mask) {
     return;
@@ -90,7 +93,11 @@ export const drawSpriteOutline = (ctx: CanvasRenderingContext2D, options: Sprite
   ctx.imageSmoothingEnabled = options.imageSmoothingEnabled ?? false;
   ctx.globalAlpha = options.alpha ?? 0.95;
   for (const [offsetX, offsetY] of OUTLINE_OFFSETS) {
-    ctx.drawImage(mask, options.drawX - OUTLINE_PADDING + offsetX, options.drawY - OUTLINE_PADDING + offsetY);
+    ctx.drawImage(
+      mask,
+      options.drawX - OUTLINE_PADDING + offsetX,
+      options.drawY - OUTLINE_PADDING + offsetY,
+    );
   }
   ctx.restore();
 };

@@ -1,4 +1,10 @@
-import { EcsRuntime, SystemPhase, SystemTickMode, type EntityQuery, type System } from "@claudiu-ceia/tick";
+import {
+  EcsRuntime,
+  SystemPhase,
+  SystemTickMode,
+  type EntityQuery,
+  type System,
+} from "@claudiu-ceia/tick";
 import { InventoryComponent } from "../components/InventoryComponent.ts";
 import { LootFieldComponent } from "../components/LootFieldComponent.ts";
 import { LootUiComponent } from "../components/LootUiComponent.ts";

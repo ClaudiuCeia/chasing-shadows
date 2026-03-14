@@ -1,5 +1,8 @@
 import { GAME_CONFIG, STORAGE_KEYS } from "../config/game-config.ts";
-import { ACTIVE_HOTBAR_SLOT_VALUES, DEFAULT_ACTIVE_HOTBAR_SLOT } from "../components/InventoryComponent.ts";
+import {
+  ACTIVE_HOTBAR_SLOT_VALUES,
+  DEFAULT_ACTIVE_HOTBAR_SLOT,
+} from "../components/InventoryComponent.ts";
 import { ITEM_IDS } from "../items/item-catalog.ts";
 import { LOOT_BOX_SLOT_COUNT } from "../world/LootBoxField.ts";
 import { PLAYER_FIRE_MODE_VALUES } from "../render/player-animation-logic.ts";
@@ -14,7 +17,7 @@ export interface StorageLike {
   removeItem(key: string): void;
 }
 
-type Validator<T = unknown> = (value: unknown) => boolean;
+type Validator = (value: unknown) => boolean;
 
 const ITEM_ID_SET = new Set<string>(ITEM_IDS);
 const TILE_KIND_SET = new Set<string>(TILE_KIND_VALUES);
@@ -25,35 +28,47 @@ const ACTIVE_HOTBAR_SLOT_SET = new Set<string>(ACTIVE_HOTBAR_SLOT_VALUES);
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-const finite = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
+const finite = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value);
 
-const int = (options: { min?: number; max?: number } = {}): Validator<number> =>
+const int =
+  (options: { min?: number; max?: number } = {}): Validator<number> =>
   (value: unknown): boolean =>
     typeof value === "number" &&
     Number.isInteger(value) &&
     (options.min === undefined || value >= options.min) &&
     (options.max === undefined || value <= options.max);
 
-const numberInRange = (options: { min?: number; max?: number } = {}): Validator<number> =>
+const numberInRange =
+  (options: { min?: number; max?: number } = {}): Validator<number> =>
   (value: unknown): boolean =>
     finite(value) &&
     (options.min === undefined || value >= options.min) &&
     (options.max === undefined || value <= options.max);
 
-const literal = <T extends string>(allowed: ReadonlySet<T>): Validator<T> =>
-  (value: unknown): value is T => typeof value === "string" && allowed.has(value as T);
+const literal =
+  <T extends string>(allowed: ReadonlySet<T>): Validator<T> =>
+  (value: unknown): value is T =>
+    typeof value === "string" && allowed.has(value as T);
 
-const arrayOf = <T>(item: Validator<T>, options: { length?: number } = {}): Validator<T[]> =>
+const arrayOf =
+  <T>(item: Validator<T>, options: { length?: number } = {}): Validator<T[]> =>
   (value: unknown): value is T[] =>
     Array.isArray(value) &&
     (options.length === undefined || value.length === options.length) &&
     value.every((entry) => item(entry));
 
-const required = <T>(value: Record<string, unknown>, key: string, validate: Validator<T>): boolean =>
-  validate(value[key]);
+const required = <T>(
+  value: Record<string, unknown>,
+  key: string,
+  validate: Validator<T>,
+): boolean => validate(value[key]);
 
-const optional = <T>(value: Record<string, unknown>, key: string, validate: Validator<T>): boolean =>
-  value[key] === undefined || validate(value[key]);
+const optional = <T>(
+  value: Record<string, unknown>,
+  key: string,
+  validate: Validator<T>,
+): boolean => value[key] === undefined || validate(value[key]);
 
 const isVector = (value: unknown): boolean =>
   isObject(value) && required(value, "x", finite) && required(value, "y", finite);
@@ -81,21 +96,31 @@ const isQuickSlotArray = (value: unknown): value is Array<unknown> =>
 
 const isInventory = (value: unknown): boolean =>
   isObject(value) &&
-  required(value, "equipment", (entry): entry is Record<string, unknown> =>
-    isObject(entry) &&
-    isNullableItemStack(entry.mainWeapon) &&
-    isNullableItemStack(entry.secondaryWeapon) &&
-    isNullableItemStack(entry.helmet) &&
-    isNullableItemStack(entry.bodyArmor),
+  required(
+    value,
+    "equipment",
+    (entry): entry is Record<string, unknown> =>
+      isObject(entry) &&
+      isNullableItemStack(entry.mainWeapon) &&
+      isNullableItemStack(entry.secondaryWeapon) &&
+      isNullableItemStack(entry.helmet) &&
+      isNullableItemStack(entry.bodyArmor),
   ) &&
-  required(value, "weaponAmmo", (entry): entry is Record<string, unknown> =>
-    isObject(entry) &&
-    isNullableItemStack(entry.mainWeaponAmmo) &&
-    isNullableItemStack(entry.secondaryWeaponAmmo),
+  required(
+    value,
+    "weaponAmmo",
+    (entry): entry is Record<string, unknown> =>
+      isObject(entry) &&
+      isNullableItemStack(entry.mainWeaponAmmo) &&
+      isNullableItemStack(entry.secondaryWeaponAmmo),
   ) &&
   required(value, "quickSlots", isQuickSlotArray) &&
   optional(value, "activeSlot", literal(ACTIVE_HOTBAR_SLOT_SET)) &&
-  required(value, "backpackSlots", arrayOf(isNullableItemStack, { length: GAME_CONFIG.inventorySlots }));
+  required(
+    value,
+    "backpackSlots",
+    arrayOf(isNullableItemStack, { length: GAME_CONFIG.inventorySlots }),
+  );
 const isLootSlots = arrayOf(isNullableItemStack, { length: LOOT_BOX_SLOT_COUNT });
 
 const isTileCorners = (value: unknown): boolean =>
@@ -132,12 +157,17 @@ const isStructureInstance = (value: unknown): boolean =>
   required(
     value,
     "blueprintId",
-    (entry): entry is string => typeof entry === "string" && entry.length > 0 && hasStructureBlueprintId(entry),
+    (entry): entry is string =>
+      typeof entry === "string" && entry.length > 0 && hasStructureBlueprintId(entry),
   ) &&
   required(value, "originX", int()) &&
   required(value, "originY", int()) &&
   required(value, "baseZ", int({ min: 0 })) &&
-  required(value, "rotation", (entry): entry is number => typeof entry === "number" && STRUCTURE_ROTATION_SET.has(entry));
+  required(
+    value,
+    "rotation",
+    (entry): entry is number => typeof entry === "number" && STRUCTURE_ROTATION_SET.has(entry),
+  );
 
 const isSaveGame = (value: unknown): value is SaveGame => {
   if (!isObject(value) || value.version !== 1) {

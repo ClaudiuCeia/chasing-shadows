@@ -38,9 +38,7 @@ describe("TilemapCollisionSystem", () => {
     player.transform.transform.rotation = 0;
     player.getComponent(MovementIntentComponent).setIntent(0, 1, false, false);
 
-    world.addSystem(
-      new TilemapCollisionSystem(map, {}),
-    );
+    world.addSystem(new TilemapCollisionSystem(map, {}));
 
     stepN(world, 220, 1 / 60);
 
@@ -59,9 +57,7 @@ describe("TilemapCollisionSystem", () => {
     player.transform.transform.rotation = Math.PI;
     player.getComponent(MovementIntentComponent).setIntent(0, 1, false, false);
 
-    world.addSystem(
-      new TilemapCollisionSystem(map, {}),
-    );
+    world.addSystem(new TilemapCollisionSystem(map, {}));
 
     stepN(world, 120, 1 / 60);
 
@@ -83,9 +79,7 @@ describe("TilemapCollisionSystem", () => {
     player.awake();
     player.body.setVelocity(new Vector2D(2.6, 1.2));
 
-    world.addSystem(
-      new TilemapCollisionSystem(map, {}),
-    );
+    world.addSystem(new TilemapCollisionSystem(map, {}));
 
     stepN(world, 20, 1 / 60);
 
@@ -236,9 +230,7 @@ describe("TilemapCollisionSystem", () => {
     obstacle.awake();
 
     world.addSystem(new ObstacleCollisionSystem());
-    world.addSystem(
-      new TilemapCollisionSystem(map, {}),
-    );
+    world.addSystem(new TilemapCollisionSystem(map, {}));
 
     stepN(world, 220, 1 / 60);
     expect(player.transform.transform.position.x).toBeLessThanOrEqual(0.31);
@@ -257,9 +249,7 @@ describe("TilemapCollisionSystem", () => {
     obstacle.awake();
 
     world.addSystem(new ObstacleCollisionSystem({ iterations: 6 }));
-    world.addSystem(
-      new TilemapCollisionSystem(map, {}),
-    );
+    world.addSystem(new TilemapCollisionSystem(map, {}));
 
     world.step(1 / 60);
 

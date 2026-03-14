@@ -41,12 +41,23 @@ export const createTileCornerHeights = (
 };
 
 const getTileMaxElevation = (tile: TileData): number =>
-  Math.max(tile.corners.northWest, tile.corners.northEast, tile.corners.southEast, tile.corners.southWest);
+  Math.max(
+    tile.corners.northWest,
+    tile.corners.northEast,
+    tile.corners.southEast,
+    tile.corners.southWest,
+  );
 
 const getTileMinElevation = (tile: TileData): number =>
-  Math.min(tile.corners.northWest, tile.corners.northEast, tile.corners.southEast, tile.corners.southWest);
+  Math.min(
+    tile.corners.northWest,
+    tile.corners.northEast,
+    tile.corners.southEast,
+    tile.corners.southWest,
+  );
 
-export const getTileSlopeRange = (tile: TileData): number => getTileMaxElevation(tile) - getTileMinElevation(tile);
+export const getTileSlopeRange = (tile: TileData): number =>
+  getTileMaxElevation(tile) - getTileMinElevation(tile);
 
 export const isTileFlat = (tile: TileData): boolean => getTileSlopeRange(tile) <= 0;
 
@@ -76,7 +87,12 @@ export const normalizeTileData = (tile: {
   corners: number | Partial<TileCornerHeights>;
 }): TileData => {
   const corners = createTileCornerHeights(tile.corners, tile.elevation ?? 0);
-  const elevation = Math.max(corners.northWest, corners.northEast, corners.southEast, corners.southWest);
+  const elevation = Math.max(
+    corners.northWest,
+    corners.northEast,
+    corners.southEast,
+    corners.southWest,
+  );
   return {
     kind: tile.kind,
     blocking: tile.blocking,
@@ -92,13 +108,31 @@ export const createTileData = (kind: TileKind): TileData => {
       return normalizeTileData({ kind, blocking: false, elevation: 1, occluder: true, corners: 1 });
     }
     case "shelter": {
-      return normalizeTileData({ kind, blocking: false, elevation: 0, occluder: false, corners: 0 });
+      return normalizeTileData({
+        kind,
+        blocking: false,
+        elevation: 0,
+        occluder: false,
+        corners: 0,
+      });
     }
     case "scrap": {
-      return normalizeTileData({ kind, blocking: false, elevation: 0, occluder: false, corners: 0 });
+      return normalizeTileData({
+        kind,
+        blocking: false,
+        elevation: 0,
+        occluder: false,
+        corners: 0,
+      });
     }
     case "regolith": {
-      return normalizeTileData({ kind, blocking: false, elevation: 0, occluder: false, corners: 0 });
+      return normalizeTileData({
+        kind,
+        blocking: false,
+        elevation: 0,
+        occluder: false,
+        corners: 0,
+      });
     }
   }
 };

@@ -52,7 +52,12 @@ describe("InfiniteTilemap", () => {
     restored.applyDeltas(deltas);
 
     expect(restored.getTile(0, 0).kind).toBe("shelter");
-    expect(restored.getTile(0, 0).corners).toEqual({ northWest: 1, northEast: 2, southEast: 2, southWest: 1 });
+    expect(restored.getTile(0, 0).corners).toEqual({
+      northWest: 1,
+      northEast: 2,
+      southEast: 2,
+      southWest: 1,
+    });
   });
 
   test("interpolates surface elevation across ramp tiles", () => {

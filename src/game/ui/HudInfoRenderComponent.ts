@@ -52,7 +52,9 @@ const drawAmbientMeter = (
 ): void => {
   const barX = x + labelWidth;
   const barWidth = width - labelWidth;
-  const indicatorX = barX + clamp01((ambientCelsius - AMBIENT_MIN_C) / (AMBIENT_MAX_C - AMBIENT_MIN_C)) * (barWidth - 1);
+  const indicatorX =
+    barX +
+    clamp01((ambientCelsius - AMBIENT_MIN_C) / (AMBIENT_MAX_C - AMBIENT_MIN_C)) * (barWidth - 1);
   const gradient = ctx.createLinearGradient(barX, y, barX + barWidth, y);
 
   ctx.fillStyle = "rgba(241, 230, 208, 0.88)";
@@ -99,15 +101,45 @@ export class HudInfoRenderComponent extends HudRenderComponent {
       hp: this.player.health.hp,
       hunger: this.player.needs.hunger,
       thirst: this.player.needs.thirst,
-      ambientCelsius: getAmbientTemperature(this.terminator, this.player.transform.transform.position).celsius,
+      ambientCelsius: getAmbientTemperature(
+        this.terminator,
+        this.player.transform.transform.position,
+      ).celsius,
     };
     const labelWidth = 68;
 
     const meterX = frame.x;
     const meterWidth = frame.width;
-    drawMeter(ctx, meterX, frame.y, labelWidth, meterWidth, "Health", info.hp, "rgba(190, 74, 70, 0.96)");
-    drawMeter(ctx, meterX, frame.y + 20, labelWidth, meterWidth, "Hunger", info.hunger, "rgba(201, 155, 78, 0.96)");
-    drawMeter(ctx, meterX, frame.y + 40, labelWidth, meterWidth, "Thirst", info.thirst, "rgba(73, 152, 201, 0.96)");
+    drawMeter(
+      ctx,
+      meterX,
+      frame.y,
+      labelWidth,
+      meterWidth,
+      "Health",
+      info.hp,
+      "rgba(190, 74, 70, 0.96)",
+    );
+    drawMeter(
+      ctx,
+      meterX,
+      frame.y + 20,
+      labelWidth,
+      meterWidth,
+      "Hunger",
+      info.hunger,
+      "rgba(201, 155, 78, 0.96)",
+    );
+    drawMeter(
+      ctx,
+      meterX,
+      frame.y + 40,
+      labelWidth,
+      meterWidth,
+      "Thirst",
+      info.thirst,
+      "rgba(73, 152, 201, 0.96)",
+    );
     drawAmbientMeter(ctx, meterX, frame.y + 60, labelWidth, meterWidth, info.ambientCelsius);
   }
 }

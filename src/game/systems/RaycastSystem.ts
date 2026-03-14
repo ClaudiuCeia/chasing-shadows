@@ -32,7 +32,10 @@ export class RaycastSystem implements System {
   }
 
   public awake(): void {
-    this.query = this.runtime.registry.query().with(TransformComponent).with(RaycastEmitterComponent);
+    this.query = this.runtime.registry
+      .query()
+      .with(TransformComponent)
+      .with(RaycastEmitterComponent);
   }
 
   public update(): void {
@@ -42,7 +45,9 @@ export class RaycastSystem implements System {
 
     const hitColliders = prepareHitColliders(
       this.map,
-      this.runtime.registry.getAllEntities().filter((entity): entity is HitColliderEntity => entity instanceof HitColliderEntity),
+      this.runtime.registry
+        .getAllEntities()
+        .filter((entity): entity is HitColliderEntity => entity instanceof HitColliderEntity),
     );
     for (const entity of this.query.run() as RaycastableEntity[]) {
       const emitter = entity.getComponent(RaycastEmitterComponent);
@@ -55,7 +60,11 @@ export class RaycastSystem implements System {
       const originXY = transform.position;
       const baseElevation = this.map.getElevationAt(originXY.x, originXY.y);
       const originZ = baseElevation + emitter.originHeight;
-      const directions = getHorizontalRayDirections(transform.rotation, emitter.fovRadians, emitter.rayCount);
+      const directions = getHorizontalRayDirections(
+        transform.rotation,
+        emitter.fovRadians,
+        emitter.rayCount,
+      );
       const rays = directions.map((direction) =>
         castRaySegment(
           this.map,

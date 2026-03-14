@@ -3,10 +3,7 @@ import { InfiniteTilemap } from "./InfiniteTilemap.ts";
 import { LOOT_BOX_SLOT_COUNT, LootBoxField } from "./LootBoxField.ts";
 import { createTileCornerHeights, createTileData } from "./tile-types.ts";
 
-const findAnyBox = (
-  field: LootBoxField,
-  map: InfiniteTilemap,
-): { x: number; y: number } | null => {
+const findAnyBox = (field: LootBoxField, map: InfiniteTilemap): { x: number; y: number } | null => {
   for (let y = -24; y <= 24; y++) {
     for (let x = -24; x <= 24; x++) {
       if (field.getBoxAt(x, y, map)) {
@@ -30,7 +27,9 @@ describe("LootBoxField", () => {
       return;
     }
 
-    expect(a.getBoxAt(location.x, location.y, map)).toEqual(b.getBoxAt(location.x, location.y, map));
+    expect(a.getBoxAt(location.x, location.y, map)).toEqual(
+      b.getBoxAt(location.x, location.y, map),
+    );
   });
 
   test("serializes and restores slot edits via deltas", () => {
@@ -118,6 +117,8 @@ describe("LootBoxField", () => {
 
     const restored = new LootBoxField({ seed: 555 });
     restored.applyDeltas(deltas);
-    expect(restored.getBoxAt(location.x, location.y, map)?.slots.every((slot) => slot === null)).toBeTrue();
+    expect(
+      restored.getBoxAt(location.x, location.y, map)?.slots.every((slot) => slot === null),
+    ).toBeTrue();
   });
 });

@@ -5,7 +5,11 @@ import { LootUiComponent } from "../components/LootUiComponent.ts";
 import { ModalStateComponent } from "../components/ModalStateComponent.ts";
 import { getLootSourceSlotCount, getLootSourceSnapshot } from "../loot/loot-sources.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
-import { getInventorySlotAtHudPoint, INVENTORY_MODAL_HEIGHT, INVENTORY_MODAL_WIDTH } from "./inventory-layout.ts";
+import {
+  getInventorySlotAtHudPoint,
+  INVENTORY_MODAL_HEIGHT,
+  INVENTORY_MODAL_WIDTH,
+} from "./inventory-layout.ts";
 import {
   canPlaceInventoryStackAt,
   combineInventoryStacks,
@@ -43,7 +47,12 @@ export class LootWindowInputComponent extends HudInputComponent {
     }
 
     const layout = this.ent.getComponent(HudLayoutNodeComponent);
-    layout.setSize(this.state.openSource ? INVENTORY_MODAL_WIDTH.withSource : INVENTORY_MODAL_WIDTH.inventoryOnly, INVENTORY_MODAL_HEIGHT);
+    layout.setSize(
+      this.state.openSource
+        ? INVENTORY_MODAL_WIDTH.withSource
+        : INVENTORY_MODAL_WIDTH.inventoryOnly,
+      INVENTORY_MODAL_HEIGHT,
+    );
     const frame = layout.getFrame();
     if (!frame || !event.hudPoint) {
       this.state.hoveredSlot = null;
@@ -67,7 +76,12 @@ export class LootWindowInputComponent extends HudInputComponent {
     }
 
     const layout = this.ent.getComponent(HudLayoutNodeComponent);
-    layout.setSize(this.state.openSource ? INVENTORY_MODAL_WIDTH.withSource : INVENTORY_MODAL_WIDTH.inventoryOnly, INVENTORY_MODAL_HEIGHT);
+    layout.setSize(
+      this.state.openSource
+        ? INVENTORY_MODAL_WIDTH.withSource
+        : INVENTORY_MODAL_WIDTH.inventoryOnly,
+      INVENTORY_MODAL_HEIGHT,
+    );
     const frame = layout.getFrame();
     if (!frame || !event.hudPoint) {
       return;
@@ -89,7 +103,13 @@ export class LootWindowInputComponent extends HudInputComponent {
     event.stopPropagation();
 
     if (!this.state.draggedItem) {
-      const stack = getInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, target);
+      const stack = getInventoryStackAt(
+        this.inventory,
+        this.state.openSource,
+        this.lootField,
+        this.map,
+        target,
+      );
       if (!stack) {
         return;
       }
@@ -101,7 +121,10 @@ export class LootWindowInputComponent extends HudInputComponent {
           inventory: this.inventory.getState(),
           source: this.state.openSource,
           sourceSlots: this.state.openSource
-            ? [...(getLootSourceSnapshot(this.state.openSource, this.lootField, this.map)?.slots ?? [])]
+            ? [
+                ...(getLootSourceSnapshot(this.state.openSource, this.lootField, this.map)?.slots ??
+                  []),
+              ]
             : null,
         };
       }
@@ -111,14 +134,33 @@ export class LootWindowInputComponent extends HudInputComponent {
     }
 
     const dragging = this.state.draggedItem;
-    if (dragging.hiddenOrigin && dragging.hiddenOrigin.section === target.section && dragging.hiddenOrigin.key === target.key) {
+    if (
+      dragging.hiddenOrigin &&
+      dragging.hiddenOrigin.section === target.section &&
+      dragging.hiddenOrigin.key === target.key
+    ) {
       this.state.draggedItem = null;
       this.state.dragSnapshot = null;
       return;
     }
 
-    const targetStack = getInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, target);
-    if (!canPlaceInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, target, dragging.stack)) {
+    const targetStack = getInventoryStackAt(
+      this.inventory,
+      this.state.openSource,
+      this.lootField,
+      this.map,
+      target,
+    );
+    if (
+      !canPlaceInventoryStackAt(
+        this.inventory,
+        this.state.openSource,
+        this.lootField,
+        this.map,
+        target,
+        dragging.stack,
+      )
+    ) {
       const feedback = getInvalidInventoryDropMessage(this.inventory, target, dragging.stack);
       if (feedback) {
         this.state.showDropFeedback(feedback);
@@ -135,9 +177,23 @@ export class LootWindowInputComponent extends HudInputComponent {
       }
 
       if (dragging.hiddenOrigin) {
-        setInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, dragging.hiddenOrigin, null);
+        setInventoryStackAt(
+          this.inventory,
+          this.state.openSource,
+          this.lootField,
+          this.map,
+          dragging.hiddenOrigin,
+          null,
+        );
       }
-      setInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, target, merged);
+      setInventoryStackAt(
+        this.inventory,
+        this.state.openSource,
+        this.lootField,
+        this.map,
+        target,
+        merged,
+      );
       this.state.draggedItem = null;
       this.state.dragSnapshot = null;
       return;
@@ -153,7 +209,9 @@ export class LootWindowInputComponent extends HudInputComponent {
           this.lootField,
           this.map,
           dragging.hiddenOrigin,
-          updatedDraggedCount > 0 ? { itemId: dragging.stack.itemId, count: updatedDraggedCount } : null,
+          updatedDraggedCount > 0
+            ? { itemId: dragging.stack.itemId, count: updatedDraggedCount }
+            : null,
         );
       }
 
@@ -179,13 +237,41 @@ export class LootWindowInputComponent extends HudInputComponent {
       return;
     }
 
-    if (targetStack && dragging.hiddenOrigin && isSingleItemInventorySlot(dragging.hiddenOrigin) && isSingleItemInventorySlot(target)) {
-      if (!canPlaceInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, dragging.hiddenOrigin, targetStack)) {
+    if (
+      targetStack &&
+      dragging.hiddenOrigin &&
+      isSingleItemInventorySlot(dragging.hiddenOrigin) &&
+      isSingleItemInventorySlot(target)
+    ) {
+      if (
+        !canPlaceInventoryStackAt(
+          this.inventory,
+          this.state.openSource,
+          this.lootField,
+          this.map,
+          dragging.hiddenOrigin,
+          targetStack,
+        )
+      ) {
         return;
       }
 
-      setInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, dragging.hiddenOrigin, targetStack);
-      setInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, target, dragging.stack);
+      setInventoryStackAt(
+        this.inventory,
+        this.state.openSource,
+        this.lootField,
+        this.map,
+        dragging.hiddenOrigin,
+        targetStack,
+      );
+      setInventoryStackAt(
+        this.inventory,
+        this.state.openSource,
+        this.lootField,
+        this.map,
+        target,
+        dragging.stack,
+      );
       this.state.draggedItem = null;
       this.state.dragSnapshot = null;
       return;
@@ -194,15 +280,36 @@ export class LootWindowInputComponent extends HudInputComponent {
     if (
       targetStack &&
       dragging.hiddenOrigin &&
-      !canPlaceInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, dragging.hiddenOrigin, targetStack)
+      !canPlaceInventoryStackAt(
+        this.inventory,
+        this.state.openSource,
+        this.lootField,
+        this.map,
+        dragging.hiddenOrigin,
+        targetStack,
+      )
     ) {
       return;
     }
 
     if (dragging.hiddenOrigin) {
-      setInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, dragging.hiddenOrigin, targetStack);
+      setInventoryStackAt(
+        this.inventory,
+        this.state.openSource,
+        this.lootField,
+        this.map,
+        dragging.hiddenOrigin,
+        targetStack,
+      );
     }
-    setInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, target, dragging.stack);
+    setInventoryStackAt(
+      this.inventory,
+      this.state.openSource,
+      this.lootField,
+      this.map,
+      target,
+      dragging.stack,
+    );
     this.state.draggedItem = targetStack ? { hiddenOrigin: null, stack: targetStack } : null;
     if (!this.state.draggedItem) {
       this.state.dragSnapshot = null;
@@ -229,7 +336,9 @@ export class LootWindowInputComponent extends HudInputComponent {
     if (this.state.draggedItem?.hiddenOrigin?.section === "source") {
       return getLootSourceSlotCount(this.state.openSource, this.lootField, this.map);
     }
-    return getLootSourceSnapshot(this.state.openSource, this.lootField, this.map)?.slots.length ?? 0;
+    return (
+      getLootSourceSnapshot(this.state.openSource, this.lootField, this.map)?.slots.length ?? 0
+    );
   }
 
   private isOpen(): boolean {

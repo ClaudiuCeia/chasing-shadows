@@ -24,13 +24,22 @@ describe("TargetHoverSystem", () => {
     EcsRuntime.runWith(runtime, () => {
       const map = new InfiniteTilemap({ seed: 7, chunkSize: 16 });
       const uiState = new UiStateEntity();
-      const player = new PlayerEntity(new Vector2D(0, 0), GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
+      const player = new PlayerEntity(
+        new Vector2D(0, 0),
+        GAME_CONFIG.playerBaseSpeed,
+        GAME_CONFIG.inventorySlots,
+      );
       const nearNpc = new NpcEntity(new Vector2D(2, 0), 10);
       const farNpc = new NpcEntity(new Vector2D(4, 2), 11);
-      const camera = new IsometricCameraEntity({ tileWidth: GAME_CONFIG.tileWidth, tileHeight: GAME_CONFIG.tileHeight }, GAME_CONFIG.elevationStepPixels);
+      const camera = new IsometricCameraEntity(
+        { tileWidth: GAME_CONFIG.tileWidth, tileHeight: GAME_CONFIG.tileHeight },
+        GAME_CONFIG.elevationStepPixels,
+      );
 
       uiState.awake();
-      player.bindTilemap({ getElevationAt: (x: number, y: number) => map.getElevationAt(x, y) } as never);
+      player.bindTilemap({
+        getElevationAt: (x: number, y: number) => map.getElevationAt(x, y),
+      } as never);
       nearNpc.bindTilemap(map);
       farNpc.bindTilemap(map);
       player.awake();
@@ -46,7 +55,11 @@ describe("TargetHoverSystem", () => {
         nearNpc.tilePosition.z + nearNpc.targetable.aimHeight,
         new Vector2D(canvas.width, canvas.height),
       );
-      uiState.pointerWorld.setResolved(new Vector2D(2, 0), targetCanvasPoint, map.getElevationAt(2, 0));
+      uiState.pointerWorld.setResolved(
+        new Vector2D(2, 0),
+        targetCanvasPoint,
+        map.getElevationAt(2, 0),
+      );
 
       const system = new TargetHoverSystem(camera, canvas, map, player, runtime);
       system.awake();

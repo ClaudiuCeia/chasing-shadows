@@ -51,11 +51,17 @@ export class TargetHoverSystem implements System {
 
   public awake(): void {
     this.pointerQuery = this.runtime.registry.query().with(PointerWorldComponent);
-    this.targetQuery = this.runtime.registry.query().with(TargetableComponent).with(HighlightComponent).with(TransformComponent);
+    this.targetQuery = this.runtime.registry
+      .query()
+      .with(TargetableComponent)
+      .with(HighlightComponent)
+      .with(TransformComponent);
   }
 
   public update(): void {
-    const pointer = this.pointerQuery ? getSingletonComponent(this.pointerQuery, PointerWorldComponent) : null;
+    const pointer = this.pointerQuery
+      ? getSingletonComponent(this.pointerQuery, PointerWorldComponent)
+      : null;
     if (!pointer || !this.targetQuery) {
       return;
     }

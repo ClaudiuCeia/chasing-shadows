@@ -5,7 +5,10 @@ import {
   type EntityQuery,
   type System,
 } from "@claudiu-ceia/tick";
-import { DRY_FIRE_FEEDBACK_SECONDS, PlayerAttackComponent } from "../components/PlayerAttackComponent.ts";
+import {
+  DRY_FIRE_FEEDBACK_SECONDS,
+  PlayerAttackComponent,
+} from "../components/PlayerAttackComponent.ts";
 import { InventoryComponent } from "../components/InventoryComponent.ts";
 import { getSingletonComponent } from "../ecs/singleton.ts";
 import { getItemFireMode, getItemRefireSeconds } from "../items/item-catalog.ts";
@@ -34,8 +37,12 @@ export class PlayerAttackSystem implements System {
   }
 
   public update(deltaTime: number): void {
-    const attack = this.attackQuery ? getSingletonComponent(this.attackQuery, PlayerAttackComponent) : null;
-    const inventory = this.inventoryQuery ? getSingletonComponent(this.inventoryQuery, InventoryComponent) : null;
+    const attack = this.attackQuery
+      ? getSingletonComponent(this.attackQuery, PlayerAttackComponent)
+      : null;
+    const inventory = this.inventoryQuery
+      ? getSingletonComponent(this.inventoryQuery, InventoryComponent)
+      : null;
     if (attack) {
       if (inventory) {
         PlayerAttackSystem.syncFireModeFromInventory(attack, inventory);
@@ -44,10 +51,15 @@ export class PlayerAttackSystem implements System {
     }
   }
 
-  public static syncFireModeFromInventory(attack: PlayerAttackComponent, inventory: InventoryComponent): void {
+  public static syncFireModeFromInventory(
+    attack: PlayerAttackComponent,
+    inventory: InventoryComponent,
+  ): void {
     const activeWeapon = inventory.getEquippedWeaponForActiveSlot();
     const nextFireMode = activeWeapon ? getItemFireMode(activeWeapon.itemId) : "semi";
-    const nextRefireSeconds = activeWeapon ? getItemRefireSeconds(activeWeapon.itemId) : attack.refireSeconds;
+    const nextRefireSeconds = activeWeapon
+      ? getItemRefireSeconds(activeWeapon.itemId)
+      : attack.refireSeconds;
     if (attack.fireMode === nextFireMode && attack.refireSeconds === nextRefireSeconds) {
       return;
     }
@@ -64,7 +76,10 @@ export class PlayerAttackSystem implements System {
   public static tick(attack: PlayerAttackComponent, deltaTime: number): void {
     const clampedDeltaTime = Math.max(0, deltaTime);
     attack.refireRemaining = Math.max(0, attack.refireRemaining - clampedDeltaTime);
-    attack.dryFireFeedbackRemaining = Math.max(0, attack.dryFireFeedbackRemaining - clampedDeltaTime);
+    attack.dryFireFeedbackRemaining = Math.max(
+      0,
+      attack.dryFireFeedbackRemaining - clampedDeltaTime,
+    );
 
     if (!attack.active) {
       return;

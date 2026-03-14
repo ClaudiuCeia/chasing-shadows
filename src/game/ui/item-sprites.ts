@@ -12,9 +12,12 @@ export const ITEM_SHEET_COLUMNS = 4;
 
 let sheetPromise: Promise<HTMLImageElement> | null = null;
 
-export const getItemSheet = (runtime: EcsRuntime = EcsRuntime.getCurrent()): Promise<HTMLImageElement> => {
+export const getItemSheet = (
+  runtime: EcsRuntime = EcsRuntime.getCurrent(),
+): Promise<HTMLImageElement> => {
   if (!sheetPromise) {
-    sheetPromise = runtime.assets.load(ITEM_SPRITE_MANIFEST, { scopeLabel: "item-sprites" })
+    sheetPromise = runtime.assets
+      .load(ITEM_SPRITE_MANIFEST, { scopeLabel: "item-sprites" })
       .then((assets) => assets.images.sheet);
   }
 

@@ -28,7 +28,11 @@ export class ObstacleEntity extends Entity {
   public constructor(options: ObstacleEntityOptions) {
     super();
     this.obstacle = new ObstacleComponent();
-    this.transform = new TransformComponent({ position: options.position.clone(), rotation: 0, scale: 1 });
+    this.transform = new TransformComponent({
+      position: options.position.clone(),
+      rotation: 0,
+      scale: 1,
+    });
     this.movementCollider = new CollisionEntity(
       options.shape,
       options.anchor ?? "center",

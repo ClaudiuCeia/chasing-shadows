@@ -65,7 +65,10 @@ export class InventoryComponent extends Component {
   private quickSlots: Array<ItemStack | null>;
   private backpackSlots: Array<ItemStack | null>;
 
-  public constructor(public readonly backpackCapacity: number, public readonly quickSlotCount = QUICK_SLOT_COUNT) {
+  public constructor(
+    public readonly backpackCapacity: number,
+    public readonly quickSlotCount = QUICK_SLOT_COUNT,
+  ) {
     super();
     if (!Number.isInteger(backpackCapacity) || backpackCapacity <= 0) {
       throw new Error("Inventory backpack capacity must be a positive integer");

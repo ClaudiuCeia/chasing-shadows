@@ -1,4 +1,10 @@
-import { EcsRuntime, SystemPhase, SystemTickMode, type EntityQuery, type System } from "@claudiu-ceia/tick";
+import {
+  EcsRuntime,
+  SystemPhase,
+  SystemTickMode,
+  type EntityQuery,
+  type System,
+} from "@claudiu-ceia/tick";
 import { TerminatorComponent } from "../components/TerminatorComponent.ts";
 import { WorldSessionComponent } from "../components/WorldSessionComponent.ts";
 import { getSingletonComponent } from "../ecs/singleton.ts";
@@ -21,7 +27,9 @@ export class TerminatorSystem implements System {
   }
 
   public update(deltaTime: number): void {
-    const session = this.sessionQuery ? getSingletonComponent(this.sessionQuery, WorldSessionComponent) : null;
+    const session = this.sessionQuery
+      ? getSingletonComponent(this.sessionQuery, WorldSessionComponent)
+      : null;
     if (session) {
       session.elapsedSeconds += Math.max(0, deltaTime);
     }

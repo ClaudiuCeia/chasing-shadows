@@ -1,9 +1,4 @@
-import {
-  SystemPhase,
-  SystemTickMode,
-  TransformComponent,
-  type System,
-} from "@claudiu-ceia/tick";
+import { SystemPhase, SystemTickMode, TransformComponent, type System } from "@claudiu-ceia/tick";
 import { PlayerEntity } from "../entities/PlayerEntity.ts";
 import { IsometricCameraEntity } from "../render/IsometricCameraEntity.ts";
 

@@ -5,7 +5,13 @@ import { LootFieldComponent } from "../components/LootFieldComponent.ts";
 import { LootUiComponent } from "../components/LootUiComponent.ts";
 import { ModalStateComponent } from "../components/ModalStateComponent.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
-import { BACKPACK_ORIGIN, EQUIPMENT_LAYOUT, INVENTORY_MODAL_HEIGHT, INVENTORY_MODAL_WIDTH, INVENTORY_SLOT_SIZE } from "./inventory-layout.ts";
+import {
+  BACKPACK_ORIGIN,
+  EQUIPMENT_LAYOUT,
+  INVENTORY_MODAL_HEIGHT,
+  INVENTORY_MODAL_WIDTH,
+  INVENTORY_SLOT_SIZE,
+} from "./inventory-layout.ts";
 import { restoreDraggedInventoryItem } from "./inventory-slots.ts";
 import { LootWindowInputComponent } from "./LootWindowInputComponent.ts";
 
@@ -15,11 +21,12 @@ class HudNode extends Entity {
   }
 }
 
-const clickEventAt = (x: number, y: number) => ({
-  type: "click",
-  hudPoint: new Vector2D(x, y),
-  stopPropagation() {},
-}) as any;
+const clickEventAt = (x: number, y: number) =>
+  ({
+    type: "click",
+    hudPoint: new Vector2D(x, y),
+    stopPropagation() {},
+  }) as any;
 
 beforeEach(() => {
   EcsRuntime.reset();
@@ -31,7 +38,10 @@ describe("LootWindowInputComponent", () => {
 
     EcsRuntime.runWith(runtime, () => {
       const inventory = new InventoryComponent(16, 4);
-      inventory.setBackpackSlots([{ itemId: "ump5", count: 5 }, ...Array.from({ length: 15 }, () => null)]);
+      inventory.setBackpackSlots([
+        { itemId: "ump5", count: 5 },
+        ...Array.from({ length: 15 }, () => null),
+      ]);
       inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
 
       const lootUi = new LootUiComponent();
@@ -50,11 +60,22 @@ describe("LootWindowInputComponent", () => {
       node.addComponent(layout);
       node.addComponent(input);
       node.awake();
-      layout.setResolvedFrame({ x: 0, y: 0, width: INVENTORY_MODAL_WIDTH.inventoryOnly, height: INVENTORY_MODAL_HEIGHT });
+      layout.setResolvedFrame({
+        x: 0,
+        y: 0,
+        width: INVENTORY_MODAL_WIDTH.inventoryOnly,
+        height: INVENTORY_MODAL_HEIGHT,
+      });
 
-      const backpackPoint = new Vector2D(BACKPACK_ORIGIN.x + INVENTORY_SLOT_SIZE / 2, BACKPACK_ORIGIN.y + INVENTORY_SLOT_SIZE / 2);
+      const backpackPoint = new Vector2D(
+        BACKPACK_ORIGIN.x + INVENTORY_SLOT_SIZE / 2,
+        BACKPACK_ORIGIN.y + INVENTORY_SLOT_SIZE / 2,
+      );
       const weaponSlot = EQUIPMENT_LAYOUT[0]!;
-      const weaponPoint = new Vector2D(weaponSlot.x + INVENTORY_SLOT_SIZE / 2, weaponSlot.y + INVENTORY_SLOT_SIZE / 2);
+      const weaponPoint = new Vector2D(
+        weaponSlot.x + INVENTORY_SLOT_SIZE / 2,
+        weaponSlot.y + INVENTORY_SLOT_SIZE / 2,
+      );
 
       input.handleHudInput(clickEventAt(backpackPoint.x, backpackPoint.y));
       expect(lootUi.draggedItem?.stack).toEqual({ itemId: "ump5", count: 5 });
@@ -97,13 +118,24 @@ describe("LootWindowInputComponent", () => {
       node.addComponent(layout);
       node.addComponent(input);
       node.awake();
-      layout.setResolvedFrame({ x: 0, y: 0, width: INVENTORY_MODAL_WIDTH.inventoryOnly, height: INVENTORY_MODAL_HEIGHT });
+      layout.setResolvedFrame({
+        x: 0,
+        y: 0,
+        width: INVENTORY_MODAL_WIDTH.inventoryOnly,
+        height: INVENTORY_MODAL_HEIGHT,
+      });
 
       const mainWeaponSlot = EQUIPMENT_LAYOUT[0]!;
       const secondaryWeaponSlot = EQUIPMENT_LAYOUT[2]!;
-      const backpackPoint = new Vector2D(BACKPACK_ORIGIN.x + INVENTORY_SLOT_SIZE / 2, BACKPACK_ORIGIN.y + INVENTORY_SLOT_SIZE / 2);
+      const backpackPoint = new Vector2D(
+        BACKPACK_ORIGIN.x + INVENTORY_SLOT_SIZE / 2,
+        BACKPACK_ORIGIN.y + INVENTORY_SLOT_SIZE / 2,
+      );
 
-      const mainWeaponPoint = new Vector2D(mainWeaponSlot.x + INVENTORY_SLOT_SIZE / 2, mainWeaponSlot.y + INVENTORY_SLOT_SIZE / 2);
+      const mainWeaponPoint = new Vector2D(
+        mainWeaponSlot.x + INVENTORY_SLOT_SIZE / 2,
+        mainWeaponSlot.y + INVENTORY_SLOT_SIZE / 2,
+      );
       const secondaryWeaponPoint = new Vector2D(
         secondaryWeaponSlot.x + INVENTORY_SLOT_SIZE / 2,
         secondaryWeaponSlot.y + INVENTORY_SLOT_SIZE / 2,
@@ -115,13 +147,19 @@ describe("LootWindowInputComponent", () => {
       input.handleHudInput(clickEventAt(secondaryWeaponPoint.x, secondaryWeaponPoint.y));
 
       expect(inventory.getEquipmentSlot("mainWeapon")).toEqual({ itemId: "pistol", count: 1 });
-      expect(inventory.getEquipmentSlot("secondaryWeapon")).toEqual({ itemId: "shotgun", count: 1 });
+      expect(inventory.getEquipmentSlot("secondaryWeapon")).toEqual({
+        itemId: "shotgun",
+        count: 1,
+      });
       expect(lootUi.draggedItem).toBeNull();
 
       input.handleHudInput(clickEventAt(backpackPoint.x, backpackPoint.y));
 
       expect(inventory.getEquipmentSlot("mainWeapon")).toEqual({ itemId: "pistol", count: 1 });
-      expect(inventory.getEquipmentSlot("secondaryWeapon")).toEqual({ itemId: "shotgun", count: 1 });
+      expect(inventory.getEquipmentSlot("secondaryWeapon")).toEqual({
+        itemId: "shotgun",
+        count: 1,
+      });
       expect(inventory.getBackpackSlots()[0]).toBeNull();
       expect(lootUi.draggedItem).toBeNull();
     });
@@ -132,7 +170,10 @@ describe("LootWindowInputComponent", () => {
 
     EcsRuntime.runWith(runtime, () => {
       const inventory = new InventoryComponent(16, 4);
-      inventory.setBackpackSlots([{ itemId: "water-bottle", count: 1 }, ...Array.from({ length: 15 }, () => null)]);
+      inventory.setBackpackSlots([
+        { itemId: "water-bottle", count: 1 },
+        ...Array.from({ length: 15 }, () => null),
+      ]);
       inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
 
       const lootUi = new LootUiComponent();
@@ -151,11 +192,22 @@ describe("LootWindowInputComponent", () => {
       node.addComponent(layout);
       node.addComponent(input);
       node.awake();
-      layout.setResolvedFrame({ x: 0, y: 0, width: INVENTORY_MODAL_WIDTH.inventoryOnly, height: INVENTORY_MODAL_HEIGHT });
+      layout.setResolvedFrame({
+        x: 0,
+        y: 0,
+        width: INVENTORY_MODAL_WIDTH.inventoryOnly,
+        height: INVENTORY_MODAL_HEIGHT,
+      });
 
-      const backpackPoint = new Vector2D(BACKPACK_ORIGIN.x + INVENTORY_SLOT_SIZE / 2, BACKPACK_ORIGIN.y + INVENTORY_SLOT_SIZE / 2);
+      const backpackPoint = new Vector2D(
+        BACKPACK_ORIGIN.x + INVENTORY_SLOT_SIZE / 2,
+        BACKPACK_ORIGIN.y + INVENTORY_SLOT_SIZE / 2,
+      );
       const ammoSlot = EQUIPMENT_LAYOUT[1]!;
-      const ammoPoint = new Vector2D(ammoSlot.x + INVENTORY_SLOT_SIZE / 2, ammoSlot.y + INVENTORY_SLOT_SIZE / 2);
+      const ammoPoint = new Vector2D(
+        ammoSlot.x + INVENTORY_SLOT_SIZE / 2,
+        ammoSlot.y + INVENTORY_SLOT_SIZE / 2,
+      );
 
       input.handleHudInput(clickEventAt(backpackPoint.x, backpackPoint.y));
       expect(lootUi.draggedItem?.stack).toEqual({ itemId: "water-bottle", count: 1 });
@@ -164,7 +216,9 @@ describe("LootWindowInputComponent", () => {
 
       expect(lootUi.draggedItem?.stack).toEqual({ itemId: "water-bottle", count: 1 });
       expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toBeNull();
-      expect(lootUi.getVisibleDropFeedback()).toBe("Cannot drop Water Bottle here, expected Shotgun Ammo.");
+      expect(lootUi.getVisibleDropFeedback()).toBe(
+        "Cannot drop Water Bottle here, expected Shotgun Ammo.",
+      );
     });
   });
 });

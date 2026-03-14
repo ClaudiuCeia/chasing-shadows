@@ -43,10 +43,10 @@ export const getPlayerMovementProfile = (
 ): PlayerMovementProfile => {
   const hasInput = intent.forward !== 0 || intent.strafe !== 0;
   const movementReference = hasInput
-    ? isoToWorld(
-        new Vector2D(intent.strafe, -intent.forward),
-        { tileWidth: GAME_CONFIG.tileWidth, tileHeight: GAME_CONFIG.tileHeight },
-      )
+    ? isoToWorld(new Vector2D(intent.strafe, -intent.forward), {
+        tileWidth: GAME_CONFIG.tileWidth,
+        tileHeight: GAME_CONFIG.tileHeight,
+      })
     : velocity;
 
   if (movementReference.magnitude <= 0.0001) {
@@ -69,12 +69,16 @@ export const getPlayerMovementProfile = (
   return {
     forwardAmount: normalizedMovement.dot(facingVector),
     strafeAmount: normalizedMovement.dot(rightVector),
-    normalizedSpeed: clamp01((hasInput ? desiredSpeed : velocity.magnitude) / controller.config.maxSpeed),
+    normalizedSpeed: clamp01(
+      (hasInput ? desiredSpeed : velocity.magnitude) / controller.config.maxSpeed,
+    ),
     moving: hasInput || velocity.magnitude > MOVE_THRESHOLD,
   };
 };
 
-export const getDefaultAttackSelection = (profile: PlayerMovementProfile): PlayerAttackSelection => {
+export const getDefaultAttackSelection = (
+  profile: PlayerMovementProfile,
+): PlayerAttackSelection => {
   if (!profile.moving) {
     return { clip: "attack1", playbackDirection: 1 };
   }

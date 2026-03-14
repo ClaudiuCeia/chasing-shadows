@@ -53,7 +53,6 @@ export const setLootSourceSlots = (
   source: LootSourceRef,
   slots: readonly (ItemStack | null)[],
   lootField: LootFieldComponent,
-  map: InfiniteTilemap,
 ): void => {
   switch (source.kind) {
     case "tile-box":

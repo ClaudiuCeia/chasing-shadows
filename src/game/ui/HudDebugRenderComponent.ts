@@ -1,4 +1,9 @@
-import { HudLayoutNodeComponent, HudRenderComponent, Vector2D, type ICamera } from "@claudiu-ceia/tick";
+import {
+  HudLayoutNodeComponent,
+  HudRenderComponent,
+  Vector2D,
+  type ICamera,
+} from "@claudiu-ceia/tick";
 import { DebugOverlayComponent } from "../components/DebugOverlayComponent.ts";
 import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
 import { PlayerEntity } from "../entities/PlayerEntity.ts";
@@ -78,8 +83,11 @@ export class HudDebugRenderComponent extends HudRenderComponent {
 
     const position = this.player.transform.transform.position;
     const primaryRay = this.player.rayEmitter.getPrimaryRay();
-    const primaryWeaponRay = this.player.weaponRaycast.rays[Math.floor(this.player.weaponRaycast.rays.length / 2)] ?? null;
-    const posture = this.player.getComponent(MovementIntentComponent).crouch ? "crouched" : "standing";
+    const primaryWeaponRay =
+      this.player.weaponRaycast.rays[Math.floor(this.player.weaponRaycast.rays.length / 2)] ?? null;
+    const posture = this.player.getComponent(MovementIntentComponent).crouch
+      ? "crouched"
+      : "standing";
     const playerElevation = this.player.tilePosition.z;
     const headElevation = playerElevation + this.player.hitCollider.bodyHeight;
     const visibility = this.player.runtime.registry
@@ -118,10 +126,13 @@ export class HudDebugRenderComponent extends HudRenderComponent {
       DEBUG_BOX_MAX_WIDTH,
       Math.max(
         DEBUG_BOX_MIN_WIDTH,
-        Math.ceil(Math.max(...lines.map((line) => ctx.measureText(line).width), 0)) + DEBUG_TEXT_PADDING_X * 2,
+        Math.ceil(Math.max(...lines.map((line) => ctx.measureText(line).width), 0)) +
+          DEBUG_TEXT_PADDING_X * 2,
       ),
     );
-    const wrappedLines = lines.flatMap((line) => wrapText(ctx, line, preferredWidth - DEBUG_TEXT_PADDING_X * 2));
+    const wrappedLines = lines.flatMap((line) =>
+      wrapText(ctx, line, preferredWidth - DEBUG_TEXT_PADDING_X * 2),
+    );
     const toggleAreaHeight = this.toggleButtons.length > 0 ? 76 : 0;
     const preferredHeight = Math.max(
       DEBUG_BOX_MIN_HEIGHT,
@@ -147,7 +158,11 @@ export class HudDebugRenderComponent extends HudRenderComponent {
     ctx.rect(frame.x, frame.y, frame.width, frame.height);
     ctx.clip();
     wrappedLines.forEach((line, index) => {
-      ctx.fillText(line, frame.x + DEBUG_TEXT_PADDING_X, frame.y + DEBUG_TEXT_PADDING_Y + index * DEBUG_TEXT_LINE_HEIGHT);
+      ctx.fillText(
+        line,
+        frame.x + DEBUG_TEXT_PADDING_X,
+        frame.y + DEBUG_TEXT_PADDING_Y + index * DEBUG_TEXT_LINE_HEIGHT,
+      );
     });
     ctx.restore();
   }

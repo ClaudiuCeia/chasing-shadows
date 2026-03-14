@@ -23,7 +23,11 @@ export class StructureHitVolumeEntity extends Entity {
     super();
     this.width = options.width;
     this.height = options.height;
-    this.transform = new TransformComponent({ position: new Vector2D(options.x, options.y), rotation: 0, scale: 1 });
+    this.transform = new TransformComponent({
+      position: new Vector2D(options.x, options.y),
+      rotation: 0,
+      scale: 1,
+    });
     this.tile = new TilePositionComponent(options.x, options.y, options.z);
     this.hitCollider = new HitColliderEntity(
       new RectangleCollisionShape(options.width, options.height),

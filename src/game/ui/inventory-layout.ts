@@ -48,7 +48,10 @@ export const BACKPACK_ORIGIN = {
 };
 
 export const SOURCE_ORIGIN = {
-  x: BACKPACK_ORIGIN.x + BACKPACK_COLUMNS * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP) + INVENTORY_PANEL_GAP,
+  x:
+    BACKPACK_ORIGIN.x +
+    BACKPACK_COLUMNS * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP) +
+    INVENTORY_PANEL_GAP,
   y: BACKPACK_ORIGIN.y,
 };
 
@@ -57,7 +60,8 @@ export const INVENTORY_MODAL_HEIGHT = 540;
 const INVENTORY_MODAL_RIGHT_PADDING = 36;
 const INVENTORY_MODAL_BOTTOM_PADDING = 32;
 
-const gridWidth = (columns: number): number => columns * INVENTORY_SLOT_SIZE + (columns - 1) * INVENTORY_SLOT_GAP;
+const gridWidth = (columns: number): number =>
+  columns * INVENTORY_SLOT_SIZE + (columns - 1) * INVENTORY_SLOT_GAP;
 
 export const INVENTORY_MODAL_WIDTH = {
   inventoryOnly: BACKPACK_ORIGIN.x + gridWidth(BACKPACK_COLUMNS) + INVENTORY_MODAL_RIGHT_PADDING,
@@ -67,7 +71,10 @@ export const INVENTORY_MODAL_WIDTH = {
 export const INVENTORY_MODAL_MIN_HEIGHT =
   QUICKBAR_ORIGIN.y + INVENTORY_SLOT_SIZE + INVENTORY_MODAL_BOTTOM_PADDING;
 
-export const getSlotRect = (frame: UiRect, slot: SlotLayout | { ref: InventorySlotRef; x: number; y: number }) => ({
+export const getSlotRect = (
+  frame: UiRect,
+  slot: SlotLayout | { ref: InventorySlotRef; x: number; y: number },
+) => ({
   x: frame.x + slot.x,
   y: frame.y + slot.y,
   width: INVENTORY_SLOT_SIZE,
@@ -97,14 +104,31 @@ export const getInventorySlotAtHudPoint = (
 ): InventorySlotRef | null => {
   const layouts: SlotLayout[] = [
     ...EQUIPMENT_LAYOUT,
-    ...createGridLayout("quick", quickSlotCount, quickSlotCount, QUICKBAR_ORIGIN.x, QUICKBAR_ORIGIN.y),
-    ...createGridLayout("backpack", backpackCount, BACKPACK_COLUMNS, BACKPACK_ORIGIN.x, BACKPACK_ORIGIN.y),
+    ...createGridLayout(
+      "quick",
+      quickSlotCount,
+      quickSlotCount,
+      QUICKBAR_ORIGIN.x,
+      QUICKBAR_ORIGIN.y,
+    ),
+    ...createGridLayout(
+      "backpack",
+      backpackCount,
+      BACKPACK_COLUMNS,
+      BACKPACK_ORIGIN.x,
+      BACKPACK_ORIGIN.y,
+    ),
     ...createGridLayout("source", sourceCount, SOURCE_COLUMNS, SOURCE_ORIGIN.x, SOURCE_ORIGIN.y),
   ];
 
   for (const layout of layouts) {
     const rect = getSlotRect(frame, layout);
-    if (hudX >= rect.x && hudX <= rect.x + rect.width && hudY >= rect.y && hudY <= rect.y + rect.height) {
+    if (
+      hudX >= rect.x &&
+      hudX <= rect.x + rect.width &&
+      hudY >= rect.y &&
+      hudY <= rect.y + rect.height
+    ) {
       return layout.ref;
     }
   }

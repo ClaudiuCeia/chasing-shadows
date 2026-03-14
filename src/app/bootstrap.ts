@@ -147,15 +147,16 @@ export const bootstrapGame = (): void => {
     );
   };
 
-  const globalWindow = window as Window & typeof globalThis & {
-    __tickProfiler?: {
-      clear: () => void;
-      start: () => void;
-      stop: () => void;
-      report: (topN?: number) => void;
-      scanOffscreenColliders: () => void;
+  const globalWindow = window as Window &
+    typeof globalThis & {
+      __tickProfiler?: {
+        clear: () => void;
+        start: () => void;
+        stop: () => void;
+        report: (topN?: number) => void;
+        scanOffscreenColliders: () => void;
+      };
     };
-  };
 
   globalWindow.__tickProfiler = {
     clear: () => EntityProfiler.clear(),

@@ -1,4 +1,9 @@
-import { HudLayoutNodeComponent, HudRenderComponent, Vector2D, type ICamera } from "@claudiu-ceia/tick";
+import {
+  HudLayoutNodeComponent,
+  HudRenderComponent,
+  Vector2D,
+  type ICamera,
+} from "@claudiu-ceia/tick";
 import { HudButtonStateComponent } from "./HudButtonStateComponent.ts";
 
 export type HudButtonRenderOptions = {
@@ -10,7 +15,11 @@ export class HudButtonRenderComponent extends HudRenderComponent {
     super();
   }
 
-  public override doRender(ctx: CanvasRenderingContext2D, _camera: ICamera, _canvasSize: Vector2D): void {
+  public override doRender(
+    ctx: CanvasRenderingContext2D,
+    _camera: ICamera,
+    _canvasSize: Vector2D,
+  ): void {
     const frame = this.ent.getComponent(HudLayoutNodeComponent).getFrame();
     if (!frame) {
       return;
@@ -33,7 +42,8 @@ export class HudButtonRenderComponent extends HudRenderComponent {
     ctx.font = "bold 15px monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    const label = typeof this.options.label === "function" ? this.options.label() : this.options.label;
+    const label =
+      typeof this.options.label === "function" ? this.options.label() : this.options.label;
     ctx.fillText(label, frame.x + frame.width / 2, frame.y + frame.height / 2 + 1);
     ctx.restore();
   }

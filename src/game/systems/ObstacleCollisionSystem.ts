@@ -82,7 +82,10 @@ export class ObstacleCollisionSystem implements System {
       let hadCollision = false;
 
       for (let i = 0; i < this.iterations; i++) {
-        const correction = this.resolvePass(actor.movementCollider, [...staticObstacleColliders, ...actorColliders]);
+        const correction = this.resolvePass(actor.movementCollider, [
+          ...staticObstacleColliders,
+          ...actorColliders,
+        ]);
         if (correction.magnitude <= EPSILON) {
           break;
         }
@@ -110,7 +113,12 @@ export class ObstacleCollisionSystem implements System {
   private collectStaticBlockingColliders(): CollisionEntity[] {
     const colliders: CollisionEntity[] = [];
 
-    for (const entity of this.obstacleQuery?.run() as Entity[]) {
+    const obstacleQuery = this.obstacleQuery;
+    if (!obstacleQuery) {
+      return colliders;
+    }
+
+    for (const entity of obstacleQuery.run() as Entity[]) {
       const obstacle = entity.getComponent(ObstacleComponent);
       if (!obstacle.blocksMovement) {
         continue;
@@ -124,9 +132,15 @@ export class ObstacleCollisionSystem implements System {
     return colliders;
   }
 
-  private resolvePass(playerCollider: CollisionEntity, obstacleColliders: readonly CollisionEntity[]): Vector2D {
+  private resolvePass(
+    playerCollider: CollisionEntity,
+    obstacleColliders: readonly CollisionEntity[],
+  ): Vector2D {
     const playerBox = playerCollider.bbox();
-    const playerCenter = new Vector2D(playerBox.x + playerBox.width / 2, playerBox.y + playerBox.height / 2);
+    const playerCenter = new Vector2D(
+      playerBox.x + playerBox.width / 2,
+      playerBox.y + playerBox.height / 2,
+    );
     let best: Vector2D | null = null;
 
     const pairs = this.broadphase.queryPairs([playerCollider, ...obstacleColliders]);
@@ -153,7 +167,9 @@ export class ObstacleCollisionSystem implements System {
           : fallback.magnitude > EPSILON
             ? fallback.normalize()
             : new Vector2D(1, 0);
-      const resolvedCorrection = direction.multiply(Math.max(correction.magnitude, SEPARATION_EPSILON));
+      const resolvedCorrection = direction.multiply(
+        Math.max(correction.magnitude, SEPARATION_EPSILON),
+      );
 
       if (!best || resolvedCorrection.magnitude > best.magnitude) {
         best = resolvedCorrection;

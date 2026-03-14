@@ -1,5 +1,8 @@
 import { Entity } from "@claudiu-ceia/tick";
-import { TerminatorComponent, type TerminatorComponentOptions } from "../components/TerminatorComponent.ts";
+import {
+  TerminatorComponent,
+  type TerminatorComponentOptions,
+} from "../components/TerminatorComponent.ts";
 
 export class TerminatorEntity extends Entity {
   public readonly terminator: TerminatorComponent;

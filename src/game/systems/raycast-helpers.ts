@@ -1,5 +1,10 @@
 import { TransformComponent, Vector2D, type Entity } from "@claudiu-ceia/tick";
-import { RaycastEmitterComponent, type RaycastHit, type RaycastPoint, type RaycastResult } from "../components/RaycastEmitterComponent.ts";
+import {
+  RaycastEmitterComponent,
+  type RaycastHit,
+  type RaycastPoint,
+  type RaycastResult,
+} from "../components/RaycastEmitterComponent.ts";
 import { TilePositionComponent } from "../components/TilePositionComponent.ts";
 import { HitColliderEntity } from "../entities/HitColliderEntity.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
@@ -27,9 +32,17 @@ export type PreparedHitCollider = {
   maxY: number;
 };
 
-export const toRaycastPoint = (point: Vector2D, z: number): RaycastPoint => ({ x: point.x, y: point.y, z });
+export const toRaycastPoint = (point: Vector2D, z: number): RaycastPoint => ({
+  x: point.x,
+  y: point.y,
+  z,
+});
 
-export const getHorizontalRayDirections = (rotation: number, fovRadians: number, rayCount: number): Vector2D[] => {
+export const getHorizontalRayDirections = (
+  rotation: number,
+  fovRadians: number,
+  rayCount: number,
+): Vector2D[] => {
   if (rayCount <= 1 || fovRadians <= 0.0001) {
     return [new Vector2D(Math.cos(rotation), Math.sin(rotation)).normalize()];
   }
@@ -44,7 +57,10 @@ export const getHorizontalRayDirections = (rotation: number, fovRadians: number,
   return rays;
 };
 
-export const prepareHitColliders = (map: InfiniteTilemap, hitColliders: readonly HitColliderEntity[]): PreparedHitCollider[] => {
+export const prepareHitColliders = (
+  map: InfiniteTilemap,
+  hitColliders: readonly HitColliderEntity[],
+): PreparedHitCollider[] => {
   const prepared: PreparedHitCollider[] = [];
 
   for (const collider of hitColliders) {
@@ -78,10 +94,15 @@ export const prepareHitColliders = (map: InfiniteTilemap, hitColliders: readonly
   return prepared;
 };
 
-export const collectPreparedHitColliders = (runtime: Entity["runtime"], map: InfiniteTilemap): PreparedHitCollider[] =>
+export const collectPreparedHitColliders = (
+  runtime: Entity["runtime"],
+  map: InfiniteTilemap,
+): PreparedHitCollider[] =>
   prepareHitColliders(
     map,
-    runtime.registry.getAllEntities().filter((entity): entity is HitColliderEntity => entity instanceof HitColliderEntity),
+    runtime.registry
+      .getAllEntities()
+      .filter((entity): entity is HitColliderEntity => entity instanceof HitColliderEntity),
   );
 
 export const castRaySegment = (
@@ -95,7 +116,8 @@ export const castRaySegment = (
   const endXY = new Vector2D(end.x, end.y);
   const deltaXY = endXY.subtract(originXY);
   const horizontalDistance = deltaXY.magnitude;
-  const direction = horizontalDistance > MIN_DIRECTION_MAGNITUDE ? deltaXY.normalize() : new Vector2D(1, 0);
+  const direction =
+    horizontalDistance > MIN_DIRECTION_MAGNITUDE ? deltaXY.normalize() : new Vector2D(1, 0);
   let hit: RaycastHit | null = null;
   let endPoint = { ...end };
   const candidateColliders = getCandidateColliders(sourceEntity, origin, end, hitColliders);
@@ -182,7 +204,12 @@ const findColliderHit = (
   hitColliders: readonly PreparedHitCollider[],
 ): RaycastHit | null => {
   for (const collider of hitColliders) {
-    if (samplePoint.x < collider.minX || samplePoint.x > collider.maxX || samplePoint.y < collider.minY || samplePoint.y > collider.maxY) {
+    if (
+      samplePoint.x < collider.minX ||
+      samplePoint.x > collider.maxX ||
+      samplePoint.y < collider.minY ||
+      samplePoint.y > collider.maxY
+    ) {
       continue;
     }
 

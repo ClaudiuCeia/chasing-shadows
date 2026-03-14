@@ -64,7 +64,8 @@ export class NpcRoamingSystem implements System {
         tileWidth: GAME_CONFIG.tileWidth,
         tileHeight: GAME_CONFIG.tileHeight,
       });
-      const normalizedIso = isoDirection.magnitude > 0.0001 ? isoDirection.normalize() : Vector2D.zero;
+      const normalizedIso =
+        isoDirection.magnitude > 0.0001 ? isoDirection.normalize() : Vector2D.zero;
       intent.setIntent(normalizedIso.x, -normalizedIso.y, true, false);
     }
   }

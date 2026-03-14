@@ -1,4 +1,12 @@
-import { EcsRuntime, SystemPhase, SystemTickMode, TransformComponent, type Entity, type EntityQuery, type System } from "@claudiu-ceia/tick";
+import {
+  EcsRuntime,
+  SystemPhase,
+  SystemTickMode,
+  TransformComponent,
+  type Entity,
+  type EntityQuery,
+  type System,
+} from "@claudiu-ceia/tick";
 import { HighlightComponent } from "../components/HighlightComponent.ts";
 import { InteractableComponent } from "../components/InteractableComponent.ts";
 import { PlayerEntity } from "../entities/PlayerEntity.ts";
@@ -24,7 +32,11 @@ export class InteractableHighlightSystem implements System {
   }
 
   public awake(): void {
-    this.query = this.runtime.registry.query().with(InteractableComponent).with(HighlightComponent).with(TransformComponent);
+    this.query = this.runtime.registry
+      .query()
+      .with(InteractableComponent)
+      .with(HighlightComponent)
+      .with(TransformComponent);
   }
 
   public update(): void {

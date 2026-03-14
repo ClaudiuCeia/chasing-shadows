@@ -11,7 +11,8 @@ export const cloneItemStack = (stack: ItemStack | null): ItemStack | null =>
 export const normalizeItemSlots = (
   slots: readonly (ItemStack | null)[],
   size: number,
-): Array<ItemStack | null> => Array.from({ length: size }, (_unused, index) => cloneItemStack(slots[index] ?? null));
+): Array<ItemStack | null> =>
+  Array.from({ length: size }, (_unused, index) => cloneItemStack(slots[index] ?? null));
 
 export const areItemStacksEqual = (a: ItemStack | null, b: ItemStack | null): boolean => {
   if (a === null || b === null) {

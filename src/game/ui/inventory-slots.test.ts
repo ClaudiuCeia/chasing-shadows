@@ -17,13 +17,25 @@ describe("inventory-slots", () => {
     const lootField = new LootFieldComponent({ seed: 1 });
     const map = new InfiniteTilemap({ seed: 1, chunkSize: 16 });
 
-    setInventoryStackAt(inventory, null, lootField, map, { section: "equipment", key: "mainWeapon" }, { itemId: "pistol", count: 3 });
+    setInventoryStackAt(
+      inventory,
+      null,
+      lootField,
+      map,
+      { section: "equipment", key: "mainWeapon" },
+      { itemId: "pistol", count: 3 },
+    );
 
     expect(inventory.getEquipmentSlot("mainWeapon")).toEqual({ itemId: "pistol", count: 1 });
   });
 
   test("stacking slots merge counts for matching items", () => {
-    expect(combineInventoryStacks({ itemId: "water-bottle", count: 2 }, { itemId: "water-bottle", count: 3 })).toEqual({
+    expect(
+      combineInventoryStacks(
+        { itemId: "water-bottle", count: 2 },
+        { itemId: "water-bottle", count: 3 },
+      ),
+    ).toEqual({
       itemId: "water-bottle",
       count: 5,
     });
@@ -35,12 +47,22 @@ describe("inventory-slots", () => {
     const map = new InfiniteTilemap({ seed: 1, chunkSize: 16 });
     const source = createTileBoxLootSource(1, 1);
 
-    lootField.setSlots(1, 1, [{ itemId: "knife", count: 1 }, ...Array.from({ length: 15 }, () => null)]);
+    lootField.setSlots(1, 1, [
+      { itemId: "knife", count: 1 },
+      ...Array.from({ length: 15 }, () => null),
+    ]);
     setInventoryStackAt(inventory, source, lootField, map, { section: "source", key: 0 }, null);
 
     expect(lootField.getBoxAt(1, 1, map)?.slots.every((slot) => slot === null)).toBeTrue();
 
-    setInventoryStackAt(inventory, source, lootField, map, { section: "source", key: 0 }, { itemId: "knife", count: 1 });
+    setInventoryStackAt(
+      inventory,
+      source,
+      lootField,
+      map,
+      { section: "source", key: 0 },
+      { itemId: "knife", count: 1 },
+    );
 
     expect(lootField.getBoxAt(1, 1, map)?.slots[0]).toEqual({ itemId: "knife", count: 1 });
   });
@@ -90,9 +112,15 @@ describe("inventory-slots", () => {
 
     inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
 
-    expect(getInventorySlotRequirementLabel(inventory, { section: "equipment", key: "helmet" })).toBe("Helmet");
-    expect(getInventorySlotRequirementLabel(inventory, { section: "equipment", key: "mainWeapon" })).toBe("Weapon or Melee Weapon");
-    expect(getInventorySlotRequirementLabel(inventory, { section: "weaponAmmo", key: "mainWeaponAmmo" })).toBe("Shotgun Ammo");
+    expect(
+      getInventorySlotRequirementLabel(inventory, { section: "equipment", key: "helmet" }),
+    ).toBe("Helmet");
+    expect(
+      getInventorySlotRequirementLabel(inventory, { section: "equipment", key: "mainWeapon" }),
+    ).toBe("Weapon or Melee Weapon");
+    expect(
+      getInventorySlotRequirementLabel(inventory, { section: "weaponAmmo", key: "mainWeaponAmmo" }),
+    ).toBe("Shotgun Ammo");
   });
 
   test("builds invalid drop feedback for reserved slots", () => {
@@ -101,11 +129,19 @@ describe("inventory-slots", () => {
     inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
 
     expect(
-      getInvalidInventoryDropMessage(inventory, { section: "weaponAmmo", key: "mainWeaponAmmo" }, { itemId: "water-bottle", count: 1 }),
+      getInvalidInventoryDropMessage(
+        inventory,
+        { section: "weaponAmmo", key: "mainWeaponAmmo" },
+        { itemId: "water-bottle", count: 1 },
+      ),
     ).toBe("Cannot drop Water Bottle here, expected Shotgun Ammo.");
 
     expect(
-      getInvalidInventoryDropMessage(inventory, { section: "equipment", key: "bodyArmor" }, { itemId: "knife", count: 1 }),
+      getInvalidInventoryDropMessage(
+        inventory,
+        { section: "equipment", key: "bodyArmor" },
+        { itemId: "knife", count: 1 },
+      ),
     ).toBe("Cannot drop Knife here, expected Body Armor.");
   });
 });

@@ -142,7 +142,10 @@ export class InfiniteTilemap {
         blocking: delta.blocking ?? base.blocking,
         elevation: delta.elevation ?? base.elevation,
         occluder: delta.occluder ?? base.occluder,
-        corners: createTileCornerHeights(delta.corners ?? base.corners, delta.elevation ?? base.elevation),
+        corners: createTileCornerHeights(
+          delta.corners ?? base.corners,
+          delta.elevation ?? base.elevation,
+        ),
       });
     }
   }

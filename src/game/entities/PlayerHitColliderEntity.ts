@@ -6,7 +6,10 @@ import { PlayerEntity } from "./PlayerEntity.ts";
 
 export type PlayerPosture = "standing" | "crouched";
 
-const PLAYER_HIT_BOX_DIMENSIONS: Record<PlayerPosture, { width: number; depth: number; height: number }> = {
+const PLAYER_HIT_BOX_DIMENSIONS: Record<
+  PlayerPosture,
+  { width: number; depth: number; height: number }
+> = {
   standing: {
     width: 0.48,
     depth: 0.32,
@@ -25,7 +28,12 @@ export class PlayerHitColliderEntity extends HitColliderEntity {
 
   public constructor() {
     const dimensions = PLAYER_HIT_BOX_DIMENSIONS.standing;
-    super(new RectangleCollisionShape(dimensions.width, dimensions.depth), "top-left", COLLISION_LAYER_PLAYER_HIT, dimensions.height);
+    super(
+      new RectangleCollisionShape(dimensions.width, dimensions.depth),
+      "top-left",
+      COLLISION_LAYER_PLAYER_HIT,
+      dimensions.height,
+    );
     this.sync("standing", Vector2D.zero);
   }
 
@@ -40,7 +48,9 @@ export class PlayerHitColliderEntity extends HitColliderEntity {
   }
 
   public syncFromPlayer(player: PlayerEntity): void {
-    const posture: PlayerPosture = player.getComponent(MovementIntentComponent).crouch ? "crouched" : "standing";
+    const posture: PlayerPosture = player.getComponent(MovementIntentComponent).crouch
+      ? "crouched"
+      : "standing";
     this.sync(posture, player.transform.transform.position);
   }
 

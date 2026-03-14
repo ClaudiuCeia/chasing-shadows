@@ -90,13 +90,11 @@ export class PlayerRenderComponent extends IsometricRenderableComponent {
       PlayerRenderComponent.sheetsPromise = getPlayerSheets(EcsRuntime.getCurrent());
     }
 
-    PlayerRenderComponent.sheetsPromise!
-      .then((sheets) => {
-        this.sheets = sheets;
-      })
-      .catch((error) => {
-        console.error(error);
-      });
+    PlayerRenderComponent.sheetsPromise!.then((sheets) => {
+      this.sheets = sheets;
+    }).catch((error) => {
+      console.error(error);
+    });
   }
 
   public override update(dt: number): void {
@@ -154,7 +152,17 @@ export class PlayerRenderComponent extends IsometricRenderableComponent {
     const frameY = (this.currentDirectionIndex % FRAME_ROWS) * FRAME_SIZE;
 
     const bounds = getPlayerSpriteScreenBounds(screen);
-    ctx.drawImage(sheet, frameX, frameY, FRAME_SIZE, FRAME_SIZE, bounds.x, bounds.y, bounds.width, bounds.height);
+    ctx.drawImage(
+      sheet,
+      frameX,
+      frameY,
+      FRAME_SIZE,
+      FRAME_SIZE,
+      bounds.x,
+      bounds.y,
+      bounds.width,
+      bounds.height,
+    );
   }
 
   private selectAnimation(

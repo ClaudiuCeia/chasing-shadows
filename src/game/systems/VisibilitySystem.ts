@@ -11,7 +11,10 @@ import { RaycastEmitterComponent } from "../components/RaycastEmitterComponent.t
 import { StaticWorldObjectComponent } from "../components/StaticWorldObjectComponent.ts";
 import { StructureStateComponent } from "../components/StructureStateComponent.ts";
 import { TilePositionComponent } from "../components/TilePositionComponent.ts";
-import { VisibilityStateComponent, type VisibilityTile } from "../components/VisibilityStateComponent.ts";
+import {
+  VisibilityStateComponent,
+  type VisibilityTile,
+} from "../components/VisibilityStateComponent.ts";
 import { getSingletonComponent } from "../ecs/singleton.ts";
 import { PlayerEntity } from "../entities/PlayerEntity.ts";
 import { getStructureFloorTiles } from "../structures/structure-geometry.ts";
@@ -59,7 +62,11 @@ const sampleRayTiles = (
   return Array.from(tiles.values());
 };
 
-const sampleProximityTiles = (originX: number, originY: number, radius: number): VisibilityTile[] => {
+const sampleProximityTiles = (
+  originX: number,
+  originY: number,
+  radius: number,
+): VisibilityTile[] => {
   if (radius <= 0) {
     return [];
   }
@@ -99,13 +106,23 @@ export class VisibilitySystem implements System {
   ) {}
 
   public awake(): void {
-    this.worldQuery = this.runtime.registry.query().with(VisibilityStateComponent).with(StructureStateComponent);
-    this.staticObjectQuery = this.runtime.registry.query().with(StaticWorldObjectComponent).with(TilePositionComponent);
+    this.worldQuery = this.runtime.registry
+      .query()
+      .with(VisibilityStateComponent)
+      .with(StructureStateComponent);
+    this.staticObjectQuery = this.runtime.registry
+      .query()
+      .with(StaticWorldObjectComponent)
+      .with(TilePositionComponent);
   }
 
   public update(): void {
-    const visibility = this.worldQuery ? getSingletonComponent(this.worldQuery, VisibilityStateComponent) : null;
-    const structures = this.worldQuery ? getSingletonComponent(this.worldQuery, StructureStateComponent) : null;
+    const visibility = this.worldQuery
+      ? getSingletonComponent(this.worldQuery, VisibilityStateComponent)
+      : null;
+    const structures = this.worldQuery
+      ? getSingletonComponent(this.worldQuery, StructureStateComponent)
+      : null;
     if (!visibility || !structures) {
       return;
     }
@@ -114,13 +131,17 @@ export class VisibilitySystem implements System {
     visibility.setVisibleTiles(visibleTiles.values());
 
     const visibleTileKeys = new Set(visibleTiles.keys());
-    visibility.setVisibleStructures(this.computeVisibleStructures(structures.getInstances(), visibleTileKeys));
+    visibility.setVisibleStructures(
+      this.computeVisibleStructures(structures.getInstances(), visibleTileKeys),
+    );
 
     visibility.rememberTiles(visibleTiles.values());
     const rememberedTileKeys = new Set(
       visibility.getRememberedTiles().map((tile) => tileKey(tile.x, tile.y)),
     );
-    visibility.setRememberedStructures(this.computeVisibleStructures(structures.getInstances(), rememberedTileKeys));
+    visibility.setRememberedStructures(
+      this.computeVisibleStructures(structures.getInstances(), rememberedTileKeys),
+    );
 
     const { objectIds, occupiedTiles } = this.computeVisibleStaticObjects(visibleTileKeys);
     visibility.setVisibleStaticObjects(objectIds, occupiedTiles);
@@ -161,7 +182,10 @@ export class VisibilitySystem implements System {
     return visibleTiles;
   }
 
-  private computeVisibleStructures(instances: readonly StructureInstance[], visibleTileKeys: ReadonlySet<string>): string[] {
+  private computeVisibleStructures(
+    instances: readonly StructureInstance[],
+    visibleTileKeys: ReadonlySet<string>,
+  ): string[] {
     const visibleStructures: string[] = [];
 
     for (const instance of instances) {

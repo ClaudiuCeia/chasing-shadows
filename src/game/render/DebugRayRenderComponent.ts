@@ -18,14 +18,23 @@ import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
 
 const CIRCLE_SEGMENTS = 18;
 
-const drawMarker = (ctx: CanvasRenderingContext2D, point: Vector2D, color: string, radius: number): void => {
+const drawMarker = (
+  ctx: CanvasRenderingContext2D,
+  point: Vector2D,
+  color: string,
+  radius: number,
+): void => {
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
   ctx.fill();
 };
 
-const drawPolyline = (ctx: CanvasRenderingContext2D, points: readonly Vector2D[], closePath = false): void => {
+const drawPolyline = (
+  ctx: CanvasRenderingContext2D,
+  points: readonly Vector2D[],
+  closePath = false,
+): void => {
   if (points.length === 0) {
     return;
   }
@@ -125,7 +134,11 @@ export class DebugRayRenderComponent extends RenderComponent<PlayerEntity> {
     }
   }
 
-  private drawHitColliders(ctx: CanvasRenderingContext2D, camera: IsometricCameraEntity, canvasSize: Vector2D): void {
+  private drawHitColliders(
+    ctx: CanvasRenderingContext2D,
+    camera: IsometricCameraEntity,
+    canvasSize: Vector2D,
+  ): void {
     // TODO: Switch back to a cached type query once tick fixes inherited-type caching for `getEntitiesByType()`.
     const hitColliders = this.ent.runtime.registry
       .getAllEntities()
@@ -147,7 +160,11 @@ export class DebugRayRenderComponent extends RenderComponent<PlayerEntity> {
     }
   }
 
-  private drawPlayerColliders(ctx: CanvasRenderingContext2D, camera: IsometricCameraEntity, canvasSize: Vector2D): void {
+  private drawPlayerColliders(
+    ctx: CanvasRenderingContext2D,
+    camera: IsometricCameraEntity,
+    canvasSize: Vector2D,
+  ): void {
     const playerElevation = this.ent.tilePosition.z;
     const headElevation = playerElevation + this.ent.hitCollider.bodyHeight;
 
@@ -158,7 +175,14 @@ export class DebugRayRenderComponent extends RenderComponent<PlayerEntity> {
     ctx.strokeStyle = "rgba(255, 247, 192, 0.82)";
     ctx.fillStyle = "rgba(255, 247, 192, 0.08)";
     ctx.lineWidth = 1;
-    this.drawColliderPrism(ctx, camera, canvasSize, this.ent.hitCollider, playerElevation, headElevation);
+    this.drawColliderPrism(
+      ctx,
+      camera,
+      canvasSize,
+      this.ent.hitCollider,
+      playerElevation,
+      headElevation,
+    );
 
     const feet = this.ent.transform.transform.position;
     const feetScreen = camera.toCanvasAt(feet, playerElevation, canvasSize);
@@ -167,11 +191,23 @@ export class DebugRayRenderComponent extends RenderComponent<PlayerEntity> {
     drawMarker(ctx, headScreen, "rgba(255, 222, 133, 0.98)", 3);
   }
 
-  private drawRay(ctx: CanvasRenderingContext2D, camera: IsometricCameraEntity, canvasSize: Vector2D): void {
+  private drawRay(
+    ctx: CanvasRenderingContext2D,
+    camera: IsometricCameraEntity,
+    canvasSize: Vector2D,
+  ): void {
     if (this.debug.renderLosRays && this.ent.rayEmitter.rays.length > 0) {
       this.ent.rayEmitter.rays.forEach((ray, index) => {
-        const originScreen = camera.toCanvasAt(new Vector2D(ray.origin.x, ray.origin.y), ray.origin.z, canvasSize);
-        const endScreen = camera.toCanvasAt(new Vector2D(ray.endPoint.x, ray.endPoint.y), ray.endPoint.z, canvasSize);
+        const originScreen = camera.toCanvasAt(
+          new Vector2D(ray.origin.x, ray.origin.y),
+          ray.origin.z,
+          canvasSize,
+        );
+        const endScreen = camera.toCanvasAt(
+          new Vector2D(ray.endPoint.x, ray.endPoint.y),
+          ray.endPoint.z,
+          canvasSize,
+        );
         const primary = index === this.ent.rayEmitter.primaryRayIndex;
 
         ctx.strokeStyle =
@@ -186,11 +222,21 @@ export class DebugRayRenderComponent extends RenderComponent<PlayerEntity> {
         if (primary) {
           drawMarker(ctx, originScreen, "rgba(255, 247, 192, 0.98)", 4);
         }
-        drawMarker(ctx, endScreen, ray.hit ? "rgba(255, 121, 80, 0.98)" : "rgba(111, 225, 255, 0.9)", primary ? 3 : 2);
+        drawMarker(
+          ctx,
+          endScreen,
+          ray.hit ? "rgba(255, 121, 80, 0.98)" : "rgba(111, 225, 255, 0.9)",
+          primary ? 3 : 2,
+        );
 
         if (ray.hit) {
-          const hitScreen = camera.toCanvasAt(new Vector2D(ray.hit.point.x, ray.hit.point.y), ray.hit.point.z, canvasSize);
-          ctx.strokeStyle = ray.hit.type === "collider" ? "rgba(255, 196, 120, 0.98)" : "rgba(255, 121, 80, 0.98)";
+          const hitScreen = camera.toCanvasAt(
+            new Vector2D(ray.hit.point.x, ray.hit.point.y),
+            ray.hit.point.z,
+            canvasSize,
+          );
+          ctx.strokeStyle =
+            ray.hit.type === "collider" ? "rgba(255, 196, 120, 0.98)" : "rgba(255, 121, 80, 0.98)";
           ctx.lineWidth = primary ? 2 : 1.5;
           ctx.beginPath();
           ctx.moveTo(hitScreen.x - 5, hitScreen.y - 5);
@@ -208,18 +254,31 @@ export class DebugRayRenderComponent extends RenderComponent<PlayerEntity> {
     this.drawWeaponRays(ctx, camera, canvasSize);
   }
 
-  private drawWeaponRays(ctx: CanvasRenderingContext2D, camera: IsometricCameraEntity, canvasSize: Vector2D): void {
+  private drawWeaponRays(
+    ctx: CanvasRenderingContext2D,
+    camera: IsometricCameraEntity,
+    canvasSize: Vector2D,
+  ): void {
     if (this.ent.weaponRaycast.rays.length === 0) {
       return;
     }
 
     this.ent.weaponRaycast.rays.forEach((ray, index) => {
-      const originScreen = camera.toCanvasAt(new Vector2D(ray.origin.x, ray.origin.y), ray.origin.z, canvasSize);
-      const endScreen = camera.toCanvasAt(new Vector2D(ray.endPoint.x, ray.endPoint.y), ray.endPoint.z, canvasSize);
+      const originScreen = camera.toCanvasAt(
+        new Vector2D(ray.origin.x, ray.origin.y),
+        ray.origin.z,
+        canvasSize,
+      );
+      const endScreen = camera.toCanvasAt(
+        new Vector2D(ray.endPoint.x, ray.endPoint.y),
+        ray.endPoint.z,
+        canvasSize,
+      );
       const primary = index === Math.floor(this.ent.weaponRaycast.rays.length / 2);
-      ctx.strokeStyle = this.ent.weaponRaycast.mode === "targeted"
-        ? "rgba(165, 255, 132, 0.92)"
-        : "rgba(122, 186, 255, 0.92)";
+      ctx.strokeStyle =
+        this.ent.weaponRaycast.mode === "targeted"
+          ? "rgba(165, 255, 132, 0.92)"
+          : "rgba(122, 186, 255, 0.92)";
       ctx.lineWidth = primary ? 2.4 : 1.4;
       drawPolyline(ctx, [originScreen, endScreen]);
       drawMarker(ctx, endScreen, "rgba(255, 255, 255, 0.96)", primary ? 3 : 2);
@@ -230,7 +289,11 @@ export class DebugRayRenderComponent extends RenderComponent<PlayerEntity> {
       return;
     }
 
-    const targetScreen = camera.toCanvasAt(new Vector2D(targetPoint.x, targetPoint.y), targetPoint.z, canvasSize);
+    const targetScreen = camera.toCanvasAt(
+      new Vector2D(targetPoint.x, targetPoint.y),
+      targetPoint.z,
+      canvasSize,
+    );
     ctx.save();
     ctx.strokeStyle = "rgba(255, 248, 214, 0.98)";
     ctx.lineWidth = 1.5;
@@ -250,13 +313,21 @@ export class DebugRayRenderComponent extends RenderComponent<PlayerEntity> {
     const transform = collider.getComponent(TransformComponent).globalTransform;
 
     if (collider.shape instanceof CircleCollisionShape) {
-      drawPolyline(ctx, projectCircle(camera, canvasSize, transform.position, collider.shape.radius, elevation), true);
+      drawPolyline(
+        ctx,
+        projectCircle(camera, canvasSize, transform.position, collider.shape.radius, elevation),
+        true,
+      );
       return;
     }
 
     if (collider.shape instanceof RectangleCollisionShape) {
       const box = collider.bbox();
-      drawPolyline(ctx, projectRect(camera, canvasSize, box.x, box.y, box.width, box.height, elevation), true);
+      drawPolyline(
+        ctx,
+        projectRect(camera, canvasSize, box.x, box.y, box.width, box.height, elevation),
+        true,
+      );
     }
   }
 
@@ -274,7 +345,15 @@ export class DebugRayRenderComponent extends RenderComponent<PlayerEntity> {
     }
 
     const box = collider.bbox();
-    const bottom = projectRect(camera, canvasSize, box.x, box.y, box.width, box.height, bottomElevation);
+    const bottom = projectRect(
+      camera,
+      canvasSize,
+      box.x,
+      box.y,
+      box.width,
+      box.height,
+      bottomElevation,
+    );
     const top = projectRect(camera, canvasSize, box.x, box.y, box.width, box.height, topElevation);
 
     ctx.beginPath();
@@ -295,7 +374,11 @@ export class DebugRayRenderComponent extends RenderComponent<PlayerEntity> {
     }
   }
 
-  private getOwnerBaseElevation(owner: { hasComponent(constr: typeof TilePositionComponent): boolean; getComponent(constr: typeof TilePositionComponent): TilePositionComponent; getComponent(constr: typeof TransformComponent): TransformComponent; }): number {
+  private getOwnerBaseElevation(owner: {
+    hasComponent(constr: typeof TilePositionComponent): boolean;
+    getComponent(constr: typeof TilePositionComponent): TilePositionComponent;
+    getComponent(constr: typeof TransformComponent): TransformComponent;
+  }): number {
     if (owner.hasComponent(TilePositionComponent)) {
       return owner.getComponent(TilePositionComponent).z;
     }

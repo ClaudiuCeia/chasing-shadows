@@ -38,10 +38,17 @@ describe("LootBoxChunkSystem", () => {
       world.addSystem(new LootBoxChunkSystem(map, player, 0, runtime));
       world.step(1 / 60);
 
-      const query = runtime.registry.query().with(TilePositionComponent).with(LootBoxSpriteComponent);
+      const query = runtime.registry
+        .query()
+        .with(TilePositionComponent)
+        .with(LootBoxSpriteComponent);
       expect([...query.run()]).toHaveLength(1);
 
-      field.setSlots(0, 0, Array.from({ length: LOOT_BOX_SLOT_COUNT }, () => null));
+      field.setSlots(
+        0,
+        0,
+        Array.from({ length: LOOT_BOX_SLOT_COUNT }, () => null),
+      );
       world.step(1 / 60);
 
       expect([...query.run()]).toHaveLength(1);

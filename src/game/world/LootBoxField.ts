@@ -84,15 +84,15 @@ export class LootBoxField {
     return box;
   }
 
-  public getSlots(tileX: number, tileY: number, map: InfiniteTilemap): readonly (ItemStack | null)[] | null {
+  public getSlots(
+    tileX: number,
+    tileY: number,
+    map: InfiniteTilemap,
+  ): readonly (ItemStack | null)[] | null {
     return this.getBoxAt(tileX, tileY, map)?.slots ?? null;
   }
 
-  public setSlots(
-    tileX: number,
-    tileY: number,
-    slots: readonly (ItemStack | null)[],
-  ): void {
+  public setSlots(tileX: number, tileY: number, slots: readonly (ItemStack | null)[]): void {
     const x = Math.floor(tileX);
     const y = Math.floor(tileY);
     const key = tileKey(x, y);
@@ -155,7 +155,10 @@ export class LootBoxField {
             staleKeys.push(key);
             continue;
           }
-        } else if (base && areItemSlotArraysEqual(override.slots, base.slots, LOOT_BOX_SLOT_COUNT)) {
+        } else if (
+          base &&
+          areItemSlotArraysEqual(override.slots, base.slots, LOOT_BOX_SLOT_COUNT)
+        ) {
           staleKeys.push(key);
           continue;
         }

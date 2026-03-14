@@ -38,10 +38,7 @@ const autosave: SaveGameV1 = {
       {
         x: 3,
         y: 4,
-        slots: [
-          { itemId: "body-armor", count: 2 },
-          ...Array.from({ length: 15 }, () => null),
-        ],
+        slots: [{ itemId: "body-armor", count: 2 }, ...Array.from({ length: 15 }, () => null)],
       },
       { x: -1, y: 0, removed: true },
     ],

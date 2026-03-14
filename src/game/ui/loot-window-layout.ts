@@ -11,11 +11,7 @@ export const LOOT_WINDOW_GRID = {
   slotSize: 68,
 };
 
-export const getLootSlotAtHudPoint = (
-  frame: UiRect,
-  hudX: number,
-  hudY: number,
-): number | null => {
+export const getLootSlotAtHudPoint = (frame: UiRect, hudX: number, hudY: number): number | null => {
   const localX = hudX - frame.x - LOOT_WINDOW_GRID.x;
   const localY = hudY - frame.y - LOOT_WINDOW_GRID.y;
   if (localX < 0 || localY < 0) {

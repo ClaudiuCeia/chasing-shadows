@@ -148,7 +148,12 @@ export class TilemapCollisionSystem implements System {
     return best ?? Vector2D.zero;
   }
 
-  private circleVsTileCorrection(position: Vector2D, collisionRadius: number, tileX: number, tileY: number): Vector2D | null {
+  private circleVsTileCorrection(
+    position: Vector2D,
+    collisionRadius: number,
+    tileX: number,
+    tileY: number,
+  ): Vector2D | null {
     const minX = tileX - this.tileHalfExtent;
     const maxX = tileX + this.tileHalfExtent;
     const minY = tileY - this.tileHalfExtent;
