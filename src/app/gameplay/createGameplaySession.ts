@@ -17,6 +17,8 @@ import { DebugRayRenderComponent } from "../../game/render/DebugRayRenderCompone
 import { IsometricCameraEntity } from "../../game/render/IsometricCameraEntity.ts";
 import { PlayerRenderComponent } from "../../game/render/PlayerRenderComponent.ts";
 import type { SaveGameV1 } from "../../game/state/save-types.ts";
+import { DEFAULT_POC_STRUCTURE_BLUEPRINT } from "../../game/structures/structure-blueprints.ts";
+import { findStructurePlacementNear } from "../../game/structures/structure-geometry.ts";
 import { AutosaveSystem } from "../../game/systems/AutosaveSystem.ts";
 import { CameraFollowSystem } from "../../game/systems/CameraFollowSystem.ts";
 import { ChunkPrewarmSystem } from "../../game/systems/ChunkPrewarmSystem.ts";
@@ -32,6 +34,7 @@ import { ObstacleCollisionSystem } from "../../game/systems/ObstacleCollisionSys
 import { PlayerAttackSystem } from "../../game/systems/PlayerAttackSystem.ts";
 import { PointerMarkerSystem } from "../../game/systems/PointerMarkerSystem.ts";
 import { RaycastSystem } from "../../game/systems/RaycastSystem.ts";
+import { StructureChunkSystem } from "../../game/systems/StructureChunkSystem.ts";
 import { TerminatorSystem } from "../../game/systems/TerminatorSystem.ts";
 import { TilemapCollisionSystem } from "../../game/systems/TilemapCollisionSystem.ts";
 import { TopDownControllerSystem } from "../../game/systems/TopDownControllerSystem.ts";
@@ -122,6 +125,7 @@ const serializeGameplay = (roots: GameplayRoots): SaveGameV1 => {
       },
       tileDeltas: roots.tilemapEntity.tilemap.serializeDeltas(),
       lootDeltas: roots.worldState.lootField.serializeDeltas(roots.tilemapEntity.tilemap.map),
+      structures: [...roots.worldState.structures.getInstances()],
     },
     player: {
       position: { x: position.x, y: position.y },
@@ -196,6 +200,23 @@ const findInitialPlayerSpawn = (tilemap: TilemapStateComponent): { x: number; y:
   throw new Error("Failed to find a safe initial spawn tile within search radius");
 };
 
+const createInitialStructure = (
+  tilemap: TilemapStateComponent,
+  aroundX: number,
+  aroundY: number,
+) => {
+  const structure = findStructurePlacementNear(tilemap.map, aroundX, aroundY, DEFAULT_POC_STRUCTURE_BLUEPRINT, {
+    minRadius: 6,
+    maxRadius: 48,
+  });
+
+  if (!structure) {
+    throw new Error("Failed to find a flat placement for the initial proof-of-concept structure");
+  }
+
+  return structure;
+};
+
 export const createGameplaySession = (options: CreateGameplaySessionOptions): GameplaySession => {
   const runtime = new EcsRuntime();
   const world = new World({
@@ -230,6 +251,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
     if (autosave) {
       tilemapEntity.tilemap.applyDeltas(autosave.world.tileDeltas);
       worldState.lootField.applyDeltas(autosave.world.lootDeltas);
+      worldState.structures.setInstances(autosave.world.structures ?? []);
       worldState.session.elapsedSeconds = autosave.world.elapsedSeconds;
     }
 
@@ -249,6 +271,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
       applySavedPlayerState(player, tilemapEntity.tilemap, autosave);
     } else {
       syncPlayerToTerrain(tilemapEntity.tilemap, player);
+      worldState.structures.addInstance(createInitialStructure(tilemapEntity.tilemap, spawn.x, spawn.y));
     }
 
     tilemapEntity.configureRender(terminatorEntity.terminator, {
@@ -320,6 +343,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
     }),
   );
   world.addSystem(new LootBoxChunkSystem(roots.tilemapEntity.tilemap.map, roots.player, GAME_CONFIG.chunkRadius, runtime));
+  world.addSystem(new StructureChunkSystem(roots.tilemapEntity.tilemap.map, roots.player, GAME_CONFIG.chunkRadius, runtime));
   world.addSystem(new PlayerAttackSystem(runtime));
   world.addSystem(new LootInteractSystem(roots.tilemapEntity.tilemap.map, roots.player, { interactRange: GAME_CONFIG.lootBoxInteractRange }, runtime));
   world.addSystem(new PointerMarkerSystem(camera, options.canvas, roots.tilemapEntity.tilemap.map, GAME_CONFIG.maxTerrainElevation, runtime));

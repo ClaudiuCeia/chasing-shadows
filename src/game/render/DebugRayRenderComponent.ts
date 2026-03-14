@@ -10,6 +10,7 @@ import {
 } from "@claudiu-ceia/tick";
 import { DebugOverlayComponent } from "../components/DebugOverlayComponent.ts";
 import { TilePositionComponent } from "../components/TilePositionComponent.ts";
+import { HitColliderEntity } from "../entities/HitColliderEntity.ts";
 import { ObstacleEntity } from "../entities/ObstacleEntity.ts";
 import { PlayerEntity } from "../entities/PlayerEntity.ts";
 import { IsometricCameraEntity } from "./IsometricCameraEntity.ts";
@@ -98,27 +99,51 @@ export class DebugRayRenderComponent extends RenderComponent<PlayerEntity> {
     }
 
     ctx.save();
-    this.drawObstacleColliders(ctx, camera, canvasSize);
+    this.drawObstacleMovementColliders(ctx, camera, canvasSize);
+    this.drawHitColliders(ctx, camera, canvasSize);
     this.drawPlayerColliders(ctx, camera, canvasSize);
     this.drawRay(ctx, camera, canvasSize);
     ctx.restore();
   }
 
-  private drawObstacleColliders(ctx: CanvasRenderingContext2D, camera: IsometricCameraEntity, canvasSize: Vector2D): void {
-    for (const obstacle of this.ent.runtime.registry.getEntitiesByType(ObstacleEntity)) {
-      const position = obstacle.transform.transform.position;
-      const elevation = obstacle.hasComponent(TilePositionComponent)
-        ? obstacle.getComponent(TilePositionComponent).z
-        : this.map.getElevationAt(position.x, position.y);
+  private drawObstacleMovementColliders(
+    ctx: CanvasRenderingContext2D,
+    camera: IsometricCameraEntity,
+    canvasSize: Vector2D,
+  ): void {
+    // TODO: Switch back to a cached type query once tick fixes inherited-type caching for `getEntitiesByType()`.
+    const obstacles = this.ent.runtime.registry
+      .getAllEntities()
+      .filter((entity): entity is ObstacleEntity => entity instanceof ObstacleEntity);
 
-      ctx.strokeStyle = "rgba(125, 204, 255, 0.42)";
-      ctx.lineWidth = 1;
+    for (const obstacle of obstacles) {
+      const elevation = this.getOwnerBaseElevation(obstacle);
+
+      ctx.strokeStyle = "rgba(255, 0, 0, 0.95)";
+      ctx.lineWidth = 1.25;
       this.drawColliderFootprint(ctx, camera, canvasSize, obstacle.movementCollider, elevation);
+    }
+  }
+
+  private drawHitColliders(ctx: CanvasRenderingContext2D, camera: IsometricCameraEntity, canvasSize: Vector2D): void {
+    // TODO: Switch back to a cached type query once tick fixes inherited-type caching for `getEntitiesByType()`.
+    const hitColliders = this.ent.runtime.registry
+      .getAllEntities()
+      .filter((e): e is HitColliderEntity => e instanceof HitColliderEntity);
+
+    for (const collider of hitColliders) {
+      const owner = collider.parent;
+      if (!owner || owner.id === this.ent.id || owner.parent?.id === this.ent.id) {
+        continue;
+      }
+
+      const baseElevation = this.getOwnerBaseElevation(owner);
+      const topElevation = baseElevation + collider.bodyHeight;
 
       ctx.strokeStyle = "rgba(255, 196, 120, 0.65)";
       ctx.fillStyle = "rgba(255, 196, 120, 0.08)";
       ctx.lineWidth = 1;
-      this.drawColliderPrism(ctx, camera, canvasSize, obstacle.hitCollider, elevation, elevation + obstacle.hitCollider.bodyHeight);
+      this.drawColliderPrism(ctx, camera, canvasSize, collider, baseElevation, topElevation);
     }
   }
 
@@ -233,5 +258,14 @@ export class DebugRayRenderComponent extends RenderComponent<PlayerEntity> {
     for (let i = 0; i < bottom.length; i++) {
       drawPolyline(ctx, [bottom[i]!, top[i]!]);
     }
+  }
+
+  private getOwnerBaseElevation(owner: { hasComponent(constr: typeof TilePositionComponent): boolean; getComponent(constr: typeof TilePositionComponent): TilePositionComponent; getComponent(constr: typeof TransformComponent): TransformComponent; }): number {
+    if (owner.hasComponent(TilePositionComponent)) {
+      return owner.getComponent(TilePositionComponent).z;
+    }
+
+    const position = owner.getComponent(TransformComponent).transform.position;
+    return this.map.getElevationAt(position.x, position.y);
   }
 }

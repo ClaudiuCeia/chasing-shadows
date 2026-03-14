@@ -61,7 +61,10 @@ export class RaycastSystem implements System {
       return;
     }
 
-    const hitColliders = this.runtime.registry.getEntitiesByType(HitColliderEntity);
+    // TODO: Switch back to a cached type query once tick fixes inherited-type caching for `getEntitiesByType()`.
+    const hitColliders = this.runtime.registry
+      .getAllEntities()
+      .filter((e): e is HitColliderEntity => e instanceof HitColliderEntity);
     for (const entity of this.query.run() as RaycastableEntity[]) {
       const emitter = entity.getComponent(RaycastEmitterComponent);
       if (!emitter.enabled) {

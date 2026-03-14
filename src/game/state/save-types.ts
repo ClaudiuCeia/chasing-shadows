@@ -1,5 +1,6 @@
 import type { PlayerFireMode } from "../render/player-animation-logic.ts";
 import type { EquipmentSlotId, ItemStack, WeaponAmmoSlotId } from "../items/item-catalog.ts";
+import type { StructureInstance } from "../structures/structure-types.ts";
 import type { LootBoxDelta } from "../world/LootBoxField.ts";
 import type { TileDelta } from "../world/InfiniteTilemap.ts";
 
@@ -35,6 +36,7 @@ export type SaveWorld = {
   terminator: SaveTerminator;
   tileDeltas: TileDelta[];
   lootDeltas: LootBoxDelta[];
+  structures?: StructureInstance[];
 };
 
 export type SavePlayer = {

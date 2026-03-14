@@ -23,7 +23,7 @@ import { GAME_CONFIG } from "../config/game-config.ts";
 import { PlayerHitColliderEntity } from "./PlayerHitColliderEntity.ts";
 import type { TilemapStateComponent } from "../components/TilemapStateComponent.ts";
 
-const PLAYER_MOVEMENT_COLLISION_RADIUS = 0.25;
+const PLAYER_MOVEMENT_COLLISION_RADIUS = 0.5;
 
 export class PlayerEntity extends Entity {
   public readonly collisionRadius = PLAYER_MOVEMENT_COLLISION_RADIUS;

@@ -37,7 +37,9 @@ export class HudDebugRenderComponent extends HudRenderComponent {
       `Player z: ${playerElevation.toFixed(2)}`,
       `Head z: ${headElevation.toFixed(2)}`,
       `Rays: ${this.player.rayEmitter.rayCount}`,
-      primaryRay?.hit ? `Hit: ${primaryRay.hit.type} @ ${primaryRay.hit.distance.toFixed(2)}` : `Range: ${primaryRay?.distance.toFixed(2) ?? "-"}`,
+      primaryRay?.hit
+        ? `Hit: ${primaryRay.hit.entity?.constructor.name.replace(/Entity$/, "") ?? primaryRay.hit.type} @ ${primaryRay.hit.distance.toFixed(2)}`
+        : `Range: ${primaryRay?.distance.toFixed(2) ?? "-"}`,
     ];
 
     ctx.save();

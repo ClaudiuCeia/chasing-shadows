@@ -45,6 +45,15 @@ const autosave: SaveGameV1 = {
       },
       { x: -1, y: 0, removed: true },
     ],
+    structures: [
+      {
+        blueprintId: "poc-shelter-5x5",
+        originX: 12,
+        originY: 8,
+        baseZ: 2,
+        rotation: 0,
+      },
+    ],
   },
   player: {
     position: { x: 3, y: -2 },
@@ -140,6 +149,28 @@ describe("SaveGameManager", () => {
         world: {
           ...autosave.world,
           chunkSize: 0,
+        },
+      }),
+    );
+
+    const manager = new SaveGameManager(storage);
+    expect(manager.loadAutosave()).toBeNull();
+  });
+
+  test("returns null for payloads with unknown structure blueprints", () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      "chasing-shadow.autosave.v1",
+      JSON.stringify({
+        ...autosave,
+        world: {
+          ...autosave.world,
+          structures: [
+            {
+              ...autosave.world.structures![0]!,
+              blueprintId: "unknown-structure",
+            },
+          ],
         },
       }),
     );

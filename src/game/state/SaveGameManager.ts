@@ -2,6 +2,8 @@ import { GAME_CONFIG, STORAGE_KEYS } from "../config/game-config.ts";
 import { ITEM_IDS } from "../items/item-catalog.ts";
 import { LOOT_BOX_SLOT_COUNT } from "../world/LootBoxField.ts";
 import { PLAYER_FIRE_MODE_VALUES } from "../render/player-animation-logic.ts";
+import { hasStructureBlueprintId } from "../structures/structure-blueprints.ts";
+import { STRUCTURE_ROTATIONS } from "../structures/structure-types.ts";
 import { TILE_KIND_VALUES } from "../world/tile-types.ts";
 import type { SaveGame } from "./save-types.ts";
 
@@ -16,6 +18,7 @@ type Validator<T = unknown> = (value: unknown) => boolean;
 const ITEM_ID_SET = new Set<string>(ITEM_IDS);
 const TILE_KIND_SET = new Set<string>(TILE_KIND_VALUES);
 const FIRE_MODE_SET = new Set<string>(PLAYER_FIRE_MODE_VALUES);
+const STRUCTURE_ROTATION_SET = new Set<number>(STRUCTURE_ROTATIONS);
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -116,6 +119,18 @@ const isLootDelta = (value: unknown): boolean => {
   return required(value, "slots", isLootSlots);
 };
 
+const isStructureInstance = (value: unknown): boolean =>
+  isObject(value) &&
+  required(
+    value,
+    "blueprintId",
+    (entry): entry is string => typeof entry === "string" && entry.length > 0 && hasStructureBlueprintId(entry),
+  ) &&
+  required(value, "originX", int()) &&
+  required(value, "originY", int()) &&
+  required(value, "baseZ", int({ min: 0 })) &&
+  required(value, "rotation", (entry): entry is number => typeof entry === "number" && STRUCTURE_ROTATION_SET.has(entry));
+
 const isSaveGame = (value: unknown): value is SaveGame => {
   if (!isObject(value) || value.version !== 1) {
     return false;
@@ -133,6 +148,7 @@ const isSaveGame = (value: unknown): value is SaveGame => {
     !required(world, "elapsedSeconds", numberInRange({ min: 0 })) ||
     !required(world, "tileDeltas", arrayOf(isTileDelta)) ||
     !required(world, "lootDeltas", arrayOf(isLootDelta)) ||
+    !optional(world, "structures", arrayOf(isStructureInstance)) ||
     !isObject(world.terminator) ||
     !required(world.terminator, "safeBandHalfWidth", numberInRange({ min: 0 })) ||
     !required(world.terminator, "travelSpeed", numberInRange({ min: 0 })) ||
