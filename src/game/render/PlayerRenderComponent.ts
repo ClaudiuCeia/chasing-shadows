@@ -74,7 +74,9 @@ export class PlayerRenderComponent extends IsometricRenderableComponent {
   private sheets: PlayerSheets | null = null;
   private frameCursor = 0;
   private directionIndex = 0;
-  private lastRenderTime = 0;
+  private currentClip: AnimationClipName = "idle";
+  private currentFrameIndex = 0;
+  private currentDirectionIndex = 0;
 
   public constructor() {
     super();
@@ -97,22 +99,10 @@ export class PlayerRenderComponent extends IsometricRenderableComponent {
       });
   }
 
-  public override renderIsometric(
-    ctx: CanvasRenderingContext2D,
-    screen: Vector2D,
-    _isSelected: boolean,
-  ): void {
-    if (!this.sheets) {
-      return;
-    }
+  public override update(dt: number): void {
+    super.update(dt);
 
-    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-    if (this.lastRenderTime <= 0) {
-      this.lastRenderTime = now;
-    }
-    const deltaTime = Math.min(0.1, Math.max(0, (now - this.lastRenderTime) / 1000));
-    this.lastRenderTime = now;
-
+    const deltaTime = Math.min(0.1, Math.max(0, dt));
     const velocity = this.ent.getComponent(PhysicsBodyComponent).getVelocity();
     const controller = this.ent.getComponent(TopDownControllerComponent);
     const transform = this.ent.getComponent(TransformComponent);
@@ -131,28 +121,37 @@ export class PlayerRenderComponent extends IsometricRenderableComponent {
       this.directionIndex = screenVectorToDirectionIndex(isoFacing);
     }
 
-    let sheet: HTMLImageElement;
-    let frameIndex: number;
-    let directionIndex = this.directionIndex;
-
     if (attack.active) {
-      sheet = this.sheets[attack.clip];
-      frameIndex = attack.getFrameIndex();
-      directionIndex = attack.directionIndex;
-    } else {
-      const animation = this.selectAnimation(intent, controller, velocity, speed, facingVector);
-      this.frameCursor += deltaTime * animation.fps * animation.playbackDirection;
-      while (this.frameCursor < 0) {
-        this.frameCursor += FRAME_COLS;
-      }
-      this.frameCursor %= FRAME_COLS;
-
-      sheet = this.sheets[animation.clip];
-      frameIndex = Math.floor(this.frameCursor) % FRAME_COLS;
+      this.currentClip = attack.clip;
+      this.currentFrameIndex = attack.getFrameIndex();
+      this.currentDirectionIndex = attack.directionIndex;
+      return;
     }
 
-    const frameX = frameIndex * FRAME_SIZE;
-    const frameY = (directionIndex % FRAME_ROWS) * FRAME_SIZE;
+    const animation = this.selectAnimation(intent, controller, velocity, speed, facingVector);
+    this.frameCursor += deltaTime * animation.fps * animation.playbackDirection;
+    while (this.frameCursor < 0) {
+      this.frameCursor += FRAME_COLS;
+    }
+    this.frameCursor %= FRAME_COLS;
+
+    this.currentClip = animation.clip;
+    this.currentFrameIndex = Math.floor(this.frameCursor) % FRAME_COLS;
+    this.currentDirectionIndex = this.directionIndex;
+  }
+
+  public override renderIsometric(
+    ctx: CanvasRenderingContext2D,
+    screen: Vector2D,
+    _isSelected: boolean,
+  ): void {
+    if (!this.sheets) {
+      return;
+    }
+
+    const sheet = this.sheets[this.currentClip];
+    const frameX = this.currentFrameIndex * FRAME_SIZE;
+    const frameY = (this.currentDirectionIndex % FRAME_ROWS) * FRAME_SIZE;
 
     const bounds = getPlayerSpriteScreenBounds(screen);
     ctx.drawImage(sheet, frameX, frameY, FRAME_SIZE, FRAME_SIZE, bounds.x, bounds.y, bounds.width, bounds.height);

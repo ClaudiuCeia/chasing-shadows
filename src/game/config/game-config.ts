@@ -12,6 +12,7 @@ export const GAME_CONFIG = {
   chunkRadius: 2,
   chunkPrewarmRadius: 3,
   playerBaseSpeed: 4.2,
+  npcSpawnChance: 0.0025,
   autosaveIntervalSeconds: 10,
   inventorySlots: 16,
   inventoryQuickSlots: 4,

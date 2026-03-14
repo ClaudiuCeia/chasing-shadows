@@ -31,6 +31,10 @@ import { InventoryModalSystem } from "../../game/systems/InventoryModalSystem.ts
 import { LootBoxChunkSystem } from "../../game/systems/LootBoxChunkSystem.ts";
 import { LootInteractSystem } from "../../game/systems/LootInteractSystem.ts";
 import { NeedsDecaySystem } from "../../game/systems/NeedsDecaySystem.ts";
+import { NpcChunkSystem } from "../../game/systems/NpcChunkSystem.ts";
+import { NpcObstacleCollisionSystem } from "../../game/systems/NpcObstacleCollisionSystem.ts";
+import { NpcRoamingSystem } from "../../game/systems/NpcRoamingSystem.ts";
+import { NpcTilemapCollisionSystem } from "../../game/systems/NpcTilemapCollisionSystem.ts";
 import { ObstacleCollisionSystem } from "../../game/systems/ObstacleCollisionSystem.ts";
 import { PlayerAttackSystem } from "../../game/systems/PlayerAttackSystem.ts";
 import { PointerMarkerSystem } from "../../game/systems/PointerMarkerSystem.ts";
@@ -346,11 +350,21 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
     }),
   );
   world.addSystem(new LootBoxChunkSystem(roots.tilemapEntity.tilemap.map, roots.player, GAME_CONFIG.chunkRadius, runtime));
+  world.addSystem(
+    new NpcChunkSystem(
+      roots.tilemapEntity.tilemap.map,
+      roots.player,
+      GAME_CONFIG.chunkRadius,
+      GAME_CONFIG.npcSpawnChance,
+      runtime,
+    ),
+  );
   world.addSystem(new StructureChunkSystem(roots.tilemapEntity.tilemap.map, roots.player, GAME_CONFIG.chunkRadius, runtime));
   world.addSystem(new PlayerAttackSystem(runtime));
   world.addSystem(new LootInteractSystem(roots.tilemapEntity.tilemap.map, roots.player, { interactRange: GAME_CONFIG.lootBoxInteractRange }, runtime));
   world.addSystem(new PointerMarkerSystem(camera, options.canvas, roots.tilemapEntity.tilemap.map, GAME_CONFIG.maxTerrainElevation, runtime));
   world.addSystem(new WorldPointerActionSystem(roots.tilemapEntity.tilemap.map, GAME_CONFIG.lootBoxInteractRange, runtime));
+  world.addSystem(new NpcRoamingSystem(runtime));
   world.addSystem(
     new TopDownControllerSystem(
       { isoConfig: { tileWidth: GAME_CONFIG.tileWidth, tileHeight: GAME_CONFIG.tileHeight } },
@@ -369,6 +383,18 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
       positionIterations: 2,
       broadphaseCellSize: 2,
     }),
+  );
+  world.addSystem(new NpcObstacleCollisionSystem(roots.player, { iterations: 5 }, runtime));
+  world.addSystem(
+    new NpcTilemapCollisionSystem(
+      roots.tilemapEntity.tilemap.map,
+      {
+        iterations: 5,
+        maxStepUp: GAME_CONFIG.maxStepUpHeight,
+        maxStepDown: GAME_CONFIG.maxStepDownHeight,
+      },
+      runtime,
+    ),
   );
   world.addSystem(new ObstacleCollisionSystem(roots.player, { iterations: 5 }, runtime));
   world.addSystem(
