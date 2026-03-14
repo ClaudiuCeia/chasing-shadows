@@ -6,12 +6,24 @@ describe("InventoryComponent", () => {
   test("pads backpack and quick slots to configured capacity", () => {
     const inventory = new InventoryComponent(4, 2);
     inventory.setState({
+      activeSlot: "quick2",
       quickSlots: [{ itemId: "water-bottle", count: 1 }],
       backpackSlots: [{ itemId: "body-armor", count: 2 }],
     });
 
+    expect(inventory.getActiveSlot()).toBe("quick2");
     expect(inventory.getQuickSlots()).toEqual([{ itemId: "water-bottle", count: 1 }, null]);
     expect(inventory.getBackpackSlots()).toEqual([{ itemId: "body-armor", count: 2 }, null, null, null]);
+  });
+
+  test("defaults active slot to primary when state omits it", () => {
+    const inventory = new InventoryComponent(4, 2);
+
+    inventory.setState({
+      quickSlots: [{ itemId: "water-bottle", count: 1 }, { itemId: "bandage", count: 1 }],
+    });
+
+    expect(inventory.getActiveSlot()).toBe("primary");
   });
 
   test("adds into existing backpack stack before using empty slot", () => {

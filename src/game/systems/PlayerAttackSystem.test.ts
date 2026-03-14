@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { EcsRuntime, Entity, World } from "@claudiu-ceia/tick";
+import { InventoryComponent } from "../components/InventoryComponent.ts";
 import { PlayerAttackComponent } from "../components/PlayerAttackComponent.ts";
 import { ATTACK_SEMI_END_FRAME } from "../render/player-animation-logic.ts";
 import { PlayerAttackSystem } from "./PlayerAttackSystem.ts";
@@ -26,6 +27,19 @@ const stepN = (world: World, n: number, dt: number): void => {
 };
 
 describe("PlayerAttackSystem", () => {
+  test("syncs fire mode from the active weapon", () => {
+    const attack = new PlayerAttackComponent();
+    const inventory = new InventoryComponent(8);
+
+    inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
+    PlayerAttackSystem.syncFireModeFromInventory(attack, inventory);
+    expect(attack.fireMode).toBe("semi");
+
+    inventory.setEquipmentSlot("mainWeapon", { itemId: "ump5", count: 1 });
+    PlayerAttackSystem.syncFireModeFromInventory(attack, inventory);
+    expect(attack.fireMode).toBe("auto");
+  });
+
   test("advances and completes semi-auto attacks", () => {
     const world = new World({ fixedDeltaTime: 1 / 60 });
     world.addSystem(new PlayerAttackSystem());

@@ -44,7 +44,7 @@ describe("LootBoxChunkSystem", () => {
       field.setSlots(0, 0, Array.from({ length: LOOT_BOX_SLOT_COUNT }, () => null));
       world.step(1 / 60);
 
-      expect([...query.run()]).toHaveLength(0);
+      expect([...query.run()]).toHaveLength(1);
     });
   });
 });

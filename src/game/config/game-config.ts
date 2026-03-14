@@ -15,7 +15,7 @@ export const GAME_CONFIG = {
   npcSpawnChance: 0.0025,
   autosaveIntervalSeconds: 10,
   inventorySlots: 16,
-  inventoryQuickSlots: 4,
+  inventoryQuickSlots: 2,
   lootBoxInteractRange: 1.35,
   lootBoxSpawnChance: 0.0025,
   maxStepUpHeight: 1,

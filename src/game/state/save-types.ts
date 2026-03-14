@@ -1,5 +1,5 @@
 import type { PlayerFireMode } from "../render/player-animation-logic.ts";
-import type { EquipmentSlotId, ItemStack, WeaponAmmoSlotId } from "../items/item-catalog.ts";
+import type { InventoryState } from "../components/InventoryComponent.ts";
 import type { StructureInstance } from "../structures/structure-types.ts";
 import type { LootBoxDelta } from "../world/LootBoxField.ts";
 import type { TileDelta } from "../world/InfiniteTilemap.ts";
@@ -46,12 +46,7 @@ export type SavePlayer = {
   health: number;
   needs: SaveNeeds;
   temperature: SaveTemperature;
-  inventory: {
-    equipment: Record<EquipmentSlotId, ItemStack | null>;
-    weaponAmmo: Record<WeaponAmmoSlotId, ItemStack | null>;
-    quickSlots: Array<ItemStack | null>;
-    backpackSlots: Array<ItemStack | null>;
-  };
+  inventory: InventoryState;
   fireMode: PlayerFireMode;
 };
 

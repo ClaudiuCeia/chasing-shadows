@@ -81,7 +81,8 @@ const autosave: SaveGameV1 = {
         mainWeaponAmmo: null,
         secondaryWeaponAmmo: null,
       },
-      quickSlots: [{ itemId: "pistol-ammo", count: 1 }, null, null, null],
+      activeSlot: "quick1",
+      quickSlots: [{ itemId: "water-bottle", count: 1 }, null],
       backpackSlots: [
         { itemId: "body-armor", count: 3 },
         null,
@@ -155,6 +156,39 @@ describe("SaveGameManager", () => {
 
     const manager = new SaveGameManager(storage);
     expect(manager.loadAutosave()).toBeNull();
+  });
+
+  test("normalizes legacy quick slot saves and defaults active slot", () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      "chasing-shadow.autosave.v1",
+      JSON.stringify({
+        ...autosave,
+        player: {
+          ...autosave.player,
+          inventory: {
+            ...autosave.player.inventory,
+            activeSlot: undefined,
+            quickSlots: [
+              { itemId: "water-bottle", count: 1 },
+              { itemId: "bandage", count: 1 },
+              { itemId: "knife", count: 1 },
+              null,
+            ],
+          },
+        },
+      }),
+    );
+
+    const manager = new SaveGameManager(storage);
+    expect(manager.loadAutosave()?.player.inventory).toEqual({
+      ...autosave.player.inventory,
+      activeSlot: "primary",
+      quickSlots: [
+        { itemId: "water-bottle", count: 1 },
+        { itemId: "bandage", count: 1 },
+      ],
+    });
   });
 
   test("returns null for payloads with unknown structure blueprints", () => {

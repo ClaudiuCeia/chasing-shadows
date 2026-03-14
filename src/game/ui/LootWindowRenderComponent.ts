@@ -114,7 +114,7 @@ export class LootWindowRenderComponent extends HudRenderComponent {
     drawSectionTitle(ctx, "Quick Slots", frame.x + QUICKBAR_ORIGIN.x, frame.y + QUICKBAR_ORIGIN.y - INVENTORY_LABEL_GAP);
     const layouts = createGridLayout("quick", this.inventory.quickSlotCount, this.inventory.quickSlotCount, QUICKBAR_ORIGIN.x, QUICKBAR_ORIGIN.y);
     layouts.forEach((layout, index) => {
-      this.drawSlot(ctx, frame, layout.ref, layout.x, layout.y, `${index + 1}`);
+      this.drawSlot(ctx, frame, layout.ref, layout.x, layout.y, `${index + 3}`);
     });
   }
 
@@ -158,9 +158,12 @@ export class LootWindowRenderComponent extends HudRenderComponent {
       draggedStack !== null &&
       isReservedInventorySlot(ref) &&
       !canPlaceInventoryStackAt(this.inventory, this.state.openSource, this.lootField, this.map, ref, draggedStack);
+    const active = this.isActiveRef(ref);
 
     ctx.fillStyle = acceptsDragged
       ? "rgba(96, 108, 126, 0.96)"
+      : active
+        ? "rgba(82, 90, 106, 0.98)"
       : hovered
         ? "rgba(93, 103, 118, 0.92)"
         : "rgba(42, 50, 62, 0.96)";
@@ -169,10 +172,12 @@ export class LootWindowRenderComponent extends HudRenderComponent {
       ? "rgba(255, 255, 255, 0.98)"
       : rejectsDragged
         ? "rgba(255, 118, 118, 0.95)"
+        : active
+          ? "rgba(255, 244, 214, 0.96)"
         : hovered
           ? "rgba(252, 240, 213, 0.95)"
           : "rgba(229, 217, 194, 0.55)";
-    ctx.lineWidth = acceptsDragged || hovered || rejectsDragged ? 2 : 1;
+    ctx.lineWidth = acceptsDragged || hovered || rejectsDragged || active ? 2 : 1;
     ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
 
     if (label) {
@@ -305,9 +310,9 @@ export class LootWindowRenderComponent extends HudRenderComponent {
     if (ref.section === "equipment") {
       switch (ref.key) {
         case "mainWeapon":
-          return "MAIN";
+          return "1 MAIN";
         case "secondaryWeapon":
-          return "SIDE";
+          return "2 SIDE";
         case "helmet":
           return "HELM";
         case "bodyArmor":
@@ -318,6 +323,24 @@ export class LootWindowRenderComponent extends HudRenderComponent {
       return ref.key === "mainWeaponAmmo" ? "AMMO" : "AMMO";
     }
     return undefined;
+  }
+
+  private isActiveRef(ref: InventorySlotRef): boolean {
+    if (ref.section === "equipment") {
+      return (
+        (ref.key === "mainWeapon" && this.inventory.getActiveSlot() === "primary") ||
+        (ref.key === "secondaryWeapon" && this.inventory.getActiveSlot() === "secondary")
+      );
+    }
+
+    if (ref.section === "quick") {
+      return (
+        (ref.key === 0 && this.inventory.getActiveSlot() === "quick1") ||
+        (ref.key === 1 && this.inventory.getActiveSlot() === "quick2")
+      );
+    }
+
+    return false;
   }
 
   private drawWrappedText(

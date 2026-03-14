@@ -6,7 +6,9 @@ import {
   type System,
 } from "@claudiu-ceia/tick";
 import { PlayerAttackComponent } from "../components/PlayerAttackComponent.ts";
+import { InventoryComponent } from "../components/InventoryComponent.ts";
 import { getSingletonComponent } from "../ecs/singleton.ts";
+import { getItemFireMode } from "../items/item-catalog.ts";
 import {
   ATTACK_FPS,
   ATTACK_FRAME_COUNT,
@@ -20,21 +22,42 @@ export class PlayerAttackSystem implements System {
   public readonly tickMode = SystemTickMode.Frame;
 
   private readonly runtime: EcsRuntime;
-  private query: EntityQuery | null = null;
+  private attackQuery: EntityQuery | null = null;
+  private inventoryQuery: EntityQuery | null = null;
 
   public constructor(runtime: EcsRuntime = EcsRuntime.getCurrent()) {
     this.runtime = runtime;
   }
 
   public awake(): void {
-    this.query = this.runtime.registry.query().with(PlayerAttackComponent);
+    this.attackQuery = this.runtime.registry.query().with(PlayerAttackComponent);
+    this.inventoryQuery = this.runtime.registry.query().with(InventoryComponent);
   }
 
   public update(deltaTime: number): void {
-    const attack = this.query ? getSingletonComponent(this.query, PlayerAttackComponent) : null;
+    const attack = this.attackQuery ? getSingletonComponent(this.attackQuery, PlayerAttackComponent) : null;
+    const inventory = this.inventoryQuery ? getSingletonComponent(this.inventoryQuery, InventoryComponent) : null;
     if (attack) {
+      if (inventory) {
+        PlayerAttackSystem.syncFireModeFromInventory(attack, inventory);
+      }
       PlayerAttackSystem.tick(attack, deltaTime);
     }
+  }
+
+  public static syncFireModeFromInventory(attack: PlayerAttackComponent, inventory: InventoryComponent): void {
+    const activeWeapon = inventory.getEquippedWeaponForActiveSlot();
+    const nextFireMode = activeWeapon ? getItemFireMode(activeWeapon.itemId) : "semi";
+    if (attack.fireMode === nextFireMode) {
+      return;
+    }
+
+    attack.fireMode = nextFireMode;
+    if (attack.active) {
+      PlayerAttackSystem.stopAttack(attack);
+      attack.refireRemaining = 0;
+    }
+    attack.releasedSinceLastShot = true;
   }
 
   public static tick(attack: PlayerAttackComponent, deltaTime: number): void {

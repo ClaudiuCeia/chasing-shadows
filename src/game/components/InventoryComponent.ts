@@ -2,7 +2,11 @@ import { Component } from "@claudiu-ceia/tick";
 import type { EquipmentSlotId, ItemStack, WeaponAmmoSlotId } from "../items/item-catalog.ts";
 import { cloneItemStack, normalizeItemSlots } from "../items/item-stack.ts";
 
-export const QUICK_SLOT_COUNT = 4;
+export const QUICK_SLOT_COUNT = 2;
+export const ACTIVE_HOTBAR_SLOT_VALUES = ["primary", "secondary", "quick1", "quick2"] as const;
+export const DEFAULT_ACTIVE_HOTBAR_SLOT = "primary" as const;
+
+export type ActiveHotbarSlot = (typeof ACTIVE_HOTBAR_SLOT_VALUES)[number];
 
 export type EquipmentSlotState = Record<EquipmentSlotId, ItemStack | null>;
 export type WeaponAmmoSlotState = Record<WeaponAmmoSlotId, ItemStack | null>;
@@ -10,8 +14,26 @@ export type WeaponAmmoSlotState = Record<WeaponAmmoSlotId, ItemStack | null>;
 export type InventoryState = {
   equipment: EquipmentSlotState;
   weaponAmmo: WeaponAmmoSlotState;
+  activeSlot: ActiveHotbarSlot;
   quickSlots: Array<ItemStack | null>;
   backpackSlots: Array<ItemStack | null>;
+};
+
+const ACTIVE_HOTBAR_SLOT_SET = new Set<ActiveHotbarSlot>(ACTIVE_HOTBAR_SLOT_VALUES);
+
+const normalizeActiveHotbarSlot = (slot: unknown): ActiveHotbarSlot =>
+  typeof slot === "string" && ACTIVE_HOTBAR_SLOT_SET.has(slot as ActiveHotbarSlot)
+    ? (slot as ActiveHotbarSlot)
+    : DEFAULT_ACTIVE_HOTBAR_SLOT;
+
+const ACTIVE_WEAPON_SLOT_BY_HOTBAR_SLOT: Partial<Record<ActiveHotbarSlot, EquipmentSlotId>> = {
+  primary: "mainWeapon",
+  secondary: "secondaryWeapon",
+};
+
+const ACTIVE_QUICK_SLOT_INDEX_BY_HOTBAR_SLOT: Partial<Record<ActiveHotbarSlot, number>> = {
+  quick1: 0,
+  quick2: 1,
 };
 
 const createEmptyEquipment = (): EquipmentSlotState => ({
@@ -29,6 +51,7 @@ const createEmptyWeaponAmmo = (): WeaponAmmoSlotState => ({
 export class InventoryComponent extends Component {
   private equipment: EquipmentSlotState = createEmptyEquipment();
   private weaponAmmo: WeaponAmmoSlotState = createEmptyWeaponAmmo();
+  private activeSlot: ActiveHotbarSlot = DEFAULT_ACTIVE_HOTBAR_SLOT;
   private quickSlots: Array<ItemStack | null>;
   private backpackSlots: Array<ItemStack | null>;
 
@@ -57,6 +80,7 @@ export class InventoryComponent extends Component {
         mainWeaponAmmo: cloneItemStack(this.weaponAmmo.mainWeaponAmmo),
         secondaryWeaponAmmo: cloneItemStack(this.weaponAmmo.secondaryWeaponAmmo),
       },
+      activeSlot: this.activeSlot,
       quickSlots: this.quickSlots.map(cloneItemStack),
       backpackSlots: this.backpackSlots.map(cloneItemStack),
     };
@@ -79,6 +103,10 @@ export class InventoryComponent extends Component {
       };
     }
 
+    if (state.activeSlot !== undefined) {
+      this.activeSlot = normalizeActiveHotbarSlot(state.activeSlot);
+    }
+
     if (state.quickSlots) {
       this.quickSlots = normalizeItemSlots(state.quickSlots, this.quickSlotCount);
     }
@@ -94,6 +122,31 @@ export class InventoryComponent extends Component {
 
   public getWeaponAmmo(): WeaponAmmoSlotState {
     return this.getState().weaponAmmo;
+  }
+
+  public getActiveSlot(): ActiveHotbarSlot {
+    return this.activeSlot;
+  }
+
+  public setActiveSlot(slot: ActiveHotbarSlot): void {
+    this.activeSlot = normalizeActiveHotbarSlot(slot);
+  }
+
+  public getEquippedWeaponForActiveSlot(): ItemStack | null {
+    const equipmentSlot = ACTIVE_WEAPON_SLOT_BY_HOTBAR_SLOT[this.activeSlot];
+    return equipmentSlot ? this.getEquipmentSlot(equipmentSlot) : null;
+  }
+
+  public getQuickSlotIndexForActiveSlot(): number | null {
+    return ACTIVE_QUICK_SLOT_INDEX_BY_HOTBAR_SLOT[this.activeSlot] ?? null;
+  }
+
+  public isEquipmentSlotActive(slot: EquipmentSlotId): boolean {
+    return ACTIVE_WEAPON_SLOT_BY_HOTBAR_SLOT[this.activeSlot] === slot;
+  }
+
+  public isQuickSlotActive(index: number): boolean {
+    return ACTIVE_QUICK_SLOT_INDEX_BY_HOTBAR_SLOT[this.activeSlot] === index;
   }
 
   public getQuickSlots(): readonly (ItemStack | null)[] {

@@ -104,6 +104,7 @@ const applySavedPlayerState = (player: PlayerEntity, tilemap: TilemapStateCompon
   player.temperature.cold = autosave.player.temperature.cold;
   player.inventory.setState(autosave.player.inventory);
   player.attack.fireMode = autosave.player.fireMode;
+  PlayerAttackSystem.syncFireModeFromInventory(player.attack, player.inventory);
   syncPlayerToTerrain(tilemap, player);
 };
 

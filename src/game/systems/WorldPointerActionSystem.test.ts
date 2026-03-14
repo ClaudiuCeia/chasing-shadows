@@ -26,7 +26,8 @@ describe("WorldPointerActionSystem", () => {
       worldState.awake();
       player.awake();
 
-      PlayerAttackSystem.toggleFireMode(player.attack);
+      player.inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
+      PlayerAttackSystem.syncFireModeFromInventory(player.attack, player.inventory);
       expect(player.attack.fireMode).toBe("semi");
 
       const system = new WorldPointerActionSystem(map, GAME_CONFIG.lootBoxInteractRange, runtime);
@@ -45,7 +46,7 @@ describe("WorldPointerActionSystem", () => {
 
       uiState.pointerWorld.phase = "hold";
       system.update();
-      expect(uiState.pointerWorld.mode).toBeNull();
+      expect(uiState.pointerWorld.mode).toBe("attack");
 
       uiState.pointerWorld.phase = "release";
       system.update();
@@ -73,7 +74,8 @@ describe("WorldPointerActionSystem", () => {
       worldState.awake();
       player.awake();
 
-      PlayerAttackSystem.toggleFireMode(player.attack);
+      player.inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
+      PlayerAttackSystem.syncFireModeFromInventory(player.attack, player.inventory);
 
       const system = new WorldPointerActionSystem(map, GAME_CONFIG.lootBoxInteractRange, runtime);
       system.awake();
@@ -92,6 +94,91 @@ describe("WorldPointerActionSystem", () => {
       expect(player.attack.releaseQueued).toBeTrue();
     });
   });
+
+  test("uses auto fire for ump5", () => {
+    const runtime = new EcsRuntime();
+
+    EcsRuntime.runWith(runtime, () => {
+      const map = new InfiniteTilemap({ seed: 1, chunkSize: 16 });
+      const uiState = new UiStateEntity();
+      const worldState = new WorldStateEntity({ seed: 1, spawnChance: 0 });
+      const player = new PlayerEntity(new Vector2D(0, 0), GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
+
+      uiState.awake();
+      worldState.awake();
+      player.awake();
+
+      player.inventory.setEquipmentSlot("mainWeapon", { itemId: "ump5", count: 1 });
+
+      const system = new WorldPointerActionSystem(map, GAME_CONFIG.lootBoxInteractRange, runtime);
+      system.awake();
+
+      uiState.pointerWorld.setResolved(new Vector2D(5, 0), new Vector2D(0, 0), map.getElevationAt(5, 0));
+      uiState.pointerWorld.phase = "press";
+      system.update();
+
+      expect(player.attack.fireMode).toBe("auto");
+      expect(player.attack.active).toBeTrue();
+      expect(player.attack.looping).toBeTrue();
+    });
+  });
+
+  test("does not attack when a non-weapon quick slot is active", () => {
+    const runtime = new EcsRuntime();
+
+    EcsRuntime.runWith(runtime, () => {
+      const map = new InfiniteTilemap({ seed: 1, chunkSize: 16 });
+      const uiState = new UiStateEntity();
+      const worldState = new WorldStateEntity({ seed: 1, spawnChance: 0 });
+      const player = new PlayerEntity(new Vector2D(0, 0), GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
+
+      uiState.awake();
+      worldState.awake();
+      player.awake();
+
+      player.inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
+      player.inventory.setActiveSlot("quick1");
+
+      const system = new WorldPointerActionSystem(map, GAME_CONFIG.lootBoxInteractRange, runtime);
+      system.awake();
+
+      uiState.pointerWorld.setResolved(new Vector2D(5, 0), new Vector2D(0, 0), map.getElevationAt(5, 0));
+      uiState.pointerWorld.phase = "press";
+      system.update();
+
+      expect(player.attack.active).toBeFalse();
+      expect(uiState.pointerWorld.mode).toBeNull();
+    });
+  });
+
+  test("attacks with the selected equipped weapon slot", () => {
+    const runtime = new EcsRuntime();
+
+    EcsRuntime.runWith(runtime, () => {
+      const map = new InfiniteTilemap({ seed: 1, chunkSize: 16 });
+      const uiState = new UiStateEntity();
+      const worldState = new WorldStateEntity({ seed: 1, spawnChance: 0 });
+      const player = new PlayerEntity(new Vector2D(0, 0), GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
+
+      uiState.awake();
+      worldState.awake();
+      player.awake();
+
+      player.inventory.setEquipmentSlot("secondaryWeapon", { itemId: "pistol", count: 1 });
+      player.inventory.setActiveSlot("secondary");
+
+      const system = new WorldPointerActionSystem(map, GAME_CONFIG.lootBoxInteractRange, runtime);
+      system.awake();
+
+      uiState.pointerWorld.setResolved(new Vector2D(5, 0), new Vector2D(0, 0), map.getElevationAt(5, 0));
+      uiState.pointerWorld.phase = "press";
+      system.update();
+
+      expect(player.attack.active).toBeTrue();
+      expect(uiState.pointerWorld.mode).toBe("attack");
+    });
+  });
+
   test("does not open loot from outside interact range on click", () => {
     const runtime = new EcsRuntime();
 

@@ -10,7 +10,14 @@ import { getItemDefinition } from "../items/item-catalog.ts";
 import { drawItemSprite, getItemSheet } from "./item-sprites.ts";
 
 const SLOT_GAP = 6;
-const SLOT_COUNT = GAME_CONFIG.inventoryQuickSlots;
+const SLOT_COUNT = 4;
+
+type QuickbarSlotView = {
+  keyLabel: string;
+  roleLabel: string;
+  active: boolean;
+  stack: ReturnType<InventoryComponent["getEquipmentSlot"]>;
+};
 
 export class QuickbarRenderComponent extends HudRenderComponent {
   private itemSheet: HTMLImageElement | null = null;
@@ -44,27 +51,56 @@ export class QuickbarRenderComponent extends HudRenderComponent {
 
     const innerWidth = frame.width - 20;
     const slotSize = Math.floor((innerWidth - SLOT_GAP * (SLOT_COUNT - 1)) / SLOT_COUNT);
-    const slots = this.inventory.getQuickSlots();
+    const slots: QuickbarSlotView[] = [
+      {
+        keyLabel: "1",
+        roleLabel: "PRI",
+        active: this.inventory.getActiveSlot() === "primary",
+        stack: this.inventory.getEquipmentSlot("mainWeapon"),
+      },
+      {
+        keyLabel: "2",
+        roleLabel: "SEC",
+        active: this.inventory.getActiveSlot() === "secondary",
+        stack: this.inventory.getEquipmentSlot("secondaryWeapon"),
+      },
+      {
+        keyLabel: "3",
+        roleLabel: "Q1",
+        active: this.inventory.getActiveSlot() === "quick1",
+        stack: this.inventory.getQuickSlots()[0] ?? null,
+      },
+      {
+        keyLabel: "4",
+        roleLabel: "Q2",
+        active: this.inventory.getActiveSlot() === "quick2",
+        stack: this.inventory.getQuickSlots()[1] ?? null,
+      },
+    ];
     const totalWidth = slotSize * SLOT_COUNT + SLOT_GAP * (SLOT_COUNT - 1);
     const startX = Math.floor(frame.x + (frame.width - totalWidth) / 2);
     const y = Math.floor(frame.y + (frame.height - slotSize) / 2);
 
     for (let i = 0; i < SLOT_COUNT; i++) {
+      const slot = slots[i]!;
       const x = startX + i * (slotSize + SLOT_GAP);
-      ctx.fillStyle = "rgba(46, 54, 66, 0.95)";
+      ctx.fillStyle = slot.active ? "rgba(82, 90, 106, 0.98)" : "rgba(46, 54, 66, 0.95)";
       ctx.fillRect(x, y, slotSize, slotSize);
 
-      ctx.strokeStyle = "rgba(244, 233, 207, 0.55)";
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = slot.active ? "rgba(255, 244, 214, 0.96)" : "rgba(244, 233, 207, 0.55)";
+      ctx.lineWidth = slot.active ? 2 : 1;
       ctx.strokeRect(x, y, slotSize, slotSize);
 
       ctx.fillStyle = "rgba(233, 222, 196, 0.8)";
       ctx.font = "12px monospace";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillText(`${i + 1}`, x + 4, y + 3);
+      ctx.fillText(slot.keyLabel, x + 4, y + 3);
 
-      const stack = slots[i];
+      ctx.textAlign = "right";
+      ctx.fillText(slot.roleLabel, x + slotSize - 4, y + 3);
+
+      const stack = slot.stack;
       if (!stack) {
         continue;
       }

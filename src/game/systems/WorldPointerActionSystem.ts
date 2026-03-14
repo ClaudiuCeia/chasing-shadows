@@ -66,6 +66,7 @@ export class WorldPointerActionSystem implements System {
     }
 
     const attack = player.getComponent(PlayerAttackComponent);
+    PlayerAttackSystem.syncFireModeFromInventory(attack, player.inventory);
 
     if (pointer.phase === null) {
       return;
@@ -132,6 +133,13 @@ export class WorldPointerActionSystem implements System {
       return;
     }
 
+    const activeWeapon = player.inventory.getEquippedWeaponForActiveSlot();
+    if (!activeWeapon) {
+      pointer.mode = null;
+      pointer.phase = null;
+      return;
+    }
+
     const transform = player.getComponent(TransformComponent).transform;
     const facingVector = new Vector2D(Math.cos(transform.rotation), Math.sin(transform.rotation));
     const profile = getPlayerMovementProfile(
@@ -146,16 +154,20 @@ export class WorldPointerActionSystem implements System {
     });
     const attackSelection = getDefaultAttackSelection(profile);
     const directionIndex = screenVectorToDirectionIndex(facingIso);
+    const previousMode = pointer.mode;
 
-    pointer.mode = PlayerAttackSystem.handleTrigger(
+    const triggered = PlayerAttackSystem.handleTrigger(
       attack,
       attackSelection.clip,
       directionIndex,
       attackSelection.playbackDirection,
       pointer.phase,
-    )
+    );
+    pointer.mode = triggered
       ? "attack"
-      : null;
+      : pointer.phase === "hold" && previousMode === "attack" && attack.fireMode === "semi" && !attack.releasedSinceLastShot
+        ? "attack"
+        : null;
     pointer.phase = null;
   }
 

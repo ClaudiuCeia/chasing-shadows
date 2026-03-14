@@ -1,3 +1,5 @@
+import type { PlayerFireMode } from "../render/player-animation-logic.ts";
+
 export type ItemId =
   | "body-armor"
   | "helmet"
@@ -41,6 +43,7 @@ export type ItemDefinition = {
   spriteIndex: number;
   category: ItemCategory;
   quickSlotCompatible: boolean;
+  fireMode?: PlayerFireMode;
   equipmentSlot?: EquipmentSlotId;
   ammoSlot?: WeaponAmmoSlotId;
   usesAmmo?: ItemId;
@@ -90,6 +93,7 @@ export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [
     spriteIndex: 4,
     category: "weapon",
     quickSlotCompatible: false,
+    fireMode: "semi",
     usesAmmo: "pistol-ammo",
   },
   {
@@ -99,6 +103,7 @@ export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [
     spriteIndex: 5,
     category: "weapon",
     quickSlotCompatible: false,
+    fireMode: "auto",
     usesAmmo: "pistol-ammo",
   },
   {
@@ -108,6 +113,7 @@ export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [
     spriteIndex: 6,
     category: "weapon",
     quickSlotCompatible: false,
+    fireMode: "semi",
     usesAmmo: "shotgun-ammo",
   },
   {
@@ -212,5 +218,7 @@ export const canWeaponUseAmmo = (weaponItemId: ItemId, ammoItemId: ItemId): bool
   const weapon = getItemDefinition(weaponItemId);
   return weapon.category === "weapon" && weapon.usesAmmo === ammoItemId;
 };
+
+export const getItemFireMode = (itemId: ItemId): PlayerFireMode => getItemDefinition(itemId).fireMode ?? "semi";
 
 export const canPlaceItemInQuickSlot = (itemId: ItemId): boolean => getItemDefinition(itemId).quickSlotCompatible;

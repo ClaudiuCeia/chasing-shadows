@@ -1,4 +1,5 @@
 import { GAME_CONFIG, STORAGE_KEYS } from "../config/game-config.ts";
+import { ACTIVE_HOTBAR_SLOT_VALUES, DEFAULT_ACTIVE_HOTBAR_SLOT } from "../components/InventoryComponent.ts";
 import { ITEM_IDS } from "../items/item-catalog.ts";
 import { LOOT_BOX_SLOT_COUNT } from "../world/LootBoxField.ts";
 import { PLAYER_FIRE_MODE_VALUES } from "../render/player-animation-logic.ts";
@@ -19,6 +20,7 @@ const ITEM_ID_SET = new Set<string>(ITEM_IDS);
 const TILE_KIND_SET = new Set<string>(TILE_KIND_VALUES);
 const FIRE_MODE_SET = new Set<string>(PLAYER_FIRE_MODE_VALUES);
 const STRUCTURE_ROTATION_SET = new Set<number>(STRUCTURE_ROTATIONS);
+const ACTIVE_HOTBAR_SLOT_SET = new Set<string>(ACTIVE_HOTBAR_SLOT_VALUES);
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -72,6 +74,11 @@ const isItemStack = (value: unknown): boolean =>
 
 const isNullableItemStack = (value: unknown): boolean => value === null || isItemStack(value);
 
+const isQuickSlotArray = (value: unknown): value is Array<unknown> =>
+  Array.isArray(value) &&
+  (value.length === GAME_CONFIG.inventoryQuickSlots || value.length === 4) &&
+  value.every((entry) => isNullableItemStack(entry));
+
 const isInventory = (value: unknown): boolean =>
   isObject(value) &&
   required(value, "equipment", (entry): entry is Record<string, unknown> =>
@@ -86,7 +93,8 @@ const isInventory = (value: unknown): boolean =>
     isNullableItemStack(entry.mainWeaponAmmo) &&
     isNullableItemStack(entry.secondaryWeaponAmmo),
   ) &&
-  required(value, "quickSlots", arrayOf(isNullableItemStack, { length: GAME_CONFIG.inventoryQuickSlots })) &&
+  required(value, "quickSlots", isQuickSlotArray) &&
+  optional(value, "activeSlot", literal(ACTIVE_HOTBAR_SLOT_SET)) &&
   required(value, "backpackSlots", arrayOf(isNullableItemStack, { length: GAME_CONFIG.inventorySlots }));
 const isLootSlots = arrayOf(isNullableItemStack, { length: LOOT_BOX_SLOT_COUNT });
 
@@ -180,6 +188,20 @@ const isSaveGame = (value: unknown): value is SaveGame => {
   return true;
 };
 
+const normalizeSaveGame = (value: SaveGame): SaveGame => ({
+  ...value,
+  player: {
+    ...value.player,
+    inventory: {
+      ...value.player.inventory,
+      activeSlot: ACTIVE_HOTBAR_SLOT_SET.has(value.player.inventory.activeSlot)
+        ? value.player.inventory.activeSlot
+        : DEFAULT_ACTIVE_HOTBAR_SLOT,
+      quickSlots: value.player.inventory.quickSlots.slice(0, GAME_CONFIG.inventoryQuickSlots),
+    },
+  },
+});
+
 export class SaveGameManager {
   private readonly storage: StorageLike | null;
 
@@ -195,7 +217,7 @@ export class SaveGameManager {
 
     try {
       const parsed = JSON.parse(raw) as unknown;
-      return isSaveGame(parsed) ? parsed : null;
+      return isSaveGame(parsed) ? normalizeSaveGame(parsed) : null;
     } catch {
       return null;
     }
