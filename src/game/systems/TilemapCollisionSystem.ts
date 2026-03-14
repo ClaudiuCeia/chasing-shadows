@@ -33,7 +33,6 @@ export class TilemapCollisionSystem implements System {
   public readonly phase = SystemPhase.Collision;
   public readonly tickMode = SystemTickMode.Fixed;
 
-  private readonly playerRadius: number;
   private readonly tileHalfExtent: number;
   private readonly iterations: number;
   private readonly maxStepUp: number;
@@ -69,7 +68,7 @@ export class TilemapCollisionSystem implements System {
       return;
     }
 
-    for (const actor of this.query.run() as CollisionActorEntity[]) {
+    for (const actor of this.query.run() as unknown as CollisionActorEntity[]) {
       const transform = actor.getComponent(TransformComponent);
       const body = actor.getComponent(PhysicsBodyComponent);
       const position = transform.transform.position.clone();
