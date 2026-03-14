@@ -59,6 +59,32 @@ const sampleRayTiles = (
   return Array.from(tiles.values());
 };
 
+const sampleProximityTiles = (originX: number, originY: number, radius: number): VisibilityTile[] => {
+  if (radius <= 0) {
+    return [];
+  }
+
+  const tiles = new Map<string, VisibilityTile>();
+  const minX = toTileCoordinate(originX - radius);
+  const maxX = toTileCoordinate(originX + radius);
+  const minY = toTileCoordinate(originY - radius);
+  const maxY = toTileCoordinate(originY + radius);
+
+  for (let y = minY; y <= maxY; y++) {
+    for (let x = minX; x <= maxX; x++) {
+      const dx = x - originX;
+      const dy = y - originY;
+      if (Math.hypot(dx, dy) > radius) {
+        continue;
+      }
+
+      tiles.set(tileKey(x, y), { x, y });
+    }
+  }
+
+  return Array.from(tiles.values());
+};
+
 export class VisibilitySystem implements System {
   public readonly phase = SystemPhase.Render;
   public readonly tickMode = SystemTickMode.Frame;
@@ -103,6 +129,14 @@ export class VisibilitySystem implements System {
       y: toTileCoordinate(transform.position.y),
     };
     visibleTiles.set(tileKey(originTile.x, originTile.y), originTile);
+
+    for (const tile of sampleProximityTiles(
+      transform.position.x,
+      transform.position.y,
+      GAME_CONFIG.playerVisibilityProximityRadius,
+    )) {
+      visibleTiles.set(tileKey(tile.x, tile.y), tile);
+    }
 
     for (const ray of emitter.rays) {
       const sampled = sampleRayTiles(

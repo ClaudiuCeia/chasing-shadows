@@ -60,6 +60,30 @@ describe("VisibilitySystem", () => {
     world.step(1 / 60);
 
     expect(worldState.visibility.isTileVisible(2, 0)).toBeTrue();
+    expect(worldState.visibility.isTileVisible(4, 0)).toBeFalse();
+  });
+
+  test("reveals nearby tiles through the proximity circle even outside the emitter fan", () => {
+    const world = new World();
+    const map = new InfiniteTilemap({ seed: 123, chunkSize: 16 });
+    const worldState = new WorldStateEntity({ seed: 123, spawnChance: 0 });
+    const player = new PlayerEntity(new Vector2D(0, 0), 4, 8);
+    player.bindTilemap({
+      getElevationAt: (x: number, y: number) => map.getElevationAt(x, y),
+    } as never);
+
+    worldState.awake();
+    player.awake();
+    player.update(1 / 60);
+    player.transform.setRotation(0);
+    player.rayEmitter.setCastProfile(0.5, 0, 1);
+
+    world.addSystem(new RaycastSystem(map));
+    world.addSystem(new VisibilitySystem(map, player));
+    world.step(1 / 60);
+
+    expect(worldState.visibility.isTileVisible(0, 2)).toBeTrue();
+    expect(worldState.visibility.isTileVisible(-2, 0)).toBeTrue();
     expect(worldState.visibility.isTileVisible(3, 0)).toBeFalse();
   });
 
@@ -80,7 +104,7 @@ describe("VisibilitySystem", () => {
 
     const visibleLoot = new LootBoxEntity(2, 0, 0, map.getElevationAt(2, 0));
     visibleLoot.awake();
-    const hiddenLoot = new LootBoxEntity(-2, 0, 0, map.getElevationAt(-2, 0));
+    const hiddenLoot = new LootBoxEntity(-4, 0, 0, map.getElevationAt(-4, 0));
     hiddenLoot.awake();
 
     world.addSystem(new RaycastSystem(map));

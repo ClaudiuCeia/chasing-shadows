@@ -54,6 +54,7 @@ export const GAME_CONFIG = {
   // Visibility
   playerVisibilityFovDegrees: 72,
   playerVisibilityRayCount: 49,
+  playerVisibilityProximityRadius: 2.5,
   visibilityTileSampleStep: 0.2,
 } as const;
 
