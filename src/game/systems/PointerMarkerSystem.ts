@@ -45,14 +45,22 @@ export class PointerMarkerSystem implements System {
     if (!pointer) {
       return;
     }
+
+    const mouse = this.runtime.input.getMousePos();
+    const canvasPoint = clientToCanvas(mouse, this.canvas);
+    const resolved = this.resolveWorldPoint(canvasPoint);
     const mouseDown = this.runtime.input.isMouseDown(0);
     if (!mouseDown) {
+      const wasBlockedByHud = pointer.blockedByHud;
+      pointer.setResolved(resolved.world, canvasPoint, resolved.elevation);
       if (this.wasMouseDown) {
-        pointer.phase = !pointer.blockedByHud && pointer.mode !== "attack" && pointer.worldPoint !== null ? "click" : "release";
+        pointer.phase = !wasBlockedByHud && pointer.mode !== "attack" && pointer.worldPoint !== null ? "click" : "release";
+        pointer.blockedByHud = false;
         this.wasMouseDown = false;
         return;
       }
-      pointer.clearResolved();
+      pointer.blockedByHud = false;
+      pointer.phase = null;
       this.wasMouseDown = false;
       return;
     }
@@ -73,9 +81,6 @@ export class PointerMarkerSystem implements System {
       return;
     }
 
-    const mouse = this.runtime.input.getMousePos();
-    const canvasPoint = clientToCanvas(mouse, this.canvas);
-    const resolved = this.resolveWorldPoint(canvasPoint);
     pointer.blockedByHud = false;
     pointer.setResolved(resolved.world, canvasPoint, resolved.elevation);
     pointer.phase = justPressed ? "press" : "hold";

@@ -5,11 +5,13 @@ import {
   Vector2D,
 } from "@claudiu-ceia/tick";
 import { HealthComponent } from "../components/HealthComponent.ts";
+import { HighlightComponent } from "../components/HighlightComponent.ts";
 import { IsometricRenderNodeComponent } from "../components/IsometricRenderNodeComponent.ts";
 import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
 import { NpcTagComponent } from "../components/NpcTagComponent.ts";
 import { RaycastEmitterComponent } from "../components/RaycastEmitterComponent.ts";
 import { RoamingBehaviorComponent } from "../components/RoamingBehaviorComponent.ts";
+import { TargetableComponent } from "../components/TargetableComponent.ts";
 import { TilePositionComponent } from "../components/TilePositionComponent.ts";
 import { TopDownControllerComponent } from "../components/TopDownControllerComponent.ts";
 import { GAME_CONFIG } from "../config/game-config.ts";
@@ -26,8 +28,10 @@ export class NpcEntity extends ObstacleEntity {
   public readonly tilePosition: TilePositionComponent;
   public readonly body: PhysicsBodyComponent;
   public readonly health: HealthComponent;
+  public readonly highlight: HighlightComponent;
   public readonly rayEmitter: RaycastEmitterComponent;
   public readonly roaming: RoamingBehaviorComponent;
+  public readonly targetable: TargetableComponent;
   private tilemap: InfiniteTilemap | null = null;
 
   public constructor(spawn: Vector2D, seed: number) {
@@ -47,11 +51,13 @@ export class NpcEntity extends ObstacleEntity {
       canSleep: false,
     });
     this.health = new HealthComponent();
+    this.highlight = new HighlightComponent("target-outline");
     this.rayEmitter = new RaycastEmitterComponent({
       maxDistance: NPC_RAYCAST_DISTANCE,
       fovRadians: 0,
       rayCount: 1,
     });
+    this.targetable = new TargetableComponent(NPC_HIT_HEIGHT * 0.72);
     this.roaming = new RoamingBehaviorComponent({
       anchorX: Math.floor(spawn.x),
       anchorY: Math.floor(spawn.y),
@@ -74,7 +80,9 @@ export class NpcEntity extends ObstacleEntity {
     );
     this.addComponent(this.body);
     this.addComponent(this.health);
+    this.addComponent(this.highlight);
     this.addComponent(this.rayEmitter);
+    this.addComponent(this.targetable);
     this.addComponent(this.roaming);
     this.addComponent(new NpcRenderComponent());
   }

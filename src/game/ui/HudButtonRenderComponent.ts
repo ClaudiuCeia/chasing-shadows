@@ -2,7 +2,7 @@ import { HudLayoutNodeComponent, HudRenderComponent, Vector2D, type ICamera } fr
 import { HudButtonStateComponent } from "./HudButtonStateComponent.ts";
 
 export type HudButtonRenderOptions = {
-  label: string;
+  label: string | (() => string);
 };
 
 export class HudButtonRenderComponent extends HudRenderComponent {
@@ -33,7 +33,8 @@ export class HudButtonRenderComponent extends HudRenderComponent {
     ctx.font = "bold 15px monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(this.options.label, frame.x + frame.width / 2, frame.y + frame.height / 2 + 1);
+    const label = typeof this.options.label === "function" ? this.options.label() : this.options.label;
+    ctx.fillText(label, frame.x + frame.width / 2, frame.y + frame.height / 2 + 1);
     ctx.restore();
   }
 }

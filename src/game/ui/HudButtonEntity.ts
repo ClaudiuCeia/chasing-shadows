@@ -4,7 +4,7 @@ import { HudButtonRenderComponent } from "./HudButtonRenderComponent.ts";
 import { HudButtonStateComponent } from "./HudButtonStateComponent.ts";
 
 export type HudButtonEntityOptions = {
-  label: string;
+  label: string | (() => string);
   width: number;
   height: number;
   anchor?: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center";

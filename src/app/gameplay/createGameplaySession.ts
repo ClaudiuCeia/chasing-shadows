@@ -23,6 +23,7 @@ import { findStructurePlacementNear } from "../../game/structures/structure-geom
 import { AutosaveSystem } from "../../game/systems/AutosaveSystem.ts";
 import { CameraFollowSystem } from "../../game/systems/CameraFollowSystem.ts";
 import { ChunkPrewarmSystem } from "../../game/systems/ChunkPrewarmSystem.ts";
+import { CombatRaycastSystem } from "../../game/systems/CombatRaycastSystem.ts";
 import { DebugOverlaySystem } from "../../game/systems/DebugOverlaySystem.ts";
 import { ExposureSystem } from "../../game/systems/ExposureSystem.ts";
 import { InputIntentSystem } from "../../game/systems/InputIntentSystem.ts";
@@ -38,6 +39,7 @@ import { PlayerAttackSystem } from "../../game/systems/PlayerAttackSystem.ts";
 import { PointerMarkerSystem } from "../../game/systems/PointerMarkerSystem.ts";
 import { RaycastSystem } from "../../game/systems/RaycastSystem.ts";
 import { StructureChunkSystem } from "../../game/systems/StructureChunkSystem.ts";
+import { TargetHoverSystem } from "../../game/systems/TargetHoverSystem.ts";
 import { TerminatorSystem } from "../../game/systems/TerminatorSystem.ts";
 import { TilemapCollisionSystem } from "../../game/systems/TilemapCollisionSystem.ts";
 import { TopDownControllerSystem } from "../../game/systems/TopDownControllerSystem.ts";
@@ -372,6 +374,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
   world.addSystem(new PlayerAttackSystem(runtime));
   world.addSystem(new LootInteractSystem(roots.tilemapEntity.tilemap.map, roots.player, { interactRange: GAME_CONFIG.lootBoxInteractRange }, runtime));
   world.addSystem(new PointerMarkerSystem(camera, options.canvas, roots.tilemapEntity.tilemap.map, GAME_CONFIG.maxTerrainElevation, runtime));
+  world.addSystem(new TargetHoverSystem(camera, options.canvas, roots.tilemapEntity.tilemap.map, roots.player, runtime));
   world.addSystem(new WorldPointerActionSystem(roots.tilemapEntity.tilemap.map, GAME_CONFIG.lootBoxInteractRange, runtime));
   world.addSystem(new NpcRoamingSystem(runtime));
   world.addSystem(
@@ -383,6 +386,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
   world.addSystem(new TerminatorSystem(runtime));
   world.addSystem(new NeedsDecaySystem(runtime));
   world.addSystem(new ExposureSystem(roots.terminatorEntity.terminator, runtime));
+  world.addSystem(new CombatRaycastSystem(roots.tilemapEntity.tilemap.map, roots.player, runtime));
   world.addSystem(new RaycastSystem(roots.tilemapEntity.tilemap.map, runtime));
   world.addSystem(new VisibilitySystem(roots.tilemapEntity.tilemap.map, roots.player, runtime));
   world.addSystem(

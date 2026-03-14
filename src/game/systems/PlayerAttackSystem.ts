@@ -101,6 +101,7 @@ export class PlayerAttackSystem implements System {
     playbackDirection: 1 | -1,
   ): void {
     attack.active = true;
+    attack.shotCounter += 1;
     attack.clip = clip;
     attack.directionIndex = directionIndex;
     attack.playbackDirection = playbackDirection;

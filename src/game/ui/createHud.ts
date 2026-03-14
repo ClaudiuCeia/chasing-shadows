@@ -51,14 +51,45 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
   const debug = new HudNodeEntity();
   debug.addComponent(
     new HudLayoutNodeComponent({
-      width: 190,
-      height: 140,
+      width: 280,
+      height: 220,
       anchor: "top-left",
       offset: { x: 18, y: 104 },
       order: 20,
     }),
   );
-  debug.addComponent(new HudDebugRenderComponent(options.debug, options.player));
+
+  const losToggleButton = new HudButtonEntity({
+    label: () => `LOS: ${options.debug.renderLosRays ? "ON" : "OFF"}`,
+    width: 148,
+    height: 28,
+    anchor: "bottom-left",
+    offset: { x: 10, y: -46 },
+    order: 5,
+    onClick: () => {
+      options.debug.toggleLosRays();
+    },
+  });
+  losToggleButton.layout.setVisible(false);
+  losToggleButton.layout.setInteractive(false);
+  debug.addChild(losToggleButton);
+
+  const combatToggleButton = new HudButtonEntity({
+    label: () => `COMBAT: ${options.debug.renderCombatRays ? "ON" : "OFF"}`,
+    width: 148,
+    height: 28,
+    anchor: "bottom-left",
+    offset: { x: 10, y: -10 },
+    order: 5,
+    onClick: () => {
+      options.debug.toggleCombatRays();
+    },
+  });
+  combatToggleButton.layout.setVisible(false);
+  combatToggleButton.layout.setInteractive(false);
+  debug.addChild(combatToggleButton);
+
+  debug.addComponent(new HudDebugRenderComponent(options.debug, options.player, [losToggleButton, combatToggleButton]));
 
   const temperature = new HudNodeEntity();
   temperature.addComponent(

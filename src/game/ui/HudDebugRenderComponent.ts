@@ -3,6 +3,7 @@ import { DebugOverlayComponent } from "../components/DebugOverlayComponent.ts";
 import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
 import { PlayerEntity } from "../entities/PlayerEntity.ts";
 import { VisibilityStateComponent } from "../components/VisibilityStateComponent.ts";
+import { HudButtonEntity } from "./HudButtonEntity.ts";
 
 const DEBUG_TEXT_PADDING_X = 10;
 const DEBUG_TEXT_PADDING_Y = 8;
@@ -56,6 +57,7 @@ export class HudDebugRenderComponent extends HudRenderComponent {
   public constructor(
     private readonly debug: DebugOverlayComponent,
     private readonly player: PlayerEntity,
+    private readonly toggleButtons: readonly HudButtonEntity[],
   ) {
     super();
   }
@@ -66,13 +68,17 @@ export class HudDebugRenderComponent extends HudRenderComponent {
     _canvasSize: Vector2D,
   ): void {
     if (!this.debug.enabled) {
+      this.setToggleButtonsVisible(false);
       return;
     }
+
+    this.setToggleButtonsVisible(true);
 
     const layout = this.ent.getComponent(HudLayoutNodeComponent);
 
     const position = this.player.transform.transform.position;
     const primaryRay = this.player.rayEmitter.getPrimaryRay();
+    const primaryWeaponRay = this.player.weaponRaycast.rays[Math.floor(this.player.weaponRaycast.rays.length / 2)] ?? null;
     const posture = this.player.getComponent(MovementIntentComponent).crouch ? "crouched" : "standing";
     const playerElevation = this.player.tilePosition.z;
     const headElevation = playerElevation + this.player.hitCollider.bodyHeight;
@@ -87,6 +93,10 @@ export class HudDebugRenderComponent extends HudRenderComponent {
       `Player z: ${playerElevation.toFixed(2)}`,
       `Head z: ${headElevation.toFixed(2)}`,
       `Rays: ${this.player.rayEmitter.rayCount}`,
+      `LOS render: ${this.debug.renderLosRays ? "on" : "off"}`,
+      `Weapon rays: ${this.player.weaponRaycast.rayCount}`,
+      `Weapon mode: ${this.player.weaponRaycast.mode ?? "idle"}`,
+      `Combat render: ${this.debug.renderCombatRays ? "on" : "off"}`,
       `Visible tiles: ${visibility?.getVisibleTiles().length ?? 0}`,
       `Remembered tiles: ${visibility?.getRememberedTiles().length ?? 0}`,
       `Remembered structures: ${visibility?.getRememberedStructureKeys().length ?? 0}`,
@@ -94,6 +104,9 @@ export class HudDebugRenderComponent extends HudRenderComponent {
       primaryRay?.hit
         ? `Hit: ${primaryRay.hit.entity?.constructor.name.replace(/Entity$/, "") ?? primaryRay.hit.type} @ ${primaryRay.hit.distance.toFixed(2)}`
         : `Range: ${primaryRay?.distance.toFixed(2) ?? "-"}`,
+      primaryWeaponRay?.hit
+        ? `Weapon hit: ${primaryWeaponRay.hit.entity?.constructor.name.replace(/Entity$/, "") ?? primaryWeaponRay.hit.type} @ ${primaryWeaponRay.hit.distance.toFixed(2)}`
+        : `Weapon range: ${primaryWeaponRay?.distance.toFixed(2) ?? "-"}`,
     ];
 
     ctx.save();
@@ -109,9 +122,10 @@ export class HudDebugRenderComponent extends HudRenderComponent {
       ),
     );
     const wrappedLines = lines.flatMap((line) => wrapText(ctx, line, preferredWidth - DEBUG_TEXT_PADDING_X * 2));
+    const toggleAreaHeight = this.toggleButtons.length > 0 ? 76 : 0;
     const preferredHeight = Math.max(
       DEBUG_BOX_MIN_HEIGHT,
-      DEBUG_TEXT_PADDING_Y * 2 + wrappedLines.length * DEBUG_TEXT_LINE_HEIGHT,
+      DEBUG_TEXT_PADDING_Y * 2 + wrappedLines.length * DEBUG_TEXT_LINE_HEIGHT + toggleAreaHeight,
     );
 
     layout.setSize(preferredWidth, preferredHeight);
@@ -136,5 +150,12 @@ export class HudDebugRenderComponent extends HudRenderComponent {
       ctx.fillText(line, frame.x + DEBUG_TEXT_PADDING_X, frame.y + DEBUG_TEXT_PADDING_Y + index * DEBUG_TEXT_LINE_HEIGHT);
     });
     ctx.restore();
+  }
+
+  private setToggleButtonsVisible(visible: boolean): void {
+    for (const button of this.toggleButtons) {
+      button.layout.setVisible(visible);
+      button.layout.setInteractive(visible);
+    }
   }
 }

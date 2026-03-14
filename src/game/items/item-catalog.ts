@@ -25,6 +25,7 @@ export type ItemStack = {
 
 export type EquipmentSlotId = "mainWeapon" | "secondaryWeapon" | "helmet" | "bodyArmor";
 export type WeaponAmmoSlotId = "mainWeaponAmmo" | "secondaryWeaponAmmo";
+export type AmmoItemId = "pistol-ammo" | "shotgun-ammo";
 export type ItemCategory =
   | "material"
   | "consumable"
@@ -37,20 +38,58 @@ export type ItemCategory =
   | "armor-body"
   | "ammo";
 
-// TODO: this should be a discriminated union
-export type ItemDefinition = {
+type ItemDefinitionBase<TCategory extends ItemCategory> = {
   id: ItemId;
   label: string;
   description: string;
   spriteIndex: number;
-  category: ItemCategory;
+  category: TCategory;
   quickSlotCompatible: boolean;
-  fireMode?: PlayerFireMode;
-  refireSeconds?: number;
-  equipmentSlot?: EquipmentSlotId;
-  ammoSlot?: WeaponAmmoSlotId;
-  usesAmmo?: ItemId;
 };
+
+export type ArmorItemDefinition = ItemDefinitionBase<"armor-head" | "armor-body"> & {
+  equipmentSlot: EquipmentSlotId;
+};
+
+export type AmmoItemDefinition = ItemDefinitionBase<"ammo"> & {
+  id: AmmoItemId;
+  ammoSlot: WeaponAmmoSlotId;
+};
+
+export type RangedWeaponItemDefinition = ItemDefinitionBase<"weapon"> & {
+  fireMode: PlayerFireMode;
+  refireSeconds: number;
+  usesAmmo: AmmoItemId;
+  baseDamage: number;
+  spreadDegrees: number;
+  accuracy: number;
+};
+
+export type MeleeWeaponItemDefinition = ItemDefinitionBase<"melee">;
+
+export type ToolItemDefinition = ItemDefinitionBase<"tool">;
+export type ConsumableItemDefinition = ItemDefinitionBase<"consumable">;
+export type MedicalItemDefinition = ItemDefinitionBase<"medical">;
+export type MaterialItemDefinition = ItemDefinitionBase<"material">;
+export type ThrowableItemDefinition = ItemDefinitionBase<"throwable">;
+
+export type ItemDefinition =
+  | ArmorItemDefinition
+  | AmmoItemDefinition
+  | RangedWeaponItemDefinition
+  | MeleeWeaponItemDefinition
+  | ToolItemDefinition
+  | ConsumableItemDefinition
+  | MedicalItemDefinition
+  | MaterialItemDefinition
+  | ThrowableItemDefinition;
+
+export type WeaponItemDefinition = RangedWeaponItemDefinition | MeleeWeaponItemDefinition;
+
+export type WeaponCombatStats = Pick<
+  RangedWeaponItemDefinition,
+  "baseDamage" | "spreadDegrees" | "accuracy" | "fireMode" | "refireSeconds" | "usesAmmo"
+>;
 
 export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [
   {
@@ -98,6 +137,9 @@ export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [
     quickSlotCompatible: false,
     fireMode: "semi",
     refireSeconds: 0.24,
+    baseDamage: 18,
+    spreadDegrees: 0.75,
+    accuracy: 0.98,
     usesAmmo: "pistol-ammo",
   },
   {
@@ -109,6 +151,9 @@ export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [
     quickSlotCompatible: false,
     fireMode: "auto",
     refireSeconds: 0.09,
+    baseDamage: 9,
+    spreadDegrees: 5,
+    accuracy: 0.82,
     usesAmmo: "pistol-ammo",
   },
   {
@@ -120,6 +165,9 @@ export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [
     quickSlotCompatible: false,
     fireMode: "semi",
     refireSeconds: 0.58,
+    baseDamage: 26,
+    spreadDegrees: 12,
+    accuracy: 0.72,
     usesAmmo: "shotgun-ammo",
   },
   {
@@ -194,6 +242,18 @@ const ITEM_BY_ID = new Map<ItemId, ItemDefinition>(
   ITEM_DEFINITIONS.map((definition) => [definition.id, definition]),
 );
 
+export const isArmorItemDefinition = (definition: ItemDefinition): definition is ArmorItemDefinition =>
+  definition.category === "armor-head" || definition.category === "armor-body";
+
+export const isAmmoItemDefinition = (definition: ItemDefinition): definition is AmmoItemDefinition =>
+  definition.category === "ammo";
+
+export const isRangedWeaponItemDefinition = (definition: ItemDefinition): definition is RangedWeaponItemDefinition =>
+  definition.category === "weapon";
+
+export const isWeaponItemDefinition = (definition: ItemDefinition): definition is WeaponItemDefinition =>
+  definition.category === "weapon" || definition.category === "melee";
+
 export const getItemDefinition = (id: ItemId): ItemDefinition => {
   const definition = ITEM_BY_ID.get(id);
   if (!definition) {
@@ -204,12 +264,12 @@ export const getItemDefinition = (id: ItemId): ItemDefinition => {
 
 export const canEquipItemInSlot = (itemId: ItemId, slot: EquipmentSlotId): boolean => {
   const definition = getItemDefinition(itemId);
-  if (definition.equipmentSlot === slot) {
+  if (isArmorItemDefinition(definition) && definition.equipmentSlot === slot) {
     return true;
   }
 
   if (slot === "mainWeapon" || slot === "secondaryWeapon") {
-    return definition.category === "weapon" || definition.category === "melee";
+    return isWeaponItemDefinition(definition);
   }
 
   return false;
@@ -217,16 +277,44 @@ export const canEquipItemInSlot = (itemId: ItemId, slot: EquipmentSlotId): boole
 
 export const canLoadAmmoIntoSlot = (itemId: ItemId, _slot: WeaponAmmoSlotId): boolean => {
   const definition = getItemDefinition(itemId);
-  return definition.category === "ammo";
+  return isAmmoItemDefinition(definition);
 };
 
 export const canWeaponUseAmmo = (weaponItemId: ItemId, ammoItemId: ItemId): boolean => {
   const weapon = getItemDefinition(weaponItemId);
-  return weapon.category === "weapon" && weapon.usesAmmo === ammoItemId;
+  return isRangedWeaponItemDefinition(weapon) && weapon.usesAmmo === ammoItemId;
 };
 
-export const getItemFireMode = (itemId: ItemId): PlayerFireMode => getItemDefinition(itemId).fireMode ?? "semi";
+export const getItemFireMode = (itemId: ItemId): PlayerFireMode => {
+  const definition = getItemDefinition(itemId);
+  return isRangedWeaponItemDefinition(definition) ? definition.fireMode : "semi";
+};
 
-export const getItemRefireSeconds = (itemId: ItemId): number => getItemDefinition(itemId).refireSeconds ?? ATTACK_REFIRE_SECONDS;
+export const getItemRefireSeconds = (itemId: ItemId): number => {
+  const definition = getItemDefinition(itemId);
+  return isRangedWeaponItemDefinition(definition) ? definition.refireSeconds : ATTACK_REFIRE_SECONDS;
+};
+
+export const getWeaponCombatStats = (itemId: ItemId): WeaponCombatStats | null => {
+  const definition = getItemDefinition(itemId);
+  if (!isRangedWeaponItemDefinition(definition)) {
+    return null;
+  }
+
+  return {
+    baseDamage: definition.baseDamage,
+    spreadDegrees: definition.spreadDegrees,
+    accuracy: definition.accuracy,
+    fireMode: definition.fireMode,
+    refireSeconds: definition.refireSeconds,
+    usesAmmo: definition.usesAmmo,
+  };
+};
+
+export const getWeaponSpreadDegrees = (itemId: ItemId): number => getWeaponCombatStats(itemId)?.spreadDegrees ?? 0;
+
+export const getWeaponAccuracy = (itemId: ItemId): number => getWeaponCombatStats(itemId)?.accuracy ?? 1;
+
+export const getWeaponBaseDamage = (itemId: ItemId): number => getWeaponCombatStats(itemId)?.baseDamage ?? 0;
 
 export const canPlaceItemInQuickSlot = (itemId: ItemId): boolean => getItemDefinition(itemId).quickSlotCompatible;

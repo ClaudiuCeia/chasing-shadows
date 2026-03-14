@@ -19,6 +19,7 @@ import { RaycastEmitterComponent } from "../components/RaycastEmitterComponent.t
 import { TemperatureComponent } from "../components/TemperatureComponent.ts";
 import { TilePositionComponent } from "../components/TilePositionComponent.ts";
 import { TopDownControllerComponent } from "../components/TopDownControllerComponent.ts";
+import { WeaponRaycastComponent } from "../components/WeaponRaycastComponent.ts";
 import { GAME_CONFIG } from "../config/game-config.ts";
 import { PlayerHitColliderEntity } from "./PlayerHitColliderEntity.ts";
 import type { TilemapStateComponent } from "../components/TilemapStateComponent.ts";
@@ -37,6 +38,7 @@ export class PlayerEntity extends Entity {
   public readonly inventory: InventoryComponent;
   public readonly attack: PlayerAttackComponent;
   public readonly rayEmitter: RaycastEmitterComponent;
+  public readonly weaponRaycast: WeaponRaycastComponent;
   public readonly movementCollider: CollisionEntity;
   public readonly hitCollider: PlayerHitColliderEntity;
   private tilemap: TilemapStateComponent | null = null;
@@ -65,6 +67,7 @@ export class PlayerEntity extends Entity {
       fovRadians: (GAME_CONFIG.playerVisibilityFovDegrees * Math.PI) / 180,
       rayCount: GAME_CONFIG.playerVisibilityRayCount,
     });
+    this.weaponRaycast = new WeaponRaycastComponent();
     this.movementCollider = new CollisionEntity(
       new CircleCollisionShape(this.collisionRadius),
       "center",
@@ -90,6 +93,7 @@ export class PlayerEntity extends Entity {
     this.addComponent(this.body);
     this.addComponent(this.attack);
     this.addComponent(this.rayEmitter);
+    this.addComponent(this.weaponRaycast);
     this.addComponent(this.health);
     this.addComponent(this.inventory);
     this.addComponent(this.needs);

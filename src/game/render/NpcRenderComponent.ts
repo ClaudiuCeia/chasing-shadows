@@ -1,9 +1,11 @@
 import { EcsRuntime, PhysicsBodyComponent, TransformComponent, Vector2D } from "@claudiu-ceia/tick";
+import { HighlightComponent } from "../components/HighlightComponent.ts";
 import { IsometricRenderableComponent } from "../components/IsometricRenderableComponent.ts";
 import { GAME_CONFIG } from "../config/game-config.ts";
 import { worldToIso } from "../../shared/math/iso.ts";
 import { screenVectorToDirectionIndex } from "./player-sprite-math.ts";
 import { getNpcSheets, type NpcSheets } from "./npc-sprite-assets.ts";
+import { drawSpriteOutline } from "./sprite-outline.ts";
 
 const FRAME_SIZE = 128;
 const FRAME_COLS = 14;
@@ -31,6 +33,7 @@ const getSpriteBounds = (screen: Vector2D): { x: number; y: number; width: numbe
 
 export class NpcRenderComponent extends IsometricRenderableComponent {
   private static sheetsPromise: Promise<NpcSheets> | null = null;
+  private static outlineMaskCache = new Map<string, HTMLCanvasElement>();
 
   private sheets: NpcSheets | null = null;
   private frameCursor = 0;
@@ -95,9 +98,44 @@ export class NpcRenderComponent extends IsometricRenderableComponent {
     if (!this.sheets) {
       return;
     }
+
     const frameX = this.currentFrameIndex * FRAME_SIZE;
     const frameY = (this.directionIndex % FRAME_ROWS) * FRAME_SIZE;
     const bounds = getSpriteBounds(screen);
+
+    const highlighted = this.ent.hasComponent(HighlightComponent) && this.ent.getComponent(HighlightComponent).active;
+    if (highlighted) {
+      this.drawTargetOutline(ctx, bounds.x, bounds.y, bounds.width, bounds.height, frameX, frameY);
+    }
     ctx.drawImage(this.sheets[this.currentClip], frameX, frameY, FRAME_SIZE, FRAME_SIZE, bounds.x, bounds.y, bounds.width, bounds.height);
+  }
+
+  private drawTargetOutline(
+    ctx: CanvasRenderingContext2D,
+    drawX: number,
+    drawY: number,
+    drawWidth: number,
+    drawHeight: number,
+    frameX: number,
+    frameY: number,
+  ): void {
+    if (!this.sheets) {
+      return;
+    }
+
+    drawSpriteOutline(ctx, {
+      source: this.sheets[this.currentClip],
+      sourceX: frameX,
+      sourceY: frameY,
+      sourceWidth: FRAME_SIZE,
+      sourceHeight: FRAME_SIZE,
+      drawX,
+      drawY,
+      drawWidth,
+      drawHeight,
+      cache: NpcRenderComponent.outlineMaskCache,
+      cacheKey: `${this.currentClip}:${frameX}:${frameY}:${drawWidth}:${drawHeight}`,
+      imageSmoothingEnabled: true,
+    });
   }
 }

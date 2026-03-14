@@ -23,6 +23,7 @@ export class PlayerAttackComponent extends Component {
   public releaseQueued = false;
   public dryFireFeedbackRemaining = 0;
   public dryFireFeedbackCount = 0;
+  public shotCounter = 0;
 
   public getFrameIndex(): number {
     const frameCount = this.looping ? ATTACK_FRAME_COUNT : ATTACK_SEMI_FRAME_COUNT;

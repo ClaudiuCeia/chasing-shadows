@@ -168,41 +168,76 @@ export class DebugRayRenderComponent extends RenderComponent<PlayerEntity> {
   }
 
   private drawRay(ctx: CanvasRenderingContext2D, camera: IsometricCameraEntity, canvasSize: Vector2D): void {
-    if (this.ent.rayEmitter.rays.length === 0) {
+    if (this.debug.renderLosRays && this.ent.rayEmitter.rays.length > 0) {
+      this.ent.rayEmitter.rays.forEach((ray, index) => {
+        const originScreen = camera.toCanvasAt(new Vector2D(ray.origin.x, ray.origin.y), ray.origin.z, canvasSize);
+        const endScreen = camera.toCanvasAt(new Vector2D(ray.endPoint.x, ray.endPoint.y), ray.endPoint.z, canvasSize);
+        const primary = index === this.ent.rayEmitter.primaryRayIndex;
+
+        ctx.strokeStyle =
+          ray.hit?.type === "collider"
+            ? "rgba(255, 196, 120, 0.95)"
+            : ray.hit?.type === "terrain"
+              ? "rgba(255, 146, 101, 0.95)"
+              : "rgba(111, 225, 255, 0.72)";
+        ctx.lineWidth = primary ? 2 : 1;
+        drawPolyline(ctx, [originScreen, endScreen]);
+
+        if (primary) {
+          drawMarker(ctx, originScreen, "rgba(255, 247, 192, 0.98)", 4);
+        }
+        drawMarker(ctx, endScreen, ray.hit ? "rgba(255, 121, 80, 0.98)" : "rgba(111, 225, 255, 0.9)", primary ? 3 : 2);
+
+        if (ray.hit) {
+          const hitScreen = camera.toCanvasAt(new Vector2D(ray.hit.point.x, ray.hit.point.y), ray.hit.point.z, canvasSize);
+          ctx.strokeStyle = ray.hit.type === "collider" ? "rgba(255, 196, 120, 0.98)" : "rgba(255, 121, 80, 0.98)";
+          ctx.lineWidth = primary ? 2 : 1.5;
+          ctx.beginPath();
+          ctx.moveTo(hitScreen.x - 5, hitScreen.y - 5);
+          ctx.lineTo(hitScreen.x + 5, hitScreen.y + 5);
+          ctx.moveTo(hitScreen.x + 5, hitScreen.y - 5);
+          ctx.lineTo(hitScreen.x - 5, hitScreen.y + 5);
+          ctx.stroke();
+        }
+      });
+    }
+
+    if (!this.debug.renderCombatRays) {
+      return;
+    }
+    this.drawWeaponRays(ctx, camera, canvasSize);
+  }
+
+  private drawWeaponRays(ctx: CanvasRenderingContext2D, camera: IsometricCameraEntity, canvasSize: Vector2D): void {
+    if (this.ent.weaponRaycast.rays.length === 0) {
       return;
     }
 
-    this.ent.rayEmitter.rays.forEach((ray, index) => {
+    this.ent.weaponRaycast.rays.forEach((ray, index) => {
       const originScreen = camera.toCanvasAt(new Vector2D(ray.origin.x, ray.origin.y), ray.origin.z, canvasSize);
       const endScreen = camera.toCanvasAt(new Vector2D(ray.endPoint.x, ray.endPoint.y), ray.endPoint.z, canvasSize);
-      const primary = index === this.ent.rayEmitter.primaryRayIndex;
-
-      ctx.strokeStyle =
-        ray.hit?.type === "collider"
-          ? "rgba(255, 196, 120, 0.95)"
-          : ray.hit?.type === "terrain"
-            ? "rgba(255, 146, 101, 0.95)"
-            : "rgba(111, 225, 255, 0.72)";
-      ctx.lineWidth = primary ? 2 : 1;
+      const primary = index === Math.floor(this.ent.weaponRaycast.rays.length / 2);
+      ctx.strokeStyle = this.ent.weaponRaycast.mode === "targeted"
+        ? "rgba(165, 255, 132, 0.92)"
+        : "rgba(122, 186, 255, 0.92)";
+      ctx.lineWidth = primary ? 2.4 : 1.4;
       drawPolyline(ctx, [originScreen, endScreen]);
-
-      if (primary) {
-        drawMarker(ctx, originScreen, "rgba(255, 247, 192, 0.98)", 4);
-      }
-      drawMarker(ctx, endScreen, ray.hit ? "rgba(255, 121, 80, 0.98)" : "rgba(111, 225, 255, 0.9)", primary ? 3 : 2);
-
-      if (ray.hit) {
-        const hitScreen = camera.toCanvasAt(new Vector2D(ray.hit.point.x, ray.hit.point.y), ray.hit.point.z, canvasSize);
-        ctx.strokeStyle = ray.hit.type === "collider" ? "rgba(255, 196, 120, 0.98)" : "rgba(255, 121, 80, 0.98)";
-        ctx.lineWidth = primary ? 2 : 1.5;
-        ctx.beginPath();
-        ctx.moveTo(hitScreen.x - 5, hitScreen.y - 5);
-        ctx.lineTo(hitScreen.x + 5, hitScreen.y + 5);
-        ctx.moveTo(hitScreen.x + 5, hitScreen.y - 5);
-        ctx.lineTo(hitScreen.x - 5, hitScreen.y + 5);
-        ctx.stroke();
-      }
+      drawMarker(ctx, endScreen, "rgba(255, 255, 255, 0.96)", primary ? 3 : 2);
     });
+
+    const targetPoint = this.ent.weaponRaycast.targetPoint;
+    if (!targetPoint) {
+      return;
+    }
+
+    const targetScreen = camera.toCanvasAt(new Vector2D(targetPoint.x, targetPoint.y), targetPoint.z, canvasSize);
+    ctx.save();
+    ctx.strokeStyle = "rgba(255, 248, 214, 0.98)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(targetScreen.x, targetScreen.y, 8, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
   }
 
   private drawColliderFootprint(
