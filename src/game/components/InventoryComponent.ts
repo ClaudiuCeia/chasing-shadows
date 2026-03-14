@@ -1,5 +1,10 @@
 import { Component } from "@claudiu-ceia/tick";
-import type { EquipmentSlotId, ItemStack, WeaponAmmoSlotId } from "../items/item-catalog.ts";
+import {
+  getItemDefinition,
+  type EquipmentSlotId,
+  type ItemStack,
+  type WeaponAmmoSlotId,
+} from "../items/item-catalog.ts";
 import { cloneItemStack, normalizeItemSlots } from "../items/item-stack.ts";
 
 export const QUICK_SLOT_COUNT = 2;
@@ -34,6 +39,11 @@ const ACTIVE_WEAPON_SLOT_BY_HOTBAR_SLOT: Partial<Record<ActiveHotbarSlot, Equipm
 const ACTIVE_QUICK_SLOT_INDEX_BY_HOTBAR_SLOT: Partial<Record<ActiveHotbarSlot, number>> = {
   quick1: 0,
   quick2: 1,
+};
+
+const AMMO_SLOT_BY_WEAPON_SLOT: Record<"mainWeapon" | "secondaryWeapon", WeaponAmmoSlotId> = {
+  mainWeapon: "mainWeaponAmmo",
+  secondaryWeapon: "secondaryWeaponAmmo",
 };
 
 const createEmptyEquipment = (): EquipmentSlotState => ({
@@ -135,6 +145,66 @@ export class InventoryComponent extends Component {
   public getEquippedWeaponForActiveSlot(): ItemStack | null {
     const equipmentSlot = ACTIVE_WEAPON_SLOT_BY_HOTBAR_SLOT[this.activeSlot];
     return equipmentSlot ? this.getEquipmentSlot(equipmentSlot) : null;
+  }
+
+  public getAmmoSlotForActiveWeapon(): WeaponAmmoSlotId | null {
+    const equipmentSlot = ACTIVE_WEAPON_SLOT_BY_HOTBAR_SLOT[this.activeSlot];
+    if (equipmentSlot !== "mainWeapon" && equipmentSlot !== "secondaryWeapon") {
+      return null;
+    }
+
+    return AMMO_SLOT_BY_WEAPON_SLOT[equipmentSlot];
+  }
+
+  public getActiveWeaponAmmoCount(): number | null {
+    const weapon = this.getEquippedWeaponForActiveSlot();
+    if (!weapon) {
+      return null;
+    }
+
+    const ammoItemId = getItemDefinition(weapon.itemId).usesAmmo;
+    if (!ammoItemId) {
+      return null;
+    }
+
+    const ammoSlot = this.getAmmoSlotForActiveWeapon();
+    if (!ammoSlot) {
+      return 0;
+    }
+
+    const ammo = this.weaponAmmo[ammoSlot];
+    return ammo?.itemId === ammoItemId ? ammo.count : 0;
+  }
+
+  public consumeAmmoForActiveWeapon(amount = 1): boolean {
+    const normalizedAmount = Math.max(0, Math.floor(amount));
+    if (normalizedAmount === 0) {
+      return true;
+    }
+
+    const weapon = this.getEquippedWeaponForActiveSlot();
+    if (!weapon) {
+      return false;
+    }
+
+    const ammoItemId = getItemDefinition(weapon.itemId).usesAmmo;
+    if (!ammoItemId) {
+      return true;
+    }
+
+    const ammoSlot = this.getAmmoSlotForActiveWeapon();
+    if (!ammoSlot) {
+      return false;
+    }
+
+    const ammo = this.weaponAmmo[ammoSlot];
+    if (!ammo || ammo.itemId !== ammoItemId || ammo.count < normalizedAmount) {
+      return false;
+    }
+
+    const remaining = ammo.count - normalizedAmount;
+    this.weaponAmmo[ammoSlot] = remaining > 0 ? { itemId: ammo.itemId, count: remaining } : null;
+    return true;
   }
 
   public getQuickSlotIndexForActiveSlot(): number | null {

@@ -1,4 +1,5 @@
 import type { PlayerFireMode } from "../render/player-animation-logic.ts";
+import { ATTACK_REFIRE_SECONDS } from "../render/player-animation-logic.ts";
 
 export type ItemId =
   | "body-armor"
@@ -36,6 +37,7 @@ export type ItemCategory =
   | "armor-body"
   | "ammo";
 
+// TODO: this should be a discriminated union
 export type ItemDefinition = {
   id: ItemId;
   label: string;
@@ -44,6 +46,7 @@ export type ItemDefinition = {
   category: ItemCategory;
   quickSlotCompatible: boolean;
   fireMode?: PlayerFireMode;
+  refireSeconds?: number;
   equipmentSlot?: EquipmentSlotId;
   ammoSlot?: WeaponAmmoSlotId;
   usesAmmo?: ItemId;
@@ -94,6 +97,7 @@ export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [
     category: "weapon",
     quickSlotCompatible: false,
     fireMode: "semi",
+    refireSeconds: 0.24,
     usesAmmo: "pistol-ammo",
   },
   {
@@ -104,6 +108,7 @@ export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [
     category: "weapon",
     quickSlotCompatible: false,
     fireMode: "auto",
+    refireSeconds: 0.09,
     usesAmmo: "pistol-ammo",
   },
   {
@@ -114,6 +119,7 @@ export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [
     category: "weapon",
     quickSlotCompatible: false,
     fireMode: "semi",
+    refireSeconds: 0.58,
     usesAmmo: "shotgun-ammo",
   },
   {
@@ -220,5 +226,7 @@ export const canWeaponUseAmmo = (weaponItemId: ItemId, ammoItemId: ItemId): bool
 };
 
 export const getItemFireMode = (itemId: ItemId): PlayerFireMode => getItemDefinition(itemId).fireMode ?? "semi";
+
+export const getItemRefireSeconds = (itemId: ItemId): number => getItemDefinition(itemId).refireSeconds ?? ATTACK_REFIRE_SECONDS;
 
 export const canPlaceItemInQuickSlot = (itemId: ItemId): boolean => getItemDefinition(itemId).quickSlotCompatible;

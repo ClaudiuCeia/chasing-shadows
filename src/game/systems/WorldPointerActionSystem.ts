@@ -162,6 +162,7 @@ export class WorldPointerActionSystem implements System {
       directionIndex,
       attackSelection.playbackDirection,
       pointer.phase,
+      player.inventory,
     );
     pointer.mode = triggered
       ? "attack"

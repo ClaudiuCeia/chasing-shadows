@@ -48,4 +48,42 @@ describe("InventoryComponent", () => {
     expect(remaining).toBe(4);
     expect(inventory.getBackpackSlots()[2]).toEqual({ itemId: "shotgun-ammo", count: 1 });
   });
+
+  test("consumes ammo from the active primary weapon slot", () => {
+    const inventory = new InventoryComponent(4);
+    inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
+    inventory.setWeaponAmmoSlot("mainWeaponAmmo", { itemId: "shotgun-ammo", count: 2 });
+
+    expect(inventory.consumeAmmoForActiveWeapon()).toBeTrue();
+    expect(inventory.getActiveWeaponAmmoCount()).toBe(1);
+    expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toEqual({ itemId: "shotgun-ammo", count: 1 });
+  });
+
+  test("consumes ammo from the active secondary weapon slot", () => {
+    const inventory = new InventoryComponent(4);
+    inventory.setEquipmentSlot("secondaryWeapon", { itemId: "pistol", count: 1 });
+    inventory.setWeaponAmmoSlot("secondaryWeaponAmmo", { itemId: "pistol-ammo", count: 1 });
+    inventory.setActiveSlot("secondary");
+
+    expect(inventory.consumeAmmoForActiveWeapon()).toBeTrue();
+    expect(inventory.getWeaponAmmoSlot("secondaryWeaponAmmo")).toBeNull();
+  });
+
+  test("fails to consume ammo when the equipped ranged weapon has no matching ammo", () => {
+    const inventory = new InventoryComponent(4);
+    inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
+    inventory.setWeaponAmmoSlot("mainWeaponAmmo", { itemId: "pistol-ammo", count: 3 });
+
+    expect(inventory.consumeAmmoForActiveWeapon()).toBeFalse();
+    expect(inventory.getActiveWeaponAmmoCount()).toBe(0);
+    expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toEqual({ itemId: "pistol-ammo", count: 3 });
+  });
+
+  test("does not require ammo for melee weapons", () => {
+    const inventory = new InventoryComponent(4);
+    inventory.setEquipmentSlot("mainWeapon", { itemId: "knife", count: 1 });
+
+    expect(inventory.consumeAmmoForActiveWeapon()).toBeTrue();
+    expect(inventory.getActiveWeaponAmmoCount()).toBeNull();
+  });
 });

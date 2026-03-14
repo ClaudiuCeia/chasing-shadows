@@ -158,6 +158,7 @@ describe("PointerMarkerSystem", () => {
       const player = new PlayerEntity(new Vector2D(0, 0), GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
       player.awake();
       player.inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
+      player.inventory.setWeaponAmmoSlot("mainWeaponAmmo", { itemId: "shotgun-ammo", count: 2 });
       PlayerAttackSystem.syncFireModeFromInventory(player.attack, player.inventory);
 
       const pointerMarker = new PointerMarkerSystem(camera, canvas, map, 6, runtime);
@@ -222,6 +223,7 @@ describe("PointerMarkerSystem", () => {
       const player = new PlayerEntity(new Vector2D(0, 0), GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
       player.awake();
       player.inventory.setEquipmentSlot("secondaryWeapon", { itemId: "pistol", count: 1 });
+      player.inventory.setWeaponAmmoSlot("secondaryWeaponAmmo", { itemId: "pistol-ammo", count: 2 });
       player.inventory.setActiveSlot("secondary");
       PlayerAttackSystem.syncFireModeFromInventory(player.attack, player.inventory);
 

@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { EcsRuntime, Entity, World } from "@claudiu-ceia/tick";
 import { InventoryComponent } from "../components/InventoryComponent.ts";
-import { PlayerAttackComponent } from "../components/PlayerAttackComponent.ts";
+import { DRY_FIRE_FEEDBACK_SECONDS, PlayerAttackComponent } from "../components/PlayerAttackComponent.ts";
+import { getItemRefireSeconds } from "../items/item-catalog.ts";
 import { ATTACK_SEMI_END_FRAME } from "../render/player-animation-logic.ts";
 import { PlayerAttackSystem } from "./PlayerAttackSystem.ts";
 
@@ -34,10 +35,67 @@ describe("PlayerAttackSystem", () => {
     inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
     PlayerAttackSystem.syncFireModeFromInventory(attack, inventory);
     expect(attack.fireMode).toBe("semi");
+    expect(attack.refireSeconds).toBe(getItemRefireSeconds("shotgun"));
 
     inventory.setEquipmentSlot("mainWeapon", { itemId: "ump5", count: 1 });
     PlayerAttackSystem.syncFireModeFromInventory(attack, inventory);
     expect(attack.fireMode).toBe("auto");
+    expect(attack.refireSeconds).toBe(getItemRefireSeconds("ump5"));
+  });
+
+  test("assigns distinct refire timings per weapon", () => {
+    expect(getItemRefireSeconds("ump5")).toBeLessThan(getItemRefireSeconds("pistol"));
+    expect(getItemRefireSeconds("pistol")).toBeLessThan(getItemRefireSeconds("shotgun"));
+  });
+
+  test("consumes ammo for semi-auto attacks", () => {
+    const attack = new PlayerAttackComponent();
+    const inventory = new InventoryComponent(8);
+
+    inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
+    inventory.setWeaponAmmoSlot("mainWeaponAmmo", { itemId: "shotgun-ammo", count: 2 });
+    PlayerAttackSystem.syncFireModeFromInventory(attack, inventory);
+
+    expect(PlayerAttackSystem.handleTrigger(attack, "attack1", 0, 1, "press", inventory)).toBeTrue();
+    expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toEqual({ itemId: "shotgun-ammo", count: 1 });
+  });
+
+  test("dry fires when the active ranged weapon has no ammo", () => {
+    const attack = new PlayerAttackComponent();
+    const inventory = new InventoryComponent(8);
+
+    inventory.setEquipmentSlot("secondaryWeapon", { itemId: "pistol", count: 1 });
+    inventory.setActiveSlot("secondary");
+    PlayerAttackSystem.syncFireModeFromInventory(attack, inventory);
+
+    expect(PlayerAttackSystem.handleTrigger(attack, "attack1", 0, 1, "press", inventory)).toBeFalse();
+    expect(attack.active).toBeFalse();
+    expect(attack.dryFireFeedbackRemaining).toBe(DRY_FIRE_FEEDBACK_SECONDS);
+    expect(inventory.getActiveWeaponAmmoCount()).toBe(0);
+  });
+
+  test("auto fire consumes ammo on refire and dry fires when empty", () => {
+    const attack = new PlayerAttackComponent();
+    const inventory = new InventoryComponent(8);
+
+    inventory.setEquipmentSlot("mainWeapon", { itemId: "ump5", count: 1 });
+    inventory.setWeaponAmmoSlot("mainWeaponAmmo", { itemId: "pistol-ammo", count: 2 });
+    PlayerAttackSystem.syncFireModeFromInventory(attack, inventory);
+
+    expect(PlayerAttackSystem.handleTrigger(attack, "runAttack", 2, 1, "press", inventory)).toBeTrue();
+    expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toEqual({ itemId: "pistol-ammo", count: 1 });
+
+    expect(PlayerAttackSystem.handleTrigger(attack, "runAttack", 2, 1, "hold", inventory)).toBeTrue();
+    expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toEqual({ itemId: "pistol-ammo", count: 1 });
+
+    attack.refireRemaining = 0;
+    expect(PlayerAttackSystem.handleTrigger(attack, "runAttack", 2, 1, "hold", inventory)).toBeTrue();
+    expect(inventory.getWeaponAmmoSlot("mainWeaponAmmo")).toBeNull();
+
+    attack.refireRemaining = 0;
+    expect(PlayerAttackSystem.handleTrigger(attack, "runAttack", 2, 1, "hold", inventory)).toBeFalse();
+    expect(attack.active).toBeFalse();
+    expect(attack.dryFireFeedbackRemaining).toBe(DRY_FIRE_FEEDBACK_SECONDS);
   });
 
   test("advances and completes semi-auto attacks", () => {

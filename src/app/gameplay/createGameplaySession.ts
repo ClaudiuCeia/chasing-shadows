@@ -91,6 +91,15 @@ const syncPlayerToTerrain = (tilemap: TilemapStateComponent, player: PlayerEntit
   player.tilePosition.set(position.x, position.y, elevation);
 };
 
+const applyStartingLoadout = (player: PlayerEntity): void => {
+  player.inventory.setEquipmentSlot("mainWeapon", { itemId: "ump5", count: 1 });
+  player.inventory.setWeaponAmmoSlot("mainWeaponAmmo", { itemId: "pistol-ammo", count: 60 });
+  player.inventory.setEquipmentSlot("secondaryWeapon", { itemId: "pistol", count: 1 });
+  player.inventory.setWeaponAmmoSlot("secondaryWeaponAmmo", { itemId: "pistol-ammo", count: 12 });
+  player.inventory.setActiveSlot("primary");
+  PlayerAttackSystem.syncFireModeFromInventory(player.attack, player.inventory);
+};
+
 const applySavedPlayerState = (player: PlayerEntity, tilemap: TilemapStateComponent, autosave: SaveGameV1): void => {
   player.transform.setPosition(autosave.player.position.x, autosave.player.position.y);
   player.transform.setRotation(autosave.player.rotation);
@@ -276,6 +285,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
     if (autosave) {
       applySavedPlayerState(player, tilemapEntity.tilemap, autosave);
     } else {
+      applyStartingLoadout(player);
       syncPlayerToTerrain(tilemapEntity.tilemap, player);
       worldState.structures.addInstance(createInitialStructure(tilemapEntity.tilemap, spawn.x, spawn.y));
     }

@@ -5,14 +5,13 @@ import {
   type EntityQuery,
   type System,
 } from "@claudiu-ceia/tick";
-import { PlayerAttackComponent } from "../components/PlayerAttackComponent.ts";
+import { DRY_FIRE_FEEDBACK_SECONDS, PlayerAttackComponent } from "../components/PlayerAttackComponent.ts";
 import { InventoryComponent } from "../components/InventoryComponent.ts";
 import { getSingletonComponent } from "../ecs/singleton.ts";
-import { getItemFireMode } from "../items/item-catalog.ts";
+import { getItemFireMode, getItemRefireSeconds } from "../items/item-catalog.ts";
 import {
   ATTACK_FPS,
   ATTACK_FRAME_COUNT,
-  ATTACK_REFIRE_SECONDS,
   ATTACK_SEMI_FRAME_COUNT,
   type PlayerAttackClipName,
 } from "../render/player-animation-logic.ts";
@@ -48,11 +47,13 @@ export class PlayerAttackSystem implements System {
   public static syncFireModeFromInventory(attack: PlayerAttackComponent, inventory: InventoryComponent): void {
     const activeWeapon = inventory.getEquippedWeaponForActiveSlot();
     const nextFireMode = activeWeapon ? getItemFireMode(activeWeapon.itemId) : "semi";
-    if (attack.fireMode === nextFireMode) {
+    const nextRefireSeconds = activeWeapon ? getItemRefireSeconds(activeWeapon.itemId) : attack.refireSeconds;
+    if (attack.fireMode === nextFireMode && attack.refireSeconds === nextRefireSeconds) {
       return;
     }
 
     attack.fireMode = nextFireMode;
+    attack.refireSeconds = nextRefireSeconds;
     if (attack.active) {
       PlayerAttackSystem.stopAttack(attack);
       attack.refireRemaining = 0;
@@ -61,13 +62,15 @@ export class PlayerAttackSystem implements System {
   }
 
   public static tick(attack: PlayerAttackComponent, deltaTime: number): void {
-    attack.refireRemaining = Math.max(0, attack.refireRemaining - Math.max(0, deltaTime));
+    const clampedDeltaTime = Math.max(0, deltaTime);
+    attack.refireRemaining = Math.max(0, attack.refireRemaining - clampedDeltaTime);
+    attack.dryFireFeedbackRemaining = Math.max(0, attack.dryFireFeedbackRemaining - clampedDeltaTime);
 
     if (!attack.active) {
       return;
     }
 
-    attack.frameCursor += Math.max(0, deltaTime) * ATTACK_FPS;
+    attack.frameCursor += clampedDeltaTime * ATTACK_FPS;
     if (attack.looping) {
       if (attack.frameCursor >= ATTACK_FRAME_COUNT) {
         attack.frameCursor %= ATTACK_FRAME_COUNT;
@@ -85,6 +88,12 @@ export class PlayerAttackSystem implements System {
     }
   }
 
+  public static triggerDryFire(attack: PlayerAttackComponent): void {
+    attack.dryFireFeedbackRemaining = DRY_FIRE_FEEDBACK_SECONDS;
+    attack.dryFireFeedbackCount += 1;
+    attack.refireRemaining = Math.max(attack.refireRemaining, attack.refireSeconds);
+  }
+
   public static startAttack(
     attack: PlayerAttackComponent,
     clip: PlayerAttackClipName,
@@ -97,9 +106,10 @@ export class PlayerAttackSystem implements System {
     attack.playbackDirection = playbackDirection;
     attack.frameCursor = 0;
     attack.looping = attack.fireMode === "auto";
-    attack.refireRemaining = ATTACK_REFIRE_SECONDS;
+    attack.refireRemaining = attack.refireSeconds;
     attack.releasedSinceLastShot = false;
     attack.releaseQueued = false;
+    attack.dryFireFeedbackRemaining = 0;
   }
 
   public static stopAttack(attack: PlayerAttackComponent): void {
@@ -122,6 +132,7 @@ export class PlayerAttackSystem implements System {
     directionIndex: number | null,
     playbackDirection: 1 | -1 | null,
     phase: "press" | "hold" | "release",
+    inventory: InventoryComponent | null = null,
   ): boolean {
     if (phase === "release") {
       if (attack.fireMode === "auto") {
@@ -145,18 +156,33 @@ export class PlayerAttackSystem implements System {
         return attack.active;
       }
 
+      if (inventory && !inventory.consumeAmmoForActiveWeapon()) {
+        PlayerAttackSystem.triggerDryFire(attack);
+        return false;
+      }
+
       PlayerAttackSystem.startAttack(attack, clip, directionIndex, playbackDirection);
       return true;
     }
 
-    const stateChanged =
-      !attack.active ||
-      attack.clip !== clip ||
-      attack.directionIndex !== directionIndex ||
-      attack.playbackDirection !== playbackDirection;
-    if (stateChanged) {
-      PlayerAttackSystem.startAttack(attack, clip, directionIndex, playbackDirection);
+    if (attack.refireRemaining > 0) {
+      if (attack.active) {
+        attack.clip = clip;
+        attack.directionIndex = directionIndex;
+        attack.playbackDirection = playbackDirection;
+        return true;
+      }
+
+      return false;
     }
+
+    if (inventory && !inventory.consumeAmmoForActiveWeapon()) {
+      PlayerAttackSystem.stopAttack(attack);
+      PlayerAttackSystem.triggerDryFire(attack);
+      return false;
+    }
+
+    PlayerAttackSystem.startAttack(attack, clip, directionIndex, playbackDirection);
 
     return true;
   }

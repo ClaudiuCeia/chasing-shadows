@@ -27,6 +27,7 @@ describe("WorldPointerActionSystem", () => {
       player.awake();
 
       player.inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
+      player.inventory.setWeaponAmmoSlot("mainWeaponAmmo", { itemId: "shotgun-ammo", count: 2 });
       PlayerAttackSystem.syncFireModeFromInventory(player.attack, player.inventory);
       expect(player.attack.fireMode).toBe("semi");
 
@@ -75,6 +76,7 @@ describe("WorldPointerActionSystem", () => {
       player.awake();
 
       player.inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
+      player.inventory.setWeaponAmmoSlot("mainWeaponAmmo", { itemId: "shotgun-ammo", count: 1 });
       PlayerAttackSystem.syncFireModeFromInventory(player.attack, player.inventory);
 
       const system = new WorldPointerActionSystem(map, GAME_CONFIG.lootBoxInteractRange, runtime);
@@ -109,6 +111,7 @@ describe("WorldPointerActionSystem", () => {
       player.awake();
 
       player.inventory.setEquipmentSlot("mainWeapon", { itemId: "ump5", count: 1 });
+      player.inventory.setWeaponAmmoSlot("mainWeaponAmmo", { itemId: "pistol-ammo", count: 1 });
 
       const system = new WorldPointerActionSystem(map, GAME_CONFIG.lootBoxInteractRange, runtime);
       system.awake();
@@ -165,6 +168,7 @@ describe("WorldPointerActionSystem", () => {
       player.awake();
 
       player.inventory.setEquipmentSlot("secondaryWeapon", { itemId: "pistol", count: 1 });
+      player.inventory.setWeaponAmmoSlot("secondaryWeaponAmmo", { itemId: "pistol-ammo", count: 1 });
       player.inventory.setActiveSlot("secondary");
 
       const system = new WorldPointerActionSystem(map, GAME_CONFIG.lootBoxInteractRange, runtime);
@@ -176,6 +180,35 @@ describe("WorldPointerActionSystem", () => {
 
       expect(player.attack.active).toBeTrue();
       expect(uiState.pointerWorld.mode).toBe("attack");
+    });
+  });
+
+  test("dry fires and stays idle when the active weapon has no ammo", () => {
+    const runtime = new EcsRuntime();
+
+    EcsRuntime.runWith(runtime, () => {
+      const map = new InfiniteTilemap({ seed: 1, chunkSize: 16 });
+      const uiState = new UiStateEntity();
+      const worldState = new WorldStateEntity({ seed: 1, spawnChance: 0 });
+      const player = new PlayerEntity(new Vector2D(0, 0), GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
+
+      uiState.awake();
+      worldState.awake();
+      player.awake();
+
+      player.inventory.setEquipmentSlot("mainWeapon", { itemId: "shotgun", count: 1 });
+
+      const system = new WorldPointerActionSystem(map, GAME_CONFIG.lootBoxInteractRange, runtime);
+      system.awake();
+
+      uiState.pointerWorld.setResolved(new Vector2D(5, 0), new Vector2D(0, 0), map.getElevationAt(5, 0));
+      uiState.pointerWorld.phase = "press";
+      system.update();
+
+      expect(player.attack.active).toBeFalse();
+      expect(uiState.pointerWorld.mode).toBeNull();
+      expect(player.attack.dryFireFeedbackRemaining).toBeGreaterThan(0);
+      expect(player.inventory.getActiveWeaponAmmoCount()).toBe(0);
     });
   });
 

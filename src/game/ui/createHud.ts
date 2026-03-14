@@ -74,13 +74,13 @@ export const createHud = (options: CreateHudOptions): Entity[] => {
   const quickbar = new HudNodeEntity();
   quickbar.addComponent(
     new HudLayoutNodeComponent({
-      width: 330,
-      height: 82,
+      width: 420,
+      height: 90,
       anchor: "bottom-center",
       offset: { x: 0, y: -18 },
     }),
   );
-  quickbar.addComponent(new QuickbarRenderComponent(options.inventory));
+  quickbar.addComponent(new QuickbarRenderComponent(options.inventory, options.player.attack));
 
   const fpsCounter = new HudNodeEntity();
   fpsCounter.addComponent(

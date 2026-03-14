@@ -6,11 +6,18 @@ import {
 } from "@claudiu-ceia/tick";
 import { GAME_CONFIG } from "../config/game-config.ts";
 import { InventoryComponent } from "../components/InventoryComponent.ts";
+import { DRY_FIRE_FEEDBACK_SECONDS, PlayerAttackComponent } from "../components/PlayerAttackComponent.ts";
 import { getItemDefinition } from "../items/item-catalog.ts";
 import { drawItemSprite, getItemSheet } from "./item-sprites.ts";
 
+const FRAME_PADDING = 10;
 const SLOT_GAP = 6;
 const SLOT_COUNT = 4;
+const AMMO_PANEL_GAP = 10;
+const AMMO_PANEL_WIDTH = 86;
+const AMMO_PANEL_HEIGHT = 58;
+const DRY_FIRE_SHAKE_DISTANCE = 6;
+const DRY_FIRE_SHAKE_OSCILLATIONS = 3.5;
 
 type QuickbarSlotView = {
   keyLabel: string;
@@ -22,7 +29,10 @@ type QuickbarSlotView = {
 export class QuickbarRenderComponent extends HudRenderComponent {
   private itemSheet: HTMLImageElement | null = null;
 
-  public constructor(private readonly inventory: InventoryComponent) {
+  public constructor(
+    private readonly inventory: InventoryComponent,
+    private readonly attack: PlayerAttackComponent,
+  ) {
     super();
 
     getItemSheet()
@@ -49,8 +59,8 @@ export class QuickbarRenderComponent extends HudRenderComponent {
     ctx.lineWidth = 1;
     ctx.strokeRect(frame.x, frame.y, frame.width, frame.height);
 
-    const innerWidth = frame.width - 20;
-    const slotSize = Math.floor((innerWidth - SLOT_GAP * (SLOT_COUNT - 1)) / SLOT_COUNT);
+    const slotsAreaWidth = frame.width - FRAME_PADDING * 2 - AMMO_PANEL_GAP - AMMO_PANEL_WIDTH;
+    const slotSize = Math.floor((slotsAreaWidth - SLOT_GAP * (SLOT_COUNT - 1)) / SLOT_COUNT);
     const slots: QuickbarSlotView[] = [
       {
         keyLabel: "1",
@@ -78,7 +88,7 @@ export class QuickbarRenderComponent extends HudRenderComponent {
       },
     ];
     const totalWidth = slotSize * SLOT_COUNT + SLOT_GAP * (SLOT_COUNT - 1);
-    const startX = Math.floor(frame.x + (frame.width - totalWidth) / 2);
+    const startX = Math.floor(frame.x + FRAME_PADDING);
     const y = Math.floor(frame.y + (frame.height - slotSize) / 2);
 
     for (let i = 0; i < SLOT_COUNT; i++) {
@@ -121,5 +131,56 @@ export class QuickbarRenderComponent extends HudRenderComponent {
         ctx.fillText(`${stack.count}`, x + slotSize - 5, y + slotSize - 4);
       }
     }
+
+    this.drawAmmoPanel(
+      ctx,
+      startX + totalWidth + AMMO_PANEL_GAP,
+      Math.floor(frame.y + (frame.height - AMMO_PANEL_HEIGHT) / 2),
+    );
+  }
+
+  private drawAmmoPanel(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+    const weapon = this.inventory.getEquippedWeaponForActiveSlot();
+    if (!weapon) {
+      return;
+    }
+
+    const definition = getItemDefinition(weapon.itemId);
+    if (definition.category !== "weapon" || !definition.usesAmmo) {
+      return;
+    }
+
+    const progress =
+      DRY_FIRE_FEEDBACK_SECONDS > 0
+        ? Math.max(0, Math.min(1, this.attack.dryFireFeedbackRemaining / DRY_FIRE_FEEDBACK_SECONDS))
+        : 0;
+    const elapsed = 1 - progress;
+    const shakeOffsetX =
+      progress > 0
+        ? Math.sin(elapsed * Math.PI * 2 * DRY_FIRE_SHAKE_OSCILLATIONS + this.attack.dryFireFeedbackCount * 0.75) *
+          DRY_FIRE_SHAKE_DISTANCE *
+          progress
+        : 0;
+    const panelX = x + Math.round(shakeOffsetX);
+
+    ctx.save();
+    ctx.fillStyle = progress > 0 ? "rgba(88, 36, 30, 0.96)" : "rgba(34, 40, 48, 0.95)";
+    ctx.fillRect(panelX, y, AMMO_PANEL_WIDTH, AMMO_PANEL_HEIGHT);
+
+    ctx.strokeStyle = progress > 0 ? "rgba(255, 163, 142, 0.98)" : "rgba(244, 233, 207, 0.55)";
+    ctx.lineWidth = progress > 0 ? 2 : 1;
+    ctx.strokeRect(panelX, y, AMMO_PANEL_WIDTH, AMMO_PANEL_HEIGHT);
+
+    ctx.fillStyle = "rgba(233, 222, 196, 0.82)";
+    ctx.font = "11px monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText("AMMO", panelX + AMMO_PANEL_WIDTH / 2, y + 8);
+
+    ctx.fillStyle = progress > 0 ? "#fff0e8" : "#f6f0e1";
+    ctx.font = "bold 28px monospace";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`${this.inventory.getActiveWeaponAmmoCount() ?? 0}`, panelX + AMMO_PANEL_WIDTH / 2, y + 38);
+    ctx.restore();
   }
 }
