@@ -14,6 +14,7 @@ import { TilemapEntity } from "../../game/entities/TilemapEntity.ts";
 import { UiStateEntity } from "../../game/entities/UiStateEntity.ts";
 import { WorldStateEntity } from "../../game/entities/WorldStateEntity.ts";
 import { DebugRayRenderComponent } from "../../game/render/DebugRayRenderComponent.ts";
+import { DebugVisibilityRenderComponent } from "../../game/render/DebugVisibilityRenderComponent.ts";
 import { IsometricCameraEntity } from "../../game/render/IsometricCameraEntity.ts";
 import { PlayerRenderComponent } from "../../game/render/PlayerRenderComponent.ts";
 import type { SaveGameV1 } from "../../game/state/save-types.ts";
@@ -38,6 +39,7 @@ import { StructureChunkSystem } from "../../game/systems/StructureChunkSystem.ts
 import { TerminatorSystem } from "../../game/systems/TerminatorSystem.ts";
 import { TilemapCollisionSystem } from "../../game/systems/TilemapCollisionSystem.ts";
 import { TopDownControllerSystem } from "../../game/systems/TopDownControllerSystem.ts";
+import { VisibilitySystem } from "../../game/systems/VisibilitySystem.ts";
 import { WorldPointerActionSystem } from "../../game/systems/WorldPointerActionSystem.ts";
 import { createHud } from "../../game/ui/createHud.ts";
 import { getTileSlopeRange, isTileFlat } from "../../game/world/tile-types.ts";
@@ -265,6 +267,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
     const player = new PlayerEntity(spawn, GAME_CONFIG.playerBaseSpeed, GAME_CONFIG.inventorySlots);
     player.bindTilemap(tilemapEntity.tilemap);
     player.addComponent(new PlayerRenderComponent());
+    player.addComponent(new DebugVisibilityRenderComponent(uiState.debugOverlay, worldState.visibility, tilemapEntity.tilemap.map, runtime));
     player.addComponent(new DebugRayRenderComponent(uiState.debugOverlay, tilemapEntity.tilemap.map));
 
     if (autosave) {
@@ -358,6 +361,7 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
   world.addSystem(new NeedsDecaySystem(runtime));
   world.addSystem(new ExposureSystem(roots.terminatorEntity.terminator, runtime));
   world.addSystem(new RaycastSystem(roots.tilemapEntity.tilemap.map, runtime));
+  world.addSystem(new VisibilitySystem(roots.tilemapEntity.tilemap.map, roots.player, runtime));
   world.addSystem(
     new PhysicsSystem({
       gravity: Vector2D.zero,

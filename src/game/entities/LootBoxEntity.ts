@@ -3,6 +3,7 @@ import { GAME_CONFIG } from "../config/game-config.ts";
 import { HighlightComponent } from "../components/HighlightComponent.ts";
 import { InteractableComponent } from "../components/InteractableComponent.ts";
 import { IsometricRenderNodeComponent } from "../components/IsometricRenderNodeComponent.ts";
+import { StaticWorldObjectComponent } from "../components/StaticWorldObjectComponent.ts";
 import { LootBoxSpriteComponent } from "../render/LootBoxSpriteComponent.ts";
 import { TilePositionComponent } from "../components/TilePositionComponent.ts";
 import { ObstacleEntity } from "./ObstacleEntity.ts";
@@ -27,6 +28,7 @@ export class LootBoxEntity extends ObstacleEntity {
 
     this.addComponent(this.interactable);
     this.addComponent(this.highlight);
+    this.addComponent(new StaticWorldObjectComponent("loot-box"));
     this.addComponent(new IsometricRenderNodeComponent());
     this.addComponent(this.tile);
     this.addComponent(this.sprite);

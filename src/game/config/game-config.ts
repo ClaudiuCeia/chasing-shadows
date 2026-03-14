@@ -50,6 +50,11 @@ export const GAME_CONFIG = {
   playerDamping: 18,
   playerWalkMultiplier: 0.62,
   playerCrouchMultiplier: 0.38,
+
+  // Visibility
+  playerVisibilityFovDegrees: 72,
+  playerVisibilityRayCount: 49,
+  visibilityTileSampleStep: 0.2,
 } as const;
 
 export const STORAGE_KEYS = {

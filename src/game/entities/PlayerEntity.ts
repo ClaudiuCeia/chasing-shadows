@@ -60,7 +60,11 @@ export class PlayerEntity extends Entity {
     this.health = new HealthComponent();
     this.inventory = new InventoryComponent(inventoryCapacity);
     this.attack = new PlayerAttackComponent();
-    this.rayEmitter = new RaycastEmitterComponent({ maxDistance: 18, fovRadians: 0, rayCount: 1 });
+    this.rayEmitter = new RaycastEmitterComponent({
+      maxDistance: 18,
+      fovRadians: (GAME_CONFIG.playerVisibilityFovDegrees * Math.PI) / 180,
+      rayCount: GAME_CONFIG.playerVisibilityRayCount,
+    });
     this.movementCollider = new CollisionEntity(
       new CircleCollisionShape(this.collisionRadius),
       "center",
