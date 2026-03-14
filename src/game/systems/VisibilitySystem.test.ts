@@ -144,4 +144,74 @@ describe("VisibilitySystem", () => {
 
     expect(worldState.visibility.getVisibleStructureKeys()).toContain("poc-shelter-5x5:2:-2:0:0");
   });
+
+  test("remembers visible tiles after they leave the current view", () => {
+    const world = new World();
+    const map = new InfiniteTilemap({ seed: 123, chunkSize: 16 });
+    const worldState = new WorldStateEntity({ seed: 123, spawnChance: 0 });
+    const player = new PlayerEntity(new Vector2D(0, 0), 4, 8);
+    player.bindTilemap({
+      getElevationAt: (x: number, y: number) => map.getElevationAt(x, y),
+    } as never);
+
+    worldState.awake();
+    player.awake();
+    player.update(1 / 60);
+    player.transform.setRotation(0);
+    player.rayEmitter.setCastProfile(6, 0, 1);
+
+    world.addSystem(new RaycastSystem(map));
+    world.addSystem(new VisibilitySystem(map, player));
+    world.step(1 / 60);
+
+    expect(worldState.visibility.isTileVisible(4, 0)).toBeTrue();
+    expect(worldState.visibility.isTileRemembered(4, 0)).toBeTrue();
+
+    player.transform.setRotation(Math.PI);
+    player.update(1 / 60);
+    world.step(1 / 60);
+
+    expect(worldState.visibility.isTileVisible(4, 0)).toBeFalse();
+    expect(worldState.visibility.isTileRemembered(4, 0)).toBeTrue();
+    expect(worldState.visibility.isTileVisible(-4, 0)).toBeTrue();
+  });
+
+  test("remembers structures after their footprint leaves the current view", () => {
+    const world = new World();
+    const map = new InfiniteTilemap({ seed: 123, chunkSize: 16 });
+    const worldState = new WorldStateEntity({ seed: 123, spawnChance: 0 });
+    const player = new PlayerEntity(new Vector2D(0, 0), 4, 8);
+    player.bindTilemap({
+      getElevationAt: (x: number, y: number) => map.getElevationAt(x, y),
+    } as never);
+
+    worldState.structures.addInstance({
+      blueprintId: "poc-shelter-5x5",
+      originX: 6,
+      originY: -2,
+      baseZ: 0,
+      rotation: StructureRotation.North,
+    });
+
+    worldState.awake();
+    player.awake();
+    player.update(1 / 60);
+    player.transform.setRotation(0);
+    player.rayEmitter.setCastProfile(12, Math.PI / 2, 31);
+
+    world.addSystem(new RaycastSystem(map));
+    world.addSystem(new VisibilitySystem(map, player));
+    world.step(1 / 60);
+
+    const key = "poc-shelter-5x5:6:-2:0:0";
+    expect(worldState.visibility.isStructureVisible(key)).toBeTrue();
+    expect(worldState.visibility.isStructureRemembered(key)).toBeTrue();
+
+    player.transform.setRotation(Math.PI);
+    player.update(1 / 60);
+    world.step(1 / 60);
+
+    expect(worldState.visibility.isStructureVisible(key)).toBeFalse();
+    expect(worldState.visibility.isStructureRemembered(key)).toBeTrue();
+  });
 });

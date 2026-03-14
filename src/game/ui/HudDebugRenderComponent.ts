@@ -88,6 +88,8 @@ export class HudDebugRenderComponent extends HudRenderComponent {
       `Head z: ${headElevation.toFixed(2)}`,
       `Rays: ${this.player.rayEmitter.rayCount}`,
       `Visible tiles: ${visibility?.getVisibleTiles().length ?? 0}`,
+      `Remembered tiles: ${visibility?.getRememberedTiles().length ?? 0}`,
+      `Remembered structures: ${visibility?.getRememberedStructureKeys().length ?? 0}`,
       `Visible static: ${visibility?.getVisibleStaticObjectIds().length ?? 0}`,
       primaryRay?.hit
         ? `Hit: ${primaryRay.hit.entity?.constructor.name.replace(/Entity$/, "") ?? primaryRay.hit.type} @ ${primaryRay.hit.distance.toFixed(2)}`

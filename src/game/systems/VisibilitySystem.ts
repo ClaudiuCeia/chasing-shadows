@@ -116,6 +116,12 @@ export class VisibilitySystem implements System {
     const visibleTileKeys = new Set(visibleTiles.keys());
     visibility.setVisibleStructures(this.computeVisibleStructures(structures.getInstances(), visibleTileKeys));
 
+    visibility.rememberTiles(visibleTiles.values());
+    const rememberedTileKeys = new Set(
+      visibility.getRememberedTiles().map((tile) => tileKey(tile.x, tile.y)),
+    );
+    visibility.setRememberedStructures(this.computeVisibleStructures(structures.getInstances(), rememberedTileKeys));
+
     const { objectIds, occupiedTiles } = this.computeVisibleStaticObjects(visibleTileKeys);
     visibility.setVisibleStaticObjects(objectIds, occupiedTiles);
   }

@@ -13,12 +13,16 @@ export class VisibilityStateComponent extends Component {
   private visibleStructureKeys = new Set<string>();
   private visibleStaticObjectIds = new Set<string>();
   private visibleStaticObjectTiles = new Map<string, VisibilityTile>();
+  private rememberedTiles = new Map<string, VisibilityTile>();
+  private rememberedStructureKeys = new Set<string>();
 
   public clear(): void {
     this.visibleTiles.clear();
     this.visibleStructureKeys.clear();
     this.visibleStaticObjectIds.clear();
     this.visibleStaticObjectTiles.clear();
+    this.rememberedTiles.clear();
+    this.rememberedStructureKeys.clear();
   }
 
   public setVisibleTiles(tiles: Iterable<VisibilityTile>): void {
@@ -40,12 +44,30 @@ export class VisibilityStateComponent extends Component {
     }
   }
 
+  public rememberTiles(tiles: Iterable<VisibilityTile>): void {
+    for (const tile of tiles) {
+      this.rememberedTiles.set(tileKey(tile.x, tile.y), cloneTile(tile));
+    }
+  }
+
+  public setRememberedStructures(structureKeys: Iterable<string>): void {
+    this.rememberedStructureKeys = new Set(structureKeys);
+  }
+
   public getVisibleTiles(): readonly VisibilityTile[] {
     return Array.from(this.visibleTiles.values(), cloneTile);
   }
 
+  public getRememberedTiles(): readonly VisibilityTile[] {
+    return Array.from(this.rememberedTiles.values(), cloneTile);
+  }
+
   public getVisibleStructureKeys(): readonly string[] {
     return Array.from(this.visibleStructureKeys.values());
+  }
+
+  public getRememberedStructureKeys(): readonly string[] {
+    return Array.from(this.rememberedStructureKeys.values());
   }
 
   public getVisibleStaticObjectIds(): readonly string[] {
@@ -60,8 +82,16 @@ export class VisibilityStateComponent extends Component {
     return this.visibleTiles.has(tileKey(x, y));
   }
 
+  public isTileRemembered(x: number, y: number): boolean {
+    return this.rememberedTiles.has(tileKey(x, y));
+  }
+
   public isStructureVisible(key: string): boolean {
     return this.visibleStructureKeys.has(key);
+  }
+
+  public isStructureRemembered(key: string): boolean {
+    return this.rememberedStructureKeys.has(key);
   }
 
   public isStaticObjectVisible(id: string): boolean {
