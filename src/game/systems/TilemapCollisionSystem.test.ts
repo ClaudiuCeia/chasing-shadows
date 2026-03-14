@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { CollisionEntity, EcsRuntime, PhysicsSystem, Vector2D, World } from "@claudiu-ceia/tick";
 import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
 import { LootBoxEntity } from "../entities/LootBoxEntity.ts";
+import { NpcEntity } from "../entities/NpcEntity.ts";
 import { PlayerEntity } from "../entities/PlayerEntity.ts";
 import { ObstacleCollisionSystem } from "./ObstacleCollisionSystem.ts";
 import { TopDownControllerSystem } from "./TopDownControllerSystem.ts";
@@ -38,9 +39,7 @@ describe("TilemapCollisionSystem", () => {
     player.getComponent(MovementIntentComponent).setIntent(0, 1, false, false);
 
     world.addSystem(
-      new TilemapCollisionSystem(map, player, {
-        playerRadius: player.collisionRadius,
-      }),
+      new TilemapCollisionSystem(map, {}),
     );
 
     stepN(world, 220, 1 / 60);
@@ -61,9 +60,7 @@ describe("TilemapCollisionSystem", () => {
     player.getComponent(MovementIntentComponent).setIntent(0, 1, false, false);
 
     world.addSystem(
-      new TilemapCollisionSystem(map, player, {
-        playerRadius: player.collisionRadius,
-      }),
+      new TilemapCollisionSystem(map, {}),
     );
 
     stepN(world, 120, 1 / 60);
@@ -87,9 +84,7 @@ describe("TilemapCollisionSystem", () => {
     player.body.setVelocity(new Vector2D(2.6, 1.2));
 
     world.addSystem(
-      new TilemapCollisionSystem(map, player, {
-        playerRadius: player.collisionRadius,
-      }),
+      new TilemapCollisionSystem(map, {}),
     );
 
     stepN(world, 20, 1 / 60);
@@ -118,8 +113,7 @@ describe("TilemapCollisionSystem", () => {
     player.getComponent(MovementIntentComponent).setIntent(0, 1, false, false);
 
     world.addSystem(
-      new TilemapCollisionSystem(map, player, {
-        playerRadius: player.collisionRadius,
+      new TilemapCollisionSystem(map, {
         maxStepUp: 0.8,
       }),
     );
@@ -153,8 +147,7 @@ describe("TilemapCollisionSystem", () => {
     player.getComponent(MovementIntentComponent).setIntent(0, 1, false, false);
 
     world.addSystem(
-      new TilemapCollisionSystem(map, player, {
-        playerRadius: player.collisionRadius,
+      new TilemapCollisionSystem(map, {
         maxStepUp: 1,
         maxStepDown: 0.75,
       }),
@@ -195,8 +188,7 @@ describe("TilemapCollisionSystem", () => {
     player.getComponent(MovementIntentComponent).setIntent(0, 1, false, false);
 
     world.addSystem(
-      new TilemapCollisionSystem(map, player, {
-        playerRadius: player.collisionRadius,
+      new TilemapCollisionSystem(map, {
         maxStepUp: 1,
         maxStepDown: 1,
       }),
@@ -219,8 +211,7 @@ describe("TilemapCollisionSystem", () => {
     player.getComponent(MovementIntentComponent).setIntent(0, 1, false, false);
 
     world.addSystem(
-      new TilemapCollisionSystem(map, player, {
-        playerRadius: player.collisionRadius,
+      new TilemapCollisionSystem(map, {
         isBlockedAt: (tileX, tileY) => tileX === 1 && tileY === 0,
       }),
     );
@@ -244,11 +235,9 @@ describe("TilemapCollisionSystem", () => {
     const obstacle = new LootBoxEntity(1, 0, 0, 0);
     obstacle.awake();
 
-    world.addSystem(new ObstacleCollisionSystem(player));
+    world.addSystem(new ObstacleCollisionSystem());
     world.addSystem(
-      new TilemapCollisionSystem(map, player, {
-        playerRadius: player.collisionRadius,
-      }),
+      new TilemapCollisionSystem(map, {}),
     );
 
     stepN(world, 220, 1 / 60);
@@ -267,11 +256,9 @@ describe("TilemapCollisionSystem", () => {
     const obstacle = new LootBoxEntity(1, 0, 0, 0);
     obstacle.awake();
 
-    world.addSystem(new ObstacleCollisionSystem(player, { iterations: 6 }));
+    world.addSystem(new ObstacleCollisionSystem({ iterations: 6 }));
     world.addSystem(
-      new TilemapCollisionSystem(map, player, {
-        playerRadius: player.collisionRadius,
-      }),
+      new TilemapCollisionSystem(map, {}),
     );
 
     world.step(1 / 60);
@@ -280,5 +267,33 @@ describe("TilemapCollisionSystem", () => {
     const obstacleCollider = obstacle.getChild(CollisionEntity);
     expect(obstacleCollider).not.toBeNull();
     expect(playerCollider.isColliding(obstacleCollider!)).toBeFalse();
+  });
+
+  test("applies the same tile collision rules to NPCs", () => {
+    const map = new InfiniteTilemap({ seed: 66, chunkSize: 16 });
+    map.setTileData(1, 0, {
+      ...createTileData("rock"),
+      blocking: true,
+      occluder: true,
+    });
+
+    const world = new World({ fixedDeltaTime: 1 / 60 });
+    world.addSystem(new TopDownControllerSystem({ isoConfig: { tileWidth: 128, tileHeight: 64 } }));
+    world.addSystem(new PhysicsSystem({ gravity: Vector2D.zero }));
+
+    const player = new PlayerEntity(new Vector2D(-10, -10), 7, 8);
+    player.awake();
+
+    const npc = new NpcEntity(new Vector2D(0, 0), 77);
+    npc.awake();
+    npc.transform.transform.rotation = 0;
+    npc.getComponent(MovementIntentComponent).setIntent(0, 1, false, false);
+
+    world.addSystem(new ObstacleCollisionSystem());
+    world.addSystem(new TilemapCollisionSystem(map, {}));
+
+    stepN(world, 220, 1 / 60);
+
+    expect(npc.transform.transform.position.x).toBeLessThanOrEqual(0.31);
   });
 });

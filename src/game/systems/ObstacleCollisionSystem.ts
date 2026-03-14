@@ -11,12 +11,19 @@ import {
   type EntityQuery,
   type System,
 } from "@claudiu-ceia/tick";
+import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
 import { ObstacleComponent } from "../components/ObstacleComponent.ts";
 import { ObstacleEntity } from "../entities/ObstacleEntity.ts";
-import { PlayerEntity } from "../entities/PlayerEntity.ts";
+import { TopDownControllerComponent } from "../components/TopDownControllerComponent.ts";
 
 const EPSILON = 1e-8;
 const SEPARATION_EPSILON = 1e-4;
+
+type CollisionActorEntity = Entity & {
+  movementCollider: CollisionEntity;
+  getComponent(constr: typeof TransformComponent): TransformComponent;
+  getComponent(constr: typeof PhysicsBodyComponent): PhysicsBodyComponent;
+};
 
 export type ObstacleCollisionSystemOptions = {
   iterations?: number;
@@ -30,10 +37,10 @@ export class ObstacleCollisionSystem implements System {
   private readonly iterations: number;
   private readonly broadphase: SpatialHashBroadphase;
   private readonly runtime: EcsRuntime;
-  private query: EntityQuery | null = null;
+  private obstacleQuery: EntityQuery | null = null;
+  private actorQuery: EntityQuery | null = null;
 
   public constructor(
-    private readonly player: PlayerEntity,
     options: ObstacleCollisionSystemOptions = {},
     runtime: EcsRuntime = EcsRuntime.getCurrent(),
   ) {
@@ -43,65 +50,73 @@ export class ObstacleCollisionSystem implements System {
   }
 
   public awake(): void {
-    this.query = this.runtime.registry.query().with(ObstacleComponent);
+    this.obstacleQuery = this.runtime.registry.query().with(ObstacleComponent);
+    this.actorQuery = this.runtime.registry
+      .query()
+      .with(TransformComponent)
+      .with(PhysicsBodyComponent)
+      .with(MovementIntentComponent)
+      .with(TopDownControllerComponent);
   }
 
   public update(): void {
-    if (!this.query) {
+    if (!this.obstacleQuery || !this.actorQuery) {
       return;
     }
 
-    const transform = this.player.getComponent(TransformComponent);
-    const body = this.player.getComponent(PhysicsBodyComponent);
-    const playerCollider = this.player.movementCollider;
-
-    const obstacleColliders = this.collectBlockingColliders();
-    if (obstacleColliders.length === 0) {
+    const actors = [...this.actorQuery.run()] as CollisionActorEntity[];
+    if (actors.length === 0) {
       return;
     }
 
-    const totalCorrection = Vector2D.zero;
-    let hadCollision = false;
+    const staticObstacleColliders = this.collectStaticBlockingColliders();
+    const actorColliders = actors.map((actor) => actor.movementCollider);
+    if (staticObstacleColliders.length === 0 && actorColliders.length <= 1) {
+      return;
+    }
 
-    for (let i = 0; i < this.iterations; i++) {
-      const correction = this.resolvePass(playerCollider, obstacleColliders);
-      if (correction.magnitude <= EPSILON) {
-        break;
+    for (const actor of actors) {
+      const transform = actor.getComponent(TransformComponent);
+      const body = actor.getComponent(PhysicsBodyComponent);
+      const totalCorrection = Vector2D.zero;
+      let hadCollision = false;
+
+      for (let i = 0; i < this.iterations; i++) {
+        const correction = this.resolvePass(actor.movementCollider, [...staticObstacleColliders, ...actorColliders]);
+        if (correction.magnitude <= EPSILON) {
+          break;
+        }
+
+        hadCollision = true;
+        transform.translate(correction.x, correction.y);
+        totalCorrection.x += correction.x;
+        totalCorrection.y += correction.y;
       }
 
-      hadCollision = true;
-      transform.translate(correction.x, correction.y);
-      totalCorrection.x += correction.x;
-      totalCorrection.y += correction.y;
-    }
-
-    if (!hadCollision || totalCorrection.magnitude <= EPSILON) {
-      return;
-    }
-
-    const normal = totalCorrection.normalize();
-    const velocity = body.getVelocity();
-    const velocityAlongNormal = velocity.dot(normal);
-    if (velocityAlongNormal < 0) {
-      const adjusted = velocity.subtract(normal.multiply(velocityAlongNormal));
-      body.setVelocity(adjusted.magnitude <= EPSILON ? Vector2D.zero : adjusted);
-    }
-  }
-
-  private collectBlockingColliders(): CollisionEntity[] {
-    const colliders: CollisionEntity[] = [];
-
-    for (const entity of this.query?.run() as Entity[]) {
-      if (entity.id === this.player.id) {
+      if (!hadCollision || totalCorrection.magnitude <= EPSILON) {
         continue;
       }
 
+      const normal = totalCorrection.normalize();
+      const velocity = body.getVelocity();
+      const velocityAlongNormal = velocity.dot(normal);
+      if (velocityAlongNormal < 0) {
+        const adjusted = velocity.subtract(normal.multiply(velocityAlongNormal));
+        body.setVelocity(adjusted.magnitude <= EPSILON ? Vector2D.zero : adjusted);
+      }
+    }
+  }
+
+  private collectStaticBlockingColliders(): CollisionEntity[] {
+    const colliders: CollisionEntity[] = [];
+
+    for (const entity of this.obstacleQuery?.run() as Entity[]) {
       const obstacle = entity.getComponent(ObstacleComponent);
       if (!obstacle.blocksMovement) {
         continue;
       }
 
-      if (entity instanceof ObstacleEntity) {
+      if (entity instanceof ObstacleEntity && !entity.hasComponent(PhysicsBodyComponent)) {
         colliders.push(entity.movementCollider);
       }
     }

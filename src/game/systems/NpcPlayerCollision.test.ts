@@ -19,7 +19,7 @@ describe("NPC/player collision", () => {
       npc.awake();
 
       const world = new World({ runtime, fixedDeltaTime: 1 / 60 });
-      world.addSystem(new ObstacleCollisionSystem(player, { iterations: 5 }, runtime));
+      world.addSystem(new ObstacleCollisionSystem({ iterations: 5 }, runtime));
       world.step(1 / 60);
 
       expect(player.transform.transform.position.x).toBeLessThan(0);

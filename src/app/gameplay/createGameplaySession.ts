@@ -32,9 +32,7 @@ import { LootBoxChunkSystem } from "../../game/systems/LootBoxChunkSystem.ts";
 import { LootInteractSystem } from "../../game/systems/LootInteractSystem.ts";
 import { NeedsDecaySystem } from "../../game/systems/NeedsDecaySystem.ts";
 import { NpcChunkSystem } from "../../game/systems/NpcChunkSystem.ts";
-import { NpcObstacleCollisionSystem } from "../../game/systems/NpcObstacleCollisionSystem.ts";
 import { NpcRoamingSystem } from "../../game/systems/NpcRoamingSystem.ts";
-import { NpcTilemapCollisionSystem } from "../../game/systems/NpcTilemapCollisionSystem.ts";
 import { ObstacleCollisionSystem } from "../../game/systems/ObstacleCollisionSystem.ts";
 import { PlayerAttackSystem } from "../../game/systems/PlayerAttackSystem.ts";
 import { PointerMarkerSystem } from "../../game/systems/PointerMarkerSystem.ts";
@@ -384,9 +382,9 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
       broadphaseCellSize: 2,
     }),
   );
-  world.addSystem(new NpcObstacleCollisionSystem(roots.player, { iterations: 5 }, runtime));
+  world.addSystem(new ObstacleCollisionSystem({ iterations: 5 }, runtime));
   world.addSystem(
-    new NpcTilemapCollisionSystem(
+    new TilemapCollisionSystem(
       roots.tilemapEntity.tilemap.map,
       {
         iterations: 5,
@@ -394,19 +392,6 @@ export const createGameplaySession = (options: CreateGameplaySessionOptions): Ga
         maxStepDown: GAME_CONFIG.maxStepDownHeight,
       },
       runtime,
-    ),
-  );
-  world.addSystem(new ObstacleCollisionSystem(roots.player, { iterations: 5 }, runtime));
-  world.addSystem(
-    new TilemapCollisionSystem(
-      roots.tilemapEntity.tilemap.map,
-      roots.player,
-      {
-        playerRadius: roots.player.collisionRadius,
-        iterations: 5,
-        maxStepUp: GAME_CONFIG.maxStepUpHeight,
-        maxStepDown: GAME_CONFIG.maxStepDownHeight,
-      },
     ),
   );
   world.addSystem(new CameraFollowSystem(camera, roots.player, { followStrength: GAME_CONFIG.cameraFollowStrength }));

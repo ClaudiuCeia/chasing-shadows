@@ -1,17 +1,25 @@
 import {
+  EcsRuntime,
   PhysicsBodyComponent,
   SystemPhase,
   SystemTickMode,
   TransformComponent,
   Vector2D,
+  type EntityQuery,
   type System,
 } from "@claudiu-ceia/tick";
-import { PlayerEntity } from "../entities/PlayerEntity.ts";
+import { MovementIntentComponent } from "../components/MovementIntentComponent.ts";
+import { TopDownControllerComponent } from "../components/TopDownControllerComponent.ts";
 import { InfiniteTilemap } from "../world/InfiniteTilemap.ts";
 import { clamp } from "../../shared/math/clamp.ts";
 
+type CollisionActorEntity = {
+  collisionRadius: number;
+  getComponent(constr: typeof TransformComponent): TransformComponent;
+  getComponent(constr: typeof PhysicsBodyComponent): PhysicsBodyComponent;
+};
+
 export type TilemapCollisionSystemOptions = {
-  playerRadius: number;
   tileHalfExtent?: number;
   iterations?: number;
   maxStepUp?: number;
@@ -31,66 +39,83 @@ export class TilemapCollisionSystem implements System {
   private readonly maxStepUp: number;
   private readonly maxStepDown: number;
   private readonly isBlockedAt?: (tileX: number, tileY: number) => boolean;
+  private readonly runtime: EcsRuntime;
+  private query: EntityQuery | null = null;
 
   public constructor(
     private readonly map: InfiniteTilemap,
-    private readonly player: PlayerEntity,
     options: TilemapCollisionSystemOptions,
+    runtime: EcsRuntime = EcsRuntime.getCurrent(),
   ) {
-    this.playerRadius = Math.max(0.05, options.playerRadius);
     this.tileHalfExtent = Math.max(0.1, options.tileHalfExtent ?? 0.5);
     this.iterations = Math.max(1, Math.floor(options.iterations ?? 4));
     this.maxStepUp = Math.max(0, options.maxStepUp ?? 0.75);
     this.maxStepDown = Math.max(0, options.maxStepDown ?? 2);
     this.isBlockedAt = options.isBlockedAt;
+    this.runtime = runtime;
+  }
+
+  public awake(): void {
+    this.query = this.runtime.registry
+      .query()
+      .with(TransformComponent)
+      .with(PhysicsBodyComponent)
+      .with(MovementIntentComponent)
+      .with(TopDownControllerComponent);
   }
 
   public update(): void {
-    const transform = this.player.getComponent(TransformComponent);
-    const body = this.player.getComponent(PhysicsBodyComponent);
-    const position = transform.transform.position.clone();
-    const totalCorrection = Vector2D.zero;
+    if (!this.query) {
+      return;
+    }
 
-    let hadCollision = false;
+    for (const actor of this.query.run() as CollisionActorEntity[]) {
+      const transform = actor.getComponent(TransformComponent);
+      const body = actor.getComponent(PhysicsBodyComponent);
+      const position = transform.transform.position.clone();
+      const totalCorrection = Vector2D.zero;
 
-    for (let i = 0; i < this.iterations; i++) {
-      const correction = this.resolvePass(position);
-      if (correction.magnitude <= EPSILON) {
-        break;
+      let hadCollision = false;
+
+      for (let i = 0; i < this.iterations; i++) {
+        const correction = this.resolvePass(position, Math.max(0.05, actor.collisionRadius));
+        if (correction.magnitude <= EPSILON) {
+          break;
+        }
+
+        hadCollision = true;
+        position.x += correction.x;
+        position.y += correction.y;
+        totalCorrection.x += correction.x;
+        totalCorrection.y += correction.y;
       }
 
-      hadCollision = true;
-      position.x += correction.x;
-      position.y += correction.y;
-      totalCorrection.x += correction.x;
-      totalCorrection.y += correction.y;
-    }
+      if (!hadCollision) {
+        continue;
+      }
 
-    if (!hadCollision) {
-      return;
-    }
+      transform.setPosition(position);
 
-    transform.setPosition(position);
+      if (totalCorrection.magnitude <= EPSILON) {
+        continue;
+      }
 
-    const velocity = body.getVelocity();
-    if (totalCorrection.magnitude <= EPSILON) {
-      return;
-    }
-
-    const normal = totalCorrection.normalize();
-    const velocityAlongNormal = velocity.dot(normal);
-    if (velocityAlongNormal < 0) {
-      const adjusted = velocity.subtract(normal.multiply(velocityAlongNormal));
-      body.setVelocity(adjusted.magnitude <= EPSILON ? Vector2D.zero : adjusted);
+      const velocity = body.getVelocity();
+      const normal = totalCorrection.normalize();
+      const velocityAlongNormal = velocity.dot(normal);
+      if (velocityAlongNormal < 0) {
+        const adjusted = velocity.subtract(normal.multiply(velocityAlongNormal));
+        body.setVelocity(adjusted.magnitude <= EPSILON ? Vector2D.zero : adjusted);
+      }
     }
   }
 
-  private resolvePass(position: Vector2D): Vector2D {
+  private resolvePass(position: Vector2D, collisionRadius: number): Vector2D {
     const currentElevation = this.map.getElevationAt(position.x, position.y);
-    const minX = Math.floor(position.x - this.playerRadius - this.tileHalfExtent);
-    const maxX = Math.floor(position.x + this.playerRadius + this.tileHalfExtent);
-    const minY = Math.floor(position.y - this.playerRadius - this.tileHalfExtent);
-    const maxY = Math.floor(position.y + this.playerRadius + this.tileHalfExtent);
+    const minX = Math.floor(position.x - collisionRadius - this.tileHalfExtent);
+    const maxX = Math.floor(position.x + collisionRadius + this.tileHalfExtent);
+    const minY = Math.floor(position.y - collisionRadius - this.tileHalfExtent);
+    const maxY = Math.floor(position.y + collisionRadius + this.tileHalfExtent);
 
     let best: Vector2D | null = null;
 
@@ -99,7 +124,7 @@ export class TilemapCollisionSystem implements System {
         const tile = this.map.getTile(x, y);
         const blockedByDynamicObstacle = this.isBlockedAt?.(x, y) ?? false;
 
-        const correction = this.circleVsTileCorrection(position, x, y);
+        const correction = this.circleVsTileCorrection(position, collisionRadius, x, y);
         if (!correction) {
           continue;
         }
@@ -124,7 +149,7 @@ export class TilemapCollisionSystem implements System {
     return best ?? Vector2D.zero;
   }
 
-  private circleVsTileCorrection(position: Vector2D, tileX: number, tileY: number): Vector2D | null {
+  private circleVsTileCorrection(position: Vector2D, collisionRadius: number, tileX: number, tileY: number): Vector2D | null {
     const minX = tileX - this.tileHalfExtent;
     const maxX = tileX + this.tileHalfExtent;
     const minY = tileY - this.tileHalfExtent;
@@ -135,7 +160,7 @@ export class TilemapCollisionSystem implements System {
     const dx = position.x - closestX;
     const dy = position.y - closestY;
     const distSq = dx * dx + dy * dy;
-    const radiusSq = this.playerRadius * this.playerRadius;
+    const radiusSq = collisionRadius * collisionRadius;
 
     if (distSq >= radiusSq) {
       return null;
@@ -143,7 +168,7 @@ export class TilemapCollisionSystem implements System {
 
     if (distSq > EPSILON) {
       const dist = Math.sqrt(distSq);
-      const penetration = this.playerRadius - dist;
+      const penetration = collisionRadius - dist;
       return new Vector2D((dx / dist) * penetration, (dy / dist) * penetration);
     }
 
@@ -151,8 +176,8 @@ export class TilemapCollisionSystem implements System {
     const tileCenterY = tileY;
     const axisX = position.x >= tileCenterX ? 1 : -1;
     const axisY = position.y >= tileCenterY ? 1 : -1;
-    const pushX = this.playerRadius + this.tileHalfExtent - Math.abs(position.x - tileCenterX);
-    const pushY = this.playerRadius + this.tileHalfExtent - Math.abs(position.y - tileCenterY);
+    const pushX = collisionRadius + this.tileHalfExtent - Math.abs(position.x - tileCenterX);
+    const pushY = collisionRadius + this.tileHalfExtent - Math.abs(position.y - tileCenterY);
 
     if (pushX < pushY) {
       return new Vector2D(axisX * pushX, 0);
